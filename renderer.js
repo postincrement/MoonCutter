@@ -384,4 +384,17 @@ window.bitmapAPI = {
     updatePixel,
     getPixel,
     createBitmap
-}; 
+};
+
+// Tab switching functionality
+document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', () => {
+        // Remove active class from all buttons and panes
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+        
+        // Add active class to clicked button and corresponding pane
+        button.classList.add('active');
+        document.getElementById(`${button.dataset.tab}-tab`).classList.add('active');
+    });
+}); 
