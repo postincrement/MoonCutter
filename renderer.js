@@ -22,6 +22,7 @@ let isConnected = false; // Track connection state
 let currentX = 0; // Current X coordinate
 let currentY = 0; // Current Y coordinate
 
+
 // Function to update serial port list
 function updateSerialPortList(ports) {
     // Store current selection
@@ -195,18 +196,18 @@ connectButton.addEventListener('click', () => {
     // Send a message to the main process with the selected port and initial values
     ipcRenderer.send('connect-button-clicked', {
         port: selectedPort,
-        message: [10, 0, 4, 0],
         timestamp: new Date().toISOString()
     });
 });
 
 // Handle connection response
 ipcRenderer.on('connect-response', (event, data) => {
-    console.log('Connection response:', data);
+  sendLogMessage('Connection response:', data);
     if (data.status === 'connected') {
         isConnected = true;
         connectButton.textContent = 'Connected';
         connectButton.disabled = true;
+        // Enable all control buttons
         fanButton.disabled = false;
         homeButton.disabled = false;
         centerButton.disabled = false;
@@ -215,9 +216,16 @@ ipcRenderer.on('connect-response', (event, data) => {
         leftButton.disabled = false;
         rightButton.disabled = false;
         connectionIndicator.classList.add('connected');
+        
+        // Log successful connection
+        sendLogMessage('Successfully connected to serial port');
+        sendLogMessage('Home response:', data.homeResponse);
+        sendLogMessage('Fan response:', data.fanResponse);
     } else if (data.status === 'error') {
         isConnected = false;
-        alert(`Connection error: ${data.message}`);
+        connectButton.textContent = 'Connect';
+        connectButton.disabled = false;
+        // Disable all control buttons
         fanButton.disabled = true;
         homeButton.disabled = true;
         centerButton.disabled = true;
@@ -226,6 +234,10 @@ ipcRenderer.on('connect-response', (event, data) => {
         leftButton.disabled = true;
         rightButton.disabled = true;
         connectionIndicator.classList.remove('connected');
+        
+        // Log connection error
+        console.error('Connection error:', data.message);
+        alert(`Connection error: ${data.message}`);
     }
 });
 
@@ -397,4 +409,9 @@ document.querySelectorAll('.tab-button').forEach(button => {
         button.classList.add('active');
         document.getElementById(`${button.dataset.tab}-tab`).classList.add('active');
     });
-}); 
+});
+
+// Function to send log messages to the log window
+function sendLogMessage(message, type = 'info') {
+    ipcRenderer.send('log-message', { message, type });
+} 

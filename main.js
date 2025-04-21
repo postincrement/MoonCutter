@@ -1,5 +1,5 @@
 require('source-map-support').install();
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const { SerialPort } = require('serialport');
 const Protocol = require('./protocol');
@@ -41,6 +41,8 @@ if (debug) {
 
 let currentPort = null;
 let protocol = null;
+let logWindow = null;
+
 
 // Handle serial port list request
 ipcMain.on('request-serial-ports', async (event) => {
@@ -95,6 +97,7 @@ ipcMain.on('connect-button-clicked', async (event, data) => {
 
             // Send initial message using values from renderer
             const message = Buffer.from(COMMANDS.CONNECT);
+            logToWindow('info', 'Sending connect command:', Array.from(message));
             
             // Set up timeout for connection response
             const connectTimeoutPromise = new Promise((_, reject) => {
@@ -121,6 +124,7 @@ ipcMain.on('connect-button-clicked', async (event, data) => {
                 
                 // Send home command after successful connection
                 const homeMessage = Buffer.from(COMMANDS.HOME);
+                logToWindow('info', 'Sending home command:', Array.from(homeMessage));
                 
                 // Set up timeout for home command response
                 const homeTimeoutPromise = new Promise((_, reject) => {
@@ -138,6 +142,7 @@ ipcMain.on('connect-button-clicked', async (event, data) => {
 
                 // Send fan off command after successful connection
                 const fanOffMessage = Buffer.from(COMMANDS.FAN_OFF);
+                logToWindow('info', 'Sending fan off command:', Array.from(fanOffMessage));
                 const fanResult = await protocol.sendMessageAndWaitForReply(fanOffMessage, TIMEOUTS.FAN);
                 
                 if (fanResult.error) {
@@ -145,8 +150,8 @@ ipcMain.on('connect-button-clicked', async (event, data) => {
                 }
 
                 // Log the full response for debugging
-                console.log('Home command response:', Array.from(homeResult.data));
-                console.log('Fan off command response:', Array.from(fanResult.data));
+                logToWindow('info', 'Home command response:', Array.from(homeResult.data));
+                logToWindow('info', 'Fan off command response:', Array.from(fanResult.data));
 
                 event.reply('connect-response', {
                     status: 'connected',
@@ -206,6 +211,7 @@ ipcMain.on('fan-button-clicked', async (event, data) => {
     try {
         // Send fan command to serial port based on state
         const fanMessage = Buffer.from(data.state ? COMMANDS.FAN_ON : COMMANDS.FAN_OFF);
+        logToWindow('info', 'Sending fan command:', Array.from(fanMessage));
         const result = await protocol.sendMessageAndWaitForReply(fanMessage, TIMEOUTS.FAN);
         
         if (result.error) {
@@ -218,7 +224,7 @@ ipcMain.on('fan-button-clicked', async (event, data) => {
             return;
         }
 
-        console.log('Fan command sent successfully, received response:', result.data);
+        logToWindow('info', 'Fan command sent successfully, received response:', result.data);
         event.reply('fan-response', {
             status: 'success',
             timestamp: new Date().toISOString(),
@@ -250,6 +256,7 @@ ipcMain.on('center-button-clicked', async (event, data) => {
     try {
         // Send center command to serial port
         const message = Buffer.from(COMMANDS.CENTER);
+        logToWindow('info', 'Sending center command:', Array.from(message));
         const result = await protocol.sendMessageAndWaitForReply(message, TIMEOUTS.CENTER);
         
         if (result.error) {
@@ -262,7 +269,7 @@ ipcMain.on('center-button-clicked', async (event, data) => {
             return;
         }
 
-        console.log('Center command sent successfully, received response:', result.data);
+        logToWindow('info', 'Center command sent successfully, received response:', result.data);
         event.reply('center-response', {
             status: 'success',
             timestamp: new Date().toISOString(),
@@ -294,6 +301,7 @@ ipcMain.on('home-button-clicked', async (event, data) => {
     try {
         // Send home command to serial port
         const message = Buffer.from(COMMANDS.HOME);
+        logToWindow('info', 'Sending home command:', Array.from(message));
         const result = await protocol.sendMessageAndWaitForReply(message);
         
         if (result.error) {
@@ -337,6 +345,7 @@ async function handleDirectionMessage(event, directionData, command) {
 
     try {
         const message = Buffer.from(command);
+        logToWindow('info', 'Sending command:', Array.from(message));
         const result = await protocol.sendMessageAndWaitForReply(message, TIMEOUTS.MOVE);
         
         if (result.error) {
@@ -354,7 +363,7 @@ async function handleDirectionMessage(event, directionData, command) {
             throw new Error('Invalid response - expected ACK (9)');
         }
 
-        console.log('Direction command sent successfully, received ACK');
+        logToWindow('info', 'Direction command sent successfully, received ACK');
         event.reply('move-response', {
             status: 'success',
             xOffset: directionData.xOffset,
@@ -396,7 +405,9 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 900,  // Increased from 800 to 900
     height: 632, // 512 (bitmap) + 40 (padding) + 80 (additional vertical spacing)
-    resizable: false,
+    resizable: true,
+    minWidth: 900,
+    minHeight: 632,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -449,4 +460,98 @@ app.on('window-all-closed', function () {
     currentPort.close();
   }
   if (process.platform !== 'darwin') app.quit();
-}); 
+});
+
+function createLogWindow() {
+    logWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        title: 'Log Window',
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        },
+        modal: false,
+        parent: null,
+        show: true
+    });
+
+    logWindow.loadFile('log.html');
+
+    logWindow.on('closed', () => {
+        logWindow = null;
+    });
+}
+
+// Function to send messages to log window
+function logToWindow(type, ...items) {
+    if (logWindow) {
+        const formattedMessage = items.map(item => {
+            if (typeof item === 'object') {
+                try {
+                    return JSON.stringify(item, null, 2);
+                } catch (e) {
+                    return String(item);
+                }
+            }
+            return String(item);
+        }).join(' ');
+        logWindow.webContents.send('log-message', { message: formattedMessage, type });
+    }
+}
+
+// Add menu item to open log window
+const template = [
+    {
+        label: 'File',
+        submenu: [
+            {
+                label: 'Open...',
+                accelerator: 'CmdOrCtrl+O',
+                click: () => {
+                    // TODO: Implement file open functionality
+                }
+            },
+            { type: 'separator' },
+            {
+                label: 'Exit',
+                accelerator: 'CmdOrCtrl+Q',
+                click: () => {
+                    app.quit();
+                }
+            }
+        ]
+    },
+    {
+        label: 'Edit',
+        submenu: [
+            { role: 'undo' },
+            { role: 'redo' },
+            { type: 'separator' },
+            { role: 'cut' },
+            { role: 'copy' },
+            { role: 'paste' },
+            { role: 'delete' },
+            { type: 'separator' },
+            { role: 'selectAll' }
+        ]
+    },
+    {
+        label: 'View',
+        submenu: [
+            {
+                label: 'Show Logs',
+                click: () => {
+                    if (!logWindow) {
+                        createLogWindow();
+                    } else {
+                        logWindow.focus();
+                    }
+                }
+            }
+        ]
+    }
+];
+
+const menu = Menu.buildFromTemplate(template);
+Menu.setApplicationMenu(menu); 
