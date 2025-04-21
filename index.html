@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MoonCutter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="content-wrapper">
+            <div class="bitmap-container">
+                <canvas id="bitmapCanvas" width="512" height="512"></canvas>
+            </div>
+            <div class="controls">
+                <div class="serial-port-wrapper">
+                    <select id="serialPortSelect">
+                        <option value="">Select Serial Port</option>
+                    </select>
+                    <button id="refreshButton">Refresh</button>
+                </div>
+                <div class="connect-wrapper">
+                    <button id="connectButton">Connect</button>
+                    <span id="connectionIndicator" class="connection-indicator"></span>
+                </div>
+                <div class="direction-controls">
+                    <div class="direction-row">
+                        <button id="homeButton"><img src="images/home.png" alt="Home"></button>
+                        <button id="upButton" class="icon-button"><img src="images/up.png" alt="Up"></button>
+                        <button id="fanButton">Fan Off</button>
+                    </div>
+                    <div class="direction-row">
+                        <button id="leftButton" class="icon-button"><img src="images/up.png" alt="Left"></button>
+                        <button id="centerButton">Center</button>
+                        <button id="rightButton" class="icon-button"><img src="images/up.png" alt="Right"></button>
+                    </div>
+                    <div class="direction-row">
+                        <div class="spacer"></div>
+                        <button id="downButton" class="icon-button"><img src="images/up.png" alt="Down"></button>
+                        <div class="spacer"></div>
+                    </div>
+                </div>
+                <div class="coordinate-display">
+                    <span>Position: X=<span id="currentX">0</span>, Y=<span id="currentY">0</span></span>
+                </div>
+                <input type="file" id="fileInput" accept=".png,.jpg,.jpeg" style="display: none">
+                <button id="loadButton">Load Image File</button>
+            </div>
+        </div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html> 

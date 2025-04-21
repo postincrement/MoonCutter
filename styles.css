@@ -1,0 +1,335 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    overflow: hidden;
+}
+
+.container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+p {
+    color: #666;
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.editor-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.editor-section, .preview-section {
+    flex: 1;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.editor {
+    width: 100%;
+    height: 400px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+    resize: vertical;
+    margin-bottom: 10px;
+}
+
+.preview {
+    min-height: 400px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    overflow-y: auto;
+}
+
+.content-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: 100%;
+    margin: auto;
+    margin-left: 40px;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin-left: 20px;
+    margin-right: 40px;
+}
+
+.controls button,
+.controls select {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.controls button:hover {
+    background-color: #f0f0f0;
+}
+
+.controls select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 15px;
+    padding-right: 30px;
+}
+
+.debug-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+.debug-logs {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.debug-log-entry {
+    margin-bottom: 5px;
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.debug-log-entry.error {
+    color: #dc3545;
+}
+
+.debug-log-entry.success {
+    color: #28a745;
+}
+
+.bitmap-container {
+    background-color: white;
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#bitmapCanvas {
+    border: 1px solid #ddd;
+    background-color: #fff;
+    image-rendering: pixelated;
+}
+
+.connect-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.connect-wrapper button {
+    height: 40px;
+    width: 80px;
+    white-space: nowrap;
+}
+
+.connection-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #ff4444;
+    transition: background-color 0.3s ease;
+}
+
+.connection-indicator.connected {
+    background-color: #44ff44;
+}
+
+.serial-port-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.serial-port-wrapper select {
+    flex: 1;
+    height: 40px;
+    font-size: 16px;
+    padding: 0 8px;
+}
+
+.serial-port-wrapper button {
+    white-space: nowrap;
+    height: 40px;
+    width: 80px;
+}
+
+.button-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.button-row button {
+    flex: 1;
+}
+
+.icon-button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.icon-button:hover {
+    background-color: #e0e0e0;
+}
+
+.icon-button:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.icon-button img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+#upButton img {
+    transform: rotate(0deg);
+}
+
+#downButton img {
+    transform: rotate(180deg);
+}
+
+#leftButton img {
+    transform: rotate(-90deg);
+}
+
+#rightButton img {
+    transform: rotate(90deg);
+}
+
+.direction-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.direction-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.spacer {
+    width: 40px;
+    height: 40px;
+}
+
+.direction-controls button {
+    width: 80px;
+    height: 40px;
+    font-size: 16px;
+}
+
+.other-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+#fanButton {
+    width: 80px;
+    height: 40px;
+    white-space: nowrap;
+}
+
+#homeButton {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+}
+
+#homeButton img {
+    width: 24px;
+    height: 24px;
+}
+
+#centerButton {
+    width: 80px;
+    height: 40px;
+    background-color: #4CAF50;
+    color: white;
+}
+
+#centerButton:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.coordinate-display {
+    font-family: monospace;
+    font-size: 16px;
+    color: #333;
+    background-color: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    margin-top: 20px;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+} 

@@ -1,0 +1,21 @@
+{
+  "name": "MoonCutter",
+  "version": "1.0.0",
+  "description": "A tool for controlling the KKMoon laser engraver",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "debug": "electron --inspect=5858 .",
+    "debug-brk": "electron --inspect-brk=5858 ."
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "source-map-support": "^0.5.21"
+  },
+  "dependencies": {
+    "serialport": "^11.0.0"
+  }
+}
