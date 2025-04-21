@@ -414,4 +414,36 @@ document.querySelectorAll('.tab-button').forEach(button => {
 // Function to send log messages to the log window
 function sendLogMessage(message, type = 'info') {
     ipcRenderer.send('log-message', { message, type });
-} 
+}
+
+// Add event listener for grid test pattern button
+document.getElementById('gridTestButton').addEventListener('click', () => {
+    const canvas = document.getElementById('bitmapCanvas');
+    const ctx = canvas.getContext('2d');
+    const size = 512;
+    const gridSize = 32; // 16x16 grid
+    
+    // Clear canvas
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Draw grid
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 1;
+    
+    // Draw vertical lines
+    for (let x = 0; x <= size; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, size);
+        ctx.stroke();
+    }
+    
+    // Draw horizontal lines
+    for (let y = 0; y <= size; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(size, y);
+        ctx.stroke();
+    }
+}); 

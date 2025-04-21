@@ -9,6 +9,16 @@
     <div class="container">
         <div class="content-wrapper">
             <div class="bitmap-container">
+                <div class="scale-indicator horizontal">
+                    <div class="scale-arrow left">◀</div>
+                    <div class="scale-text">78 mm</div>
+                    <div class="scale-arrow right">▶</div>
+                </div>
+                <div class="scale-indicator vertical">
+                    <div class="scale-arrow left">◀</div>
+                    <div class="scale-text">78 mm</div>
+                    <div class="scale-arrow right">▶</div>
+                </div>
                 <canvas id="bitmapCanvas" width="512" height="512"></canvas>
             </div>
             <div class="tabs-container">
@@ -55,6 +65,7 @@
                         <div class="image-content">
                             <input type="file" id="fileInput" accept=".png,.jpg,.jpeg" style="display: none">
                             <button id="loadButton">Load Image File</button>
+                            <button id="gridTestButton">Grid Test Pattern</button>
                         </div>
                     </div>
                 </div>
