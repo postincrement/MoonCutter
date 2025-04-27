@@ -16,12 +16,26 @@ const rightButton = document.getElementById('rightButton');
 const connectionIndicator = document.getElementById('connectionIndicator');
 const currentXDisplay = document.getElementById('currentX');
 const currentYDisplay = document.getElementById('currentY');
+const startButton = document.getElementById('startButton');
+const stopButton = document.getElementById('stopButton');
 
 let fanState = false; // false = off, true = on
 let isConnected = false; // Track connection state
+let isRunning = false; // Track running state
 let currentX = 0; // Current X coordinate
 let currentY = 0; // Current Y coordinate
 
+// Internal bitmap dimensions
+let internalWidth = 1600;  // Default values
+let internalHeight = 1520;
+
+// Handle internal dimensions message from main process
+ipcRenderer.on('set-internal-dimensions', (event, dimensions) => {
+    internalWidth = dimensions.width;
+    internalHeight = dimensions.height;
+    console.log(`Internal dimensions set to ${internalWidth}x${internalHeight}`);
+    createBitmap();  // Recreate bitmap with new dimensions
+});
 
 // Function to update serial port list
 function updateSerialPortList(ports) {
@@ -46,13 +60,7 @@ function updateSerialPortList(ports) {
         serialPortSelect.value = currentSelection;
     } else {
         // Reset connection state if selected port is no longer available
-        isConnected = false;
-        connectButton.textContent = 'Connect';
-        connectButton.disabled = !serialPortSelect.value;
-        fanButton.disabled = true;
-        homeButton.disabled = true;
-        centerButton.disabled = true;
-        connectionIndicator.classList.remove('connected');
+        setConnectedState(false);
     }
 }
 
@@ -71,28 +79,27 @@ ipcRenderer.on('serial-ports-list', (event, ports) => {
 
 // Handle serial port selection change
 serialPortSelect.addEventListener('change', () => {
-    connectButton.disabled = !serialPortSelect.value;
-    isConnected = false;
-    connectButton.textContent = 'Connect';
-    fanButton.disabled = true;
-    homeButton.disabled = true;
-    centerButton.disabled = true;
-    upButton.disabled = true;
-    downButton.disabled = true;
-    leftButton.disabled = true;
-    rightButton.disabled = true;
-    connectionIndicator.classList.remove('connected');
+    setConnectedState(false);
 });
 
-// Create a 512x512 grayscale bitmap
+// Create a grayscale bitmap
 function createBitmap() {
-    const imageData = ctx.createImageData(512, 512);
+    const canvas = document.getElementById('bitmapCanvas');
+    
+    // Create a temporary canvas for the internal bitmap
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = internalWidth;
+    tempCanvas.height = internalHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Create the internal bitmap
+    const imageData = tempCtx.createImageData(internalWidth, internalHeight);
     const data = imageData.data;
 
     // Create a grayscale gradient pattern
-    for (let y = 0; y < 512; y++) {
-        for (let x = 0; x < 512; x++) {
-            const i = (y * 512 + x) * 4;
+    for (let y = 0; y < internalHeight; y++) {
+        for (let x = 0; x < internalWidth; x++) {
+            const i = (y * internalWidth + x) * 4;
             const grayValue = Math.floor((x + y) / 4) % 256; // Creates a grayscale value between 0-255
             
             // Set RGBA values (all channels same for grayscale)
@@ -103,8 +110,13 @@ function createBitmap() {
         }
     }
 
-    // Put the image data onto the canvas
-    ctx.putImageData(imageData, 0, 0);
+    // Put the image data onto the temporary canvas
+    tempCtx.putImageData(imageData, 0, 0);
+    
+    // Scale and draw to the display canvas
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
 }
 
 // Convert image to grayscale
@@ -135,36 +147,45 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
 // Load and process image file
 function loadImage(file) {
     const reader = new FileReader();
+    const canvas = document.getElementById('bitmapCanvas');
     
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Create a temporary canvas for the internal bitmap
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = internalWidth;
+            tempCanvas.height = internalHeight;
+            const tempCtx = tempCanvas.getContext('2d');
             
             // Calculate dimensions to maintain aspect ratio
             const dimensions = calculateAspectRatioFit(
                 img.width,
                 img.height,
-                canvas.width,
-                canvas.height
+                internalWidth,
+                internalHeight
             );
             
             // Calculate position to center the image
-            const x = (canvas.width - dimensions.width) / 2;
-            const y = (canvas.height - dimensions.height) / 2;
+            const x = (internalWidth - dimensions.width) / 2;
+            const y = (internalHeight - dimensions.height) / 2;
             
-            // Draw image to canvas with maintained aspect ratio
-            ctx.drawImage(img, x, y, dimensions.width, dimensions.height);
+            // Draw image to temporary canvas with maintained aspect ratio
+            tempCtx.drawImage(img, x, y, dimensions.width, dimensions.height);
             
             // Get image data
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const imageData = tempCtx.getImageData(0, 0, internalWidth, internalHeight);
             
             // Convert to grayscale
             const grayscaleData = convertToGrayscale(imageData);
             
-            // Put the grayscale image back on the canvas
-            ctx.putImageData(grayscaleData, 0, 0);
+            // Put the grayscale image back on the temporary canvas
+            tempCtx.putImageData(grayscaleData, 0, 0);
+            
+            // Scale and draw to the display canvas
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
         };
         img.src = e.target.result;
     };
@@ -185,6 +206,40 @@ loadButton.addEventListener('click', () => {
     fileInput.click();
 });
 
+// set enable status of all buttons
+function setConnectedState(connected) {
+
+    if (!serialPortSelect.value) {
+      connectButton.disabled  = true;
+      connectButton.textContent = 'Connect';
+      connectionIndicator.classList.remove('connected');
+    }
+    else {
+      connectButton.disabled    = false;
+      if (connected) {
+        connectButton.textContent = 'Connected';
+        connectionIndicator.classList.add('connected');
+      }
+      else {
+        connectButton.textContent = 'Connect';
+        connectionIndicator.classList.remove('connected');
+      }
+    }
+
+    isConnected = connected;
+
+
+    fanButton.disabled      = !connected;
+    homeButton.disabled     = !connected;
+    centerButton.disabled   = !connected;
+    upButton.disabled       = !connected;
+    downButton.disabled     = !connected;
+    leftButton.disabled     = !connected;
+    rightButton.disabled    = !connected;
+    startButton.disabled    = !connected;
+    stopButton.disabled     = true;
+}
+
 // Handle connect button click
 connectButton.addEventListener('click', () => {
     const selectedPort = serialPortSelect.value;
@@ -204,36 +259,14 @@ connectButton.addEventListener('click', () => {
 ipcRenderer.on('connect-response', (event, data) => {
   sendLogMessage('Connection response:', data);
     if (data.status === 'connected') {
-        isConnected = true;
-        connectButton.textContent = 'Connected';
-        connectButton.disabled = true;
-        // Enable all control buttons
-        fanButton.disabled = false;
-        homeButton.disabled = false;
-        centerButton.disabled = false;
-        upButton.disabled = false;
-        downButton.disabled = false;
-        leftButton.disabled = false;
-        rightButton.disabled = false;
-        connectionIndicator.classList.add('connected');
+        setConnectedState(true);
         
         // Log successful connection
         sendLogMessage('Successfully connected to serial port');
         sendLogMessage('Home response:', data.homeResponse);
         sendLogMessage('Fan response:', data.fanResponse);
     } else if (data.status === 'error') {
-        isConnected = false;
-        connectButton.textContent = 'Connect';
-        connectButton.disabled = false;
-        // Disable all control buttons
-        fanButton.disabled = true;
-        homeButton.disabled = true;
-        centerButton.disabled = true;
-        upButton.disabled = true;
-        downButton.disabled = true;
-        leftButton.disabled = true;
-        rightButton.disabled = true;
-        connectionIndicator.classList.remove('connected');
+        setConnectedState(false);
         
         // Log connection error
         console.error('Connection error:', data.message);
@@ -322,6 +355,20 @@ rightButton.addEventListener('click', () => {
     handleDirectionButton('right-button-clicked', 100, 0);
 });
 
+// Handle start button click
+startButton.addEventListener('click', () => {
+  isRunning = true;
+  startButton.disabled = true;
+  stopButton.disabled = false;
+});
+
+// Handle stop button click
+stopButton.addEventListener('click', () => {
+  isRunning = false;
+  startButton.disabled = false;
+  stopButton.disabled = true;
+});
+
 // Handle move response
 ipcRenderer.on('move-response', (event, data) => {
     if (data.status === 'success') {
@@ -333,24 +380,20 @@ ipcRenderer.on('move-response', (event, data) => {
     }
 });
 
-// Initialize the bitmap
-createBitmap();
-
-// Disable buttons initially
-connectButton.disabled = true;
-fanButton.disabled = true;
-homeButton.disabled = true;
-centerButton.disabled = true;
-upButton.disabled = true;
-downButton.disabled = true;
-leftButton.disabled = true;
-rightButton.disabled = true;
-
 // Function to update a single pixel
 function updatePixel(x, y, grayValue, a = 255) {
-    const imageData = ctx.getImageData(0, 0, 512, 512);
+    const canvas = document.getElementById('bitmapCanvas');
+    
+    // Create a temporary canvas for the internal bitmap
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = internalWidth;
+    tempCanvas.height = internalHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Get the current image data
+    const imageData = tempCtx.getImageData(0, 0, internalWidth, internalHeight);
     const data = imageData.data;
-    const i = (y * 512 + x) * 4;
+    const i = (y * internalWidth + x) * 4;
     
     // Set all color channels to the same value for grayscale
     data[i] = grayValue;     // Red
@@ -358,14 +401,29 @@ function updatePixel(x, y, grayValue, a = 255) {
     data[i + 2] = grayValue; // Blue
     data[i + 3] = a;         // Alpha
     
-    ctx.putImageData(imageData, 0, 0);
+    // Put the image data back on the temporary canvas
+    tempCtx.putImageData(imageData, 0, 0);
+    
+    // Scale and draw to the display canvas
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
 }
 
 // Function to get pixel value
 function getPixel(x, y) {
-    const imageData = ctx.getImageData(0, 0, 512, 512);
+    const canvas = document.getElementById('bitmapCanvas');
+    
+    // Create a temporary canvas for the internal bitmap
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = internalWidth;
+    tempCanvas.height = internalHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Get the current image data
+    const imageData = tempCtx.getImageData(0, 0, internalWidth, internalHeight);
     const data = imageData.data;
-    const i = (y * 512 + x) * 4;
+    const i = (y * internalWidth + x) * 4;
     
     // Since it's grayscale, we can return any of the RGB channels
     return {
@@ -420,30 +478,40 @@ function sendLogMessage(message, type = 'info') {
 document.getElementById('gridTestButton').addEventListener('click', () => {
     const canvas = document.getElementById('bitmapCanvas');
     const ctx = canvas.getContext('2d');
-    const size = 512;
+    const displaySize = 512;
     const gridSize = 32; // 16x16 grid
     
-    // Clear canvas
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, size, size);
+    // Create a temporary canvas for the internal bitmap
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = internalWidth;
+    tempCanvas.height = internalHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Clear temporary canvas
+    tempCtx.fillStyle = 'white';
+    tempCtx.fillRect(0, 0, internalWidth, internalHeight);
     
     // Draw grid
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 1;
+    tempCtx.strokeStyle = 'black';
+    tempCtx.lineWidth = 1;
     
     // Draw vertical lines
-    for (let x = 0; x <= size; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, size);
-        ctx.stroke();
+    for (let x = 0; x <= internalWidth; x += gridSize) {
+        tempCtx.beginPath();
+        tempCtx.moveTo(x, 0);
+        tempCtx.lineTo(x, internalHeight);
+        tempCtx.stroke();
     }
     
     // Draw horizontal lines
-    for (let y = 0; y <= size; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(size, y);
-        ctx.stroke();
+    for (let y = 0; y <= internalHeight; y += gridSize) {
+        tempCtx.beginPath();
+        tempCtx.moveTo(0, y);
+        tempCtx.lineTo(internalWidth, y);
+        tempCtx.stroke();
     }
+    
+    // Scale and draw to the display canvas
+    ctx.clearRect(0, 0, displaySize, displaySize);
+    ctx.drawImage(tempCanvas, 0, 0, displaySize, displaySize);
 }); 

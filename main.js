@@ -3,15 +3,14 @@ const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const { SerialPort } = require('serialport');
 const Protocol = require('./protocol');
-
+const { createLogWindow, logToWindow } = require('./log');
 
 // maximum X and Y coordinates
-const MAX_X = 1600;
-const MAX_Y = 1520;
+const BITMAP_WIDTH = 1600;
+const BITMAP_HEIGHT = 1520;
 
 // Command constants
 const COMMANDS = {
-    ACK: 9,
     CONNECT: [10, 0, 4, 0],
     HOME:    [23, 0, 4, 0],
     CENTER:  [26, 0, 4, 0],
@@ -41,7 +40,6 @@ if (debug) {
 
 let currentPort = null;
 let protocol = null;
-let logWindow = null;
 
 
 // Handle serial port list request
@@ -95,103 +93,67 @@ ipcMain.on('connect-button-clicked', async (event, data) => {
             protocol = new Protocol(currentPort);
             protocol.init();
 
-            // Send initial message using values from renderer
-            const message = Buffer.from(COMMANDS.CONNECT);
-            logToWindow('info', 'Sending connect command:', Array.from(message));
-            
-            // Set up timeout for connection response
-            const connectTimeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Connection timeout - no response received within 100ms')), TIMEOUTS.CONNECT);
-            });
-
-            try {
-                // Race between the response and timeout
-                const result = await Promise.race([
-                    protocol.sendMessageAndWaitForReply(message, TIMEOUTS.CONNECT),
-                    connectTimeoutPromise
-                ]);
-                
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-
-                // Check if response contains value 9 as first and only character
-                if (!result.data || result.data.length !== 1 || result.data[0] !== COMMANDS.ACK) {
-                    throw new Error('Invalid connection response - expected single byte with value 9');
-                }
-
-                console.log('Initial message sent successfully, received response:', result.data);
-                
-                // Send home command after successful connection
-                const homeMessage = Buffer.from(COMMANDS.HOME);
-                logToWindow('info', 'Sending home command:', Array.from(homeMessage));
-                
-                // Set up timeout for home command response
-                const homeTimeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Home command timeout - no response received within 6000ms')), TIMEOUTS.HOME);
-                });
-
-                const homeResult = await Promise.race([
-                    protocol.sendMessageAndWaitForReply(homeMessage, TIMEOUTS.HOME),
-                    homeTimeoutPromise
-                ]);
-                
-                if (homeResult.error) {
-                    throw new Error(`Home command failed: ${homeResult.error}`);
-                }
-
-                // Send fan off command after successful connection
-                const fanOffMessage = Buffer.from(COMMANDS.FAN_OFF);
-                logToWindow('info', 'Sending fan off command:', Array.from(fanOffMessage));
-                const fanResult = await protocol.sendMessageAndWaitForReply(fanOffMessage, TIMEOUTS.FAN);
-                
-                if (fanResult.error) {
-                    throw new Error(`Fan off command failed: ${fanResult.error}`);
-                }
-
-                // Log the full response for debugging
-                logToWindow('info', 'Home command response:', Array.from(homeResult.data));
-                logToWindow('info', 'Fan off command response:', Array.from(fanResult.data));
-
-                event.reply('connect-response', {
-                    status: 'connected',
-                    timestamp: new Date().toISOString(),
-                    response: Array.from(result.data),
-                    homeResponse: Array.from(homeResult.data),
-                    fanResponse: Array.from(fanResult.data)
-                });
-            } catch (err) {
-                console.error('Error during connection:', err);
-                // Close the port since connection failed
-                if (currentPort) {
-                    currentPort.close();
-                    currentPort = null;
-                    protocol = null;
-                }
-                event.reply('connect-response', {
+            // send command and wait for ack
+            const ack = await protocol.sendMessageAndWaitForAck(Buffer.from(COMMANDS.CONNECT), TIMEOUTS.CONNECT);
+            if (!ack) {
+                logToWindow('error', 'Failed to send connect command');
+                event.reply('connect-response', { 
                     status: 'error',
-                    message: err.message,
+                    message: 'Failed to send connect command',
                     timestamp: new Date().toISOString()
                 });
+                return;
             }
-        });
 
-        currentPort.on('error', (err) => {
-            console.error('Port error:', err);
+            // Send fan off and wait for ack
+            const fanAck = await protocol.sendMessageAndWaitForAck(Buffer.from(COMMANDS.FAN_OFF), TIMEOUTS.FAN);
+            if (!fanAck) {
+                logToWindow('error', 'Failed to send fan off command');
+                event.reply('connect-response', {
+                    status: 'error',
+                    message: 'Failed to send fan off command',
+                    timestamp: new Date().toISOString()
+                });
+                return;
+            }
+
+            // Send home command and wait for ack
+            const homeAck = await protocol.sendMessageAndWaitForAck(Buffer.from(COMMANDS.HOME), TIMEOUTS.HOME);
+            if (!homeAck) {
+                logToWindow('error', 'Failed to send home command');
+                event.reply('connect-response', {
+                    status: 'error',
+                    message: 'Failed to send home command',
+                    timestamp: new Date().toISOString()
+                });
+                return;
+            }
+
+            // send reply to renderer with all responses
             event.reply('connect-response', {
-                status: 'error',
-                message: err.message,
+                status: 'connected',
                 timestamp: new Date().toISOString()
             });
+            
         });
+    } 
+    catch (err) {
+      console.error('Error during connection:', err);
+      
+      // Close the port since connection failed
+      if (currentPort) {
+          currentPort.close();
+          currentPort = null;
+          protocol = null;
+      }
+      event.reply('connect-response', {
+          status: 'error',
+          message: err.message,
+          timestamp: new Date().toISOString()
+      });
 
-    } catch (err) {
-        console.error('Error creating port:', err);
-        event.reply('connect-response', {
-            status: 'error',
-            message: err.message,
-            timestamp: new Date().toISOString()
-        });
+      // Notify renderer that the port is disconnected
+      event.reply('serial-port-status', { connected: false });
     }
 });
 
@@ -208,36 +170,23 @@ ipcMain.on('fan-button-clicked', async (event, data) => {
         return;
     }
 
-    try {
-        // Send fan command to serial port based on state
-        const fanMessage = Buffer.from(data.state ? COMMANDS.FAN_ON : COMMANDS.FAN_OFF);
-        logToWindow('info', 'Sending fan command:', Array.from(fanMessage));
-        const result = await protocol.sendMessageAndWaitForReply(fanMessage, TIMEOUTS.FAN);
-        
-        if (result.error) {
-            console.error('Error sending fan command:', result.error);
-            event.reply('fan-response', {
-                status: 'error',
-                message: result.error,
-                timestamp: new Date().toISOString()
-            });
-            return;
-        }
-
-        logToWindow('info', 'Fan command sent successfully, received response:', result.data);
-        event.reply('fan-response', {
-            status: 'success',
-            timestamp: new Date().toISOString(),
-            response: result.data
-        });
-    } catch (err) {
-        console.error('Error handling fan command:', err);
+    // send fan on/off command and wait for ack
+    const fanAck = await protocol.sendMessageAndWaitForAck(Buffer.from(data.state ? COMMANDS.FAN_ON : COMMANDS.FAN_OFF), TIMEOUTS.FAN);
+    if (!fanAck) {
+        logToWindow('error', 'Failed to send fan command');
         event.reply('fan-response', {
             status: 'error',
-            message: err.message,
+            message: 'Failed to send fan command',
             timestamp: new Date().toISOString()
         });
+        return;
     }
+
+    // send reply to renderer with all responses
+    event.reply('fan-response', {
+        status: 'success',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Handle center button click from renderer
@@ -253,36 +202,23 @@ ipcMain.on('center-button-clicked', async (event, data) => {
         return;
     }
 
-    try {
-        // Send center command to serial port
-        const message = Buffer.from(COMMANDS.CENTER);
-        logToWindow('info', 'Sending center command:', Array.from(message));
-        const result = await protocol.sendMessageAndWaitForReply(message, TIMEOUTS.CENTER);
-        
-        if (result.error) {
-            console.error('Error sending center command:', result.error);
-            event.reply('center-response', {
-                status: 'error',
-                message: result.error,
-                timestamp: new Date().toISOString()
-            });
-            return;
-        }
-
-        logToWindow('info', 'Center command sent successfully, received response:', result.data);
-        event.reply('center-response', {
-            status: 'success',
-            timestamp: new Date().toISOString(),
-            response: result.data
-        });
-    } catch (err) {
-        console.error('Error handling center command:', err);
+    // send center command and wait for ack
+    const centerAck = await protocol.sendMessageAndWaitForAck(Buffer.from(COMMANDS.CENTER), TIMEOUTS.CENTER);
+    if (!centerAck) {
+        logToWindow('error', 'Failed to send center command');
         event.reply('center-response', {
             status: 'error',
-            message: err.message,
+            message: 'Failed to send center command',
             timestamp: new Date().toISOString()
         });
+        return;
     }
+
+    // send reply to renderer with all responses
+    event.reply('center-response', {
+        status: 'success',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Handle home button click from renderer
@@ -298,37 +234,56 @@ ipcMain.on('home-button-clicked', async (event, data) => {
         return;
     }
 
-    try {
-        // Send home command to serial port
-        const message = Buffer.from(COMMANDS.HOME);
-        logToWindow('info', 'Sending home command:', Array.from(message));
-        const result = await protocol.sendMessageAndWaitForReply(message);
-        
-        if (result.error) {
-            console.error('Error sending home command:', result.error);
-            event.reply('home-response', {
-                status: 'error',
-                message: result.error,
-                timestamp: new Date().toISOString()
-            });
-            return;
-        }
-
-        console.log('Home command sent successfully, received response:', result.data);
-        event.reply('home-response', {
-            status: 'success',
-            timestamp: new Date().toISOString(),
-            response: result.data
-        });
-    } catch (err) {
-        console.error('Error handling home command:', err);
+    // send home command and wait for ack
+    const homeAck = await protocol.sendMessageAndWaitForAck(Buffer.from(COMMANDS.HOME), TIMEOUTS.HOME);
+    if (!homeAck) {
+        logToWindow('error', 'Failed to send home command');
         event.reply('home-response', {
             status: 'error',
-            message: err.message,
+            message: 'Failed to send home command',
             timestamp: new Date().toISOString()
         });
+        return;
     }
+
+    // send reply to renderer with all responses
+    event.reply('home-response', {
+        status: 'success',
+        timestamp: new Date().toISOString()
+    });
 });
+
+// Function to handle direction messages
+async function handleDirectionMessage(event, directionData, command) {
+    console.log('Direction button clicked:', directionData);    
+    
+    if (!currentPort || !protocol) {
+        event.reply('move-response', {
+            status: 'error',
+            message: 'Not connected to serial port',
+            timestamp: new Date().toISOString()
+        });
+        return;
+    }
+
+    // send move command and wait for ack
+    const moveAck = await protocol.sendMessageAndWaitForAck(Buffer.from(command), TIMEOUTS.MOVE);
+    if (!moveAck) {
+        logToWindow('error', 'Failed to send move command');
+        event.reply('move-response', {
+            status: 'error',
+            message: 'Failed to send move command',
+            timestamp: new Date().toISOString()
+        });
+        return;
+    }
+
+    // send reply to renderer with all responses
+    event.reply('move-response', {
+        status: 'success',
+        timestamp: new Date().toISOString()
+    });
+}
 
 // Function to handle direction messages
 async function handleDirectionMessage(event, directionData, command) {
@@ -343,42 +298,23 @@ async function handleDirectionMessage(event, directionData, command) {
         return;
     }
 
-    try {
-        const message = Buffer.from(command);
-        logToWindow('info', 'Sending command:', Array.from(message));
-        const result = await protocol.sendMessageAndWaitForReply(message, TIMEOUTS.MOVE);
-        
-        if (result.error) {
-            console.error('Error sending direction command:', result.error);
-            event.reply('move-response', {
-                status: 'error',
-                message: result.error,
-                timestamp: new Date().toISOString()
-            });
-            return;
-        }
-
-        // Check for ACK response (value 9)
-        if (!result.data || result.data.length !== 1 || result.data[0] !== COMMANDS.ACK) {
-            throw new Error('Invalid response - expected ACK (9)');
-        }
-
-        logToWindow('info', 'Direction command sent successfully, received ACK');
+    // send move command and wait for ack
+    const moveAck = await protocol.sendMessageAndWaitForAck(Buffer.from(command), TIMEOUTS.MOVE);
+    if (!moveAck) {
+        logToWindow('error', 'Failed to send move command');
         event.reply('move-response', {
-            status: 'success',
-            xOffset: directionData.xOffset,
-            yOffset: directionData.yOffset,
-            timestamp: new Date().toISOString(),
-            response: result.data
-        });
-    } catch (err) {
-        console.error('Error handling direction command:', err);
-        event.reply('move-response', {
-            status: 'error',
-            message: err.message,
+            status: 'error',  
+            message: 'Failed to send move command',
             timestamp: new Date().toISOString()
         });
+        return;
     }
+    
+    // send reply to renderer with all responses
+    event.reply('move-response', {
+        status: 'success',
+        timestamp: new Date().toISOString()
+    });
 }
 
 // Handle left button click from renderer
@@ -402,103 +338,73 @@ ipcMain.on('down-button-clicked', async (event, data) => {
 });
 
 function createWindow() {
-  const mainWindow = new BrowserWindow({
-    width: 900,  // Increased from 800 to 900
-    height: 632, // 512 (bitmap) + 40 (padding) + 80 (additional vertical spacing)
-    resizable: true,
-    minWidth: 900,
-    minHeight: 632,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      devTools: true // Always enable DevTools
+    mainWindow = new BrowserWindow({
+        width: 900,
+        height: 632,
+        minWidth: 900,
+        minHeight: 632,
+        resizable: true,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    mainWindow.loadFile('index.html');
+
+    // Send internal dimensions when window is ready
+    mainWindow.webContents.on('did-finish-load', () => {
+        mainWindow.webContents.send('set-internal-dimensions', {
+            width: BITMAP_WIDTH,
+            height: BITMAP_HEIGHT
+        });
+    });
+
+    // Open DevTools in development
+    if (process.env.NODE_ENV === 'development') {
+        mainWindow.webContents.openDevTools();
     }
-  });
 
-  mainWindow.loadFile('index.html');
-  
-  // Open DevTools by default in debug mode
-  if (debug) {
-    mainWindow.webContents.openDevTools();
-  }
+    // Add error handling
+    mainWindow.webContents.on('crashed', () => {
+        console.error('Renderer process crashed');
+    });
 
-  // Add error handling
-  mainWindow.webContents.on('crashed', () => {
-    console.error('Renderer process crashed');
-  });
+    mainWindow.on('unresponsive', () => {
+        console.error('Window became unresponsive');
+    });
 
-  mainWindow.on('unresponsive', () => {
-    console.error('Window became unresponsive');
-  });
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-    if (currentPort) {
-        currentPort.close();
-        currentPort = null;
-        protocol = null;
-    }
-    app.quit();
-  });
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+        if (currentPort) {
+            currentPort.close();
+            currentPort = null;
+            protocol = null;
+        }
+        app.quit();
+    });
 }
 
 app.whenReady().then(() => {
-  createWindow();
+    createWindow();
 
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+    app.on('activate', function () {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
 });
 
 // Handle any uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
+    console.error('Uncaught exception:', error);
 });
 
 app.on('window-all-closed', function () {
-  if (currentPort) {
-    currentPort.close();
-  }
-  if (process.platform !== 'darwin') app.quit();
+    if (currentPort) {
+        currentPort.close();
+    }
+    if (process.platform !== 'darwin') app.quit();
 });
 
-function createLogWindow() {
-    logWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
-        title: 'Log Window',
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        },
-        modal: false,
-        parent: null,
-        show: true
-    });
-
-    logWindow.loadFile('log.html');
-
-    logWindow.on('closed', () => {
-        logWindow = null;
-    });
-}
-
-// Function to send messages to log window
-function logToWindow(type, ...items) {
-    if (logWindow) {
-        const formattedMessage = items.map(item => {
-            if (typeof item === 'object') {
-                try {
-                    return JSON.stringify(item, null, 2);
-                } catch (e) {
-                    return String(item);
-                }
-            }
-            return String(item);
-        }).join(' ');
-        logWindow.webContents.send('log-message', { message: formattedMessage, type });
-    }
-}
 
 // Add menu item to open log window
 const template = [
@@ -542,11 +448,7 @@ const template = [
             {
                 label: 'Show Logs',
                 click: () => {
-                    if (!logWindow) {
-                        createLogWindow();
-                    } else {
-                        logWindow.focus();
-                    }
+                    createLogWindow();
                 }
             }
         ]
@@ -555,3 +457,4 @@ const template = [
 
 const menu = Menu.buildFromTemplate(template);
 Menu.setApplicationMenu(menu); 
+

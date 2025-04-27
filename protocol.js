@@ -1,6 +1,11 @@
 const { SerialPort } = require('serialport');
+const { logToWindow } = require('./log');
+
+const ACK = 9;
+
 
 class Protocol {
+    
     constructor(port) {
         this.port = port;
         this.buffer = Buffer.alloc(0);
@@ -30,13 +35,18 @@ class Protocol {
     processBuffer() {
         // If we have data and are waiting for a response
         if (this.responseResolve && this.buffer.length > 0) {
-            // Create a copy of the current buffer
-            const response = Buffer.from(this.buffer);
-            // Clear the buffer
-            this.buffer = Buffer.alloc(0);
-            // Resolve with the response
-            this.responseResolve({ data: response });
-            this.clearResponseHandlers();
+
+          // get the oldest character from the buffer
+          const oldestChar = this.buffer[0];
+
+          // remove the oldest character from the buffer
+          this.buffer = this.buffer.slice(1);
+
+          // return the oldest character
+          this.responseResolve({ data: oldestChar });
+
+          // clear the response handlers
+          this.clearResponseHandlers();
         }
     }
 
@@ -77,6 +87,27 @@ class Protocol {
             });
         });
     }
+
+    // send a message and wait for an ack
+    async sendMessageAndWaitForAck(message, timeout = null) {
+      logToWindow('info', 'Sending message:', message);
+
+      const response = await this.sendMessageAndWaitForReply(message, timeout);
+      if (response.error) {
+        logToWindow('error', 'Error sending message:', response.error);
+          return false;
+      }
+
+      if (response.data === ACK) {
+        logToWindow('info', 'received ACK');
+        return true;
+      }
+
+      // if the response is not an ack, return false
+      logToWindow('error', 'Received unexpected response:', response.data);
+      return false;
+    }
+
 }
 
 module.exports = Protocol; 

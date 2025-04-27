@@ -25,6 +25,7 @@
                 <div class="tabs-header">
                     <button class="tab-button active" data-tab="controls">Controls</button>
                     <button class="tab-button" data-tab="image">Image</button>
+                    <button class="tab-button" data-tab="run">Run</button>
                 </div>
                 <div class="tabs-content">
                     <div class="tab-pane active" id="controls-tab">
@@ -68,10 +69,23 @@
                             <button id="gridTestButton">Grid Test Pattern</button>
                         </div>
                     </div>
+                    <div class="tab-pane" id="run-tab">
+                        <div class="run-content">
+                            <button id="startButton">Start</button>
+                            <button id="stopButton" disabled>Stop</button>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill"></div>
+                                </div>
+                                <span class="progress-text">0%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     <script src="renderer.js"></script>
+    <script src="logwindow.js"></script>
 </body>
 </html> 

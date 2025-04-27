@@ -1,24 +1,49 @@
-const { ipcRenderer } = require('electron');
 
-let logMessages = [];
-const logWindow = document.getElementById('logWindow');
 
-function logMessage(message, type = 'info') {
-    const timestamp = new Date().toISOString();
-    const logEntry = document.createElement('div');
-    logEntry.className = `log-entry ${type}`;
-    logEntry.textContent = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
-    logWindow.appendChild(logEntry);
-    logWindow.scrollTop = logWindow.scrollHeight;
+const { BrowserWindow } = require('electron');
+
+let logWindow = null;
+
+function createLogWindow() {
+  if (logWindow) {
+    logWindow.focus();
+    return;
+  }
+
+  logWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        title: 'Log Window',
+        webPreferences: {
+          contextIsolation: false
+      },
+      modal: false,
+      parent: null,
+      show: true
+  });
+
+  logWindow.loadFile('log.html');
+
+  logWindow.on('closed', () => {
+      logWindow = null;
+  });
 }
 
-// Listen for log messages from the main window
-ipcRenderer.on('log-message', (event, { message, type }) => {
-    logMessage(message, type);
-});
+// Function to send messages to log window
+function logToWindow(type, ...items) {
+  if (logWindow) {
+      const formattedMessage = items.map(item => {
+          if (typeof item === 'object') {
+              try {
+                  return JSON.stringify(item, null, 2);
+              } catch (e) {
+                  return String(item);
+              }
+          }
+          return String(item);
+      }).join(' ');
+      logWindow.webContents.send('log-message', { message: formattedMessage, type });
+  }
+}
 
-// Clear logs button handler
-document.getElementById('clearLogsButton').addEventListener('click', () => {
-    logWindow.innerHTML = '';
-    logMessages = [];
-}); 
+module.exports = { logToWindow, createLogWindow };

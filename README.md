@@ -1,8 +1,25 @@
-# Basic Electron Application
+# MoonCutter - a GUI for the K3 Laser Engraver
 
-A simple Electron.js application template.
+STILL UNDER DEVELOPMENT!
 
-## Installation
+## Features
+
+- Cross platform thanks to ElectronJS
+- Engrave bitmaps and text
+
+## Thanks!
+
+This program would not have been possible without the work of Marcel Ochsendorf who reverse engineered the protocol.
+
+His project has more information:
+
+  https://github.com/RBEGamer/K3_LASER_ENGRAVER_PROTOCOL
+
+## Running from source
+
+This is a normal ElectronJS program so the usual instructions apply.
+
+### Installation
 
 1. Make sure you have [Node.js](https://nodejs.org/) installed
 2. Clone this repository
@@ -11,14 +28,14 @@ A simple Electron.js application template.
 npm install
 ```
 
-## Running the Application
+### Running the Application
 
 To start the application, run:
 ```bash
 npm start
 ```
 
-## Debugging
+### Debugging
 
 There are several ways to debug the application:
 
@@ -38,23 +55,3 @@ npm run debug-brk    # Start with debugger attached and break on first line
    - Press Ctrl+Shift+I (Windows/Linux) or Cmd+Option+I (macOS) to open DevTools
    - Or use the debug mode which opens DevTools automatically
 
-## Features
-
-- Basic Electron window setup
-- Simple HTML/CSS interface
-- Ready for development and customization
-- Integrated debugging support
-- Source maps enabled
-
-## Development
-
-The application consists of:
-- `main.js` - Main Electron process
-- `index.html` - Main window content
-- `styles.css` - Basic styling
-
-### Debugging Features
-- Source maps for better debugging experience
-- Crash reporting for renderer process
-- Unresponsive window detection
-- Uncaught exception handling 
