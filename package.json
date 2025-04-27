@@ -2,20 +2,62 @@
   "name": "MoonCutter",
   "version": "1.0.0",
   "description": "A tool for controlling the KKMoon laser engraver",
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "debug": "electron --inspect=5858 .",
-    "debug-brk": "electron --inspect-brk=5858 ."
+    "debug-brk": "electron --inspect-brk=5858 .",
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "next lint",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm run dev\" \"npm run electron\"",
+    "package": "electron-builder",
+    "package:mac": "electron-builder --mac",
+    "package:win": "electron-builder --win"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "electron": "^28.1.0",
-    "source-map-support": "^0.5.21"
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
-    "serialport": "^11.0.0"
+    "serialport": "^11.0.0",
+    "source-map-support": "^0.5.21"
+  },
+  "build": {
+    "appId": "com.mooncutter.app",
+    "productName": "MoonCutter",
+    "files": [
+      "public/index.html",
+      "public/log.html",
+      "public/renderer.js",
+      "public/logwindow.js",
+      "public/styles.css",
+      "public/images/home.png",
+      "public/images/up.png",
+      "src/main.js",
+      "src/log.js",
+      "src/protocol.js",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "images/icon.icns",
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "icon": "images/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    }
   }
 }

@@ -55,3 +55,36 @@ npm run debug-brk    # Start with debugger attached and break on first line
    - Press Ctrl+Shift+I (Windows/Linux) or Cmd+Option+I (macOS) to open DevTools
    - Or use the debug mode which opens DevTools automatically
 
+## Building Native Applications
+
+MoonCutter can be packaged as a native application for macOS and Windows using electron-builder.
+
+### Prerequisites
+
+- Node.js and npm installed
+- For Windows builds on macOS/Linux: Wine installed
+
+### Building for macOS
+
+```bash
+npm run package:mac
+```
+
+This creates a `.dmg` installer in the `dist` folder.
+
+### Building for Windows
+
+```bash
+npm run package:win
+```
+
+This creates a Windows installer in the `dist` folder.
+
+### Building for Both Platforms
+
+```bash
+npm run package
+```
+
+This builds installers for all configured platforms.
+

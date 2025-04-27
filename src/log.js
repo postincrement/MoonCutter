@@ -22,7 +22,7 @@ function createLogWindow() {
       show: true
   });
 
-  logWindow.loadFile('log.html');
+  logWindow.loadFile('public/log.html');
 
   logWindow.on('closed', () => {
       logWindow = null;

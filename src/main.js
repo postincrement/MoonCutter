@@ -350,7 +350,7 @@ function createWindow() {
         }
     });
 
-    mainWindow.loadFile('index.html');
+    mainWindow.loadFile('public/index.html');
 
     // Send internal dimensions when window is ready
     mainWindow.webContents.on('did-finish-load', () => {
