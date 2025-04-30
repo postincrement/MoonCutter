@@ -69,6 +69,7 @@ p {
     margin: auto;
     margin-left: 40px;
     margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 .controls {
@@ -161,7 +162,7 @@ p {
 
 .connect-wrapper button {
     height: 40px;
-    width: 80px;
+    width: 100px;
     white-space: nowrap;
 }
 
@@ -335,6 +336,7 @@ p {
 
 .tabs-container {
     width: 300px;
+    height: 512px;
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -348,6 +350,7 @@ p {
     border-bottom: 1px solid #ddd;
     padding: 0 10px;
     margin: 0;
+    flex-shrink: 0;
 }
 
 .tab-button {
@@ -370,6 +373,7 @@ p {
     flex: 1;
     padding: 15px;
     margin: 0;
+    overflow-y: auto;
 }
 
 .tab-pane {
@@ -497,4 +501,84 @@ p {
     font-family: monospace;
     font-size: 14px;
     color: #666;
+}
+
+.device-type-wrapper {
+    width: 100%;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.device-type-wrapper label {
+    font-size: 14px;
+    color: #666;
+}
+
+.device-type-wrapper select {
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+.media-content {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.status-bar {
+    height: 30px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    font-size: 14px;
+    color: #666;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    flex-shrink: 0;
+}
+
+.status-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 200px;
+}
+
+.status-progress .progress-bar {
+    width: 100px;
+    height: 8px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.status-progress .progress-fill {
+    width: 0%;
+    height: 100%;
+    background-color: #4CAF50;
+    transition: width 0.3s ease;
+}
+
+.status-progress .progress-text {
+    font-family: monospace;
+    font-size: 12px;
+    color: #666;
+    min-width: 30px;
+    text-align: right;
 } 

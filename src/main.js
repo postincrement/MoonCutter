@@ -1,5 +1,5 @@
 require('source-map-support').install();
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog } = require('electron');
 const path = require('path');
 const { SerialPort } = require('serialport');
 const Protocol = require('./protocol');
@@ -350,6 +350,8 @@ function createWindow() {
         }
     });
 
+    mainWindow.webContents.openDevTools()
+
     mainWindow.loadFile('public/index.html');
 
     // Send internal dimensions when window is ready
@@ -457,4 +459,40 @@ const template = [
 
 const menu = Menu.buildFromTemplate(template);
 Menu.setApplicationMenu(menu); 
+
+// Add new IPC handlers for the image buffer functionality
+ipcMain.on('open-file-dialog', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [
+      { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'bmp', 'gif'] }
+    ]
+  });
+  
+  if (canceled || filePaths.length === 0) {
+    return null;
+  }
+  
+  return filePaths[0];
+});
+
+ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) => {
+  //console.log('Sending line to engraver:', lineData, lineNumber);
+
+  // insert delay here
+  const delay = 1000;
+  console.log('Delaying for', delay, 'ms for line', lineNumber);
+  
+  // Wait for the delay
+  await new Promise(resolve => setTimeout(resolve, delay));
+  
+  // Send the line data and wait for ack
+  //const engraverAck = await protocol.sendMessageAndWaitForAck(Buffer.from(lineData), TIMEOUTS.ENGRAVER);
+  //if (!engraverAck) {
+  //  logToWindow('error', 'Failed to send engraver command');
+  //  return { success: false, message: 'Failed to send engraver command' };
+  //}
+  
+  return { success: true };
+});
 

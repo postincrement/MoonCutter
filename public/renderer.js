@@ -29,6 +29,19 @@ let currentY = 0; // Current Y coordinate
 let internalWidth = 1600;  // Default values
 let internalHeight = 1520;
 
+// Create internal image buffer (1600x1520)
+const imageBuffer = {
+  width: internalWidth,
+  height: internalHeight,
+  data: new Uint8ClampedArray(internalWidth * internalHeight * 4), // RGBA data
+  clear() {
+    this.data.fill(0); // Fill with transparent black
+  }
+};
+
+// Clear buffer on startup
+imageBuffer.clear();
+
 // Handle internal dimensions message from main process
 ipcRenderer.on('set-internal-dimensions', (event, dimensions) => {
     internalWidth = dimensions.width;
@@ -84,39 +97,25 @@ serialPortSelect.addEventListener('change', () => {
 
 // Create a grayscale bitmap
 function createBitmap() {
-    const canvas = document.getElementById('bitmapCanvas');
+    // Clear the buffer
+    imageBuffer.clear();
     
-    // Create a temporary canvas for the internal bitmap
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = internalWidth;
-    tempCanvas.height = internalHeight;
-    const tempCtx = tempCanvas.getContext('2d');
-    
-    // Create the internal bitmap
-    const imageData = tempCtx.createImageData(internalWidth, internalHeight);
-    const data = imageData.data;
-
-    // Create a grayscale gradient pattern
+    // Create a grayscale gradient pattern directly in the buffer
     for (let y = 0; y < internalHeight; y++) {
         for (let x = 0; x < internalWidth; x++) {
             const i = (y * internalWidth + x) * 4;
             const grayValue = Math.floor((x + y) / 4) % 256; // Creates a grayscale value between 0-255
             
             // Set RGBA values (all channels same for grayscale)
-            data[i] = grayValue;     // Red
-            data[i + 1] = grayValue; // Green
-            data[i + 2] = grayValue; // Blue
-            data[i + 3] = 255;       // Alpha (fully opaque)
+            imageBuffer.data[i] = grayValue;     // Red
+            imageBuffer.data[i + 1] = grayValue; // Green
+            imageBuffer.data[i + 2] = grayValue; // Blue
+            imageBuffer.data[i + 3] = 255;       // Alpha (fully opaque)
         }
     }
-
-    // Put the image data onto the temporary canvas
-    tempCtx.putImageData(imageData, 0, 0);
     
-    // Scale and draw to the display canvas
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+    // Render the buffer to the canvas
+    renderBufferToCanvas();
 }
 
 // Convert image to grayscale
@@ -227,7 +226,6 @@ function setConnectedState(connected) {
     }
 
     isConnected = connected;
-
 
     fanButton.disabled      = !connected;
     homeButton.disabled     = !connected;
@@ -356,11 +354,75 @@ rightButton.addEventListener('click', () => {
 });
 
 // Handle start button click
-startButton.addEventListener('click', () => {
+startButton.addEventListener('click', async () => {
   isRunning = true;
   startButton.disabled = true;
   stopButton.disabled = false;
+
+  // start engraving
+  console.log('Starting engraving...'); 
+  ipcRenderer.send('start-engraving', {
+    timestamp: new Date().toISOString()
+  });
+
+  updateProgressBar(0);
+
+  try {
+    // Process each line of the image buffer and send to serial port
+    for (let y = 0; y < imageBuffer.height; y++) {
+      if (!isRunning) {
+        break;
+      }
+      updateProgressBar((y / imageBuffer.height) * 100);
+      console.log('Processing line', y);
+      
+      // Create line data (just looking at red channel for simplicity)
+      const lineData = new Uint8Array(imageBuffer.width);
+      
+      for (let x = 0; x < imageBuffer.width; x++) {
+        const index = (y * imageBuffer.width + x) * 4;
+        // data is already grayscale - return any color channel (in this case red)
+        lineData[x] = imageBuffer.data[index]; 
+      }
+      
+      // Send line to the serial port and wait for response
+      const result = await ipcRenderer.invoke('send-line-to-engraver', {
+        lineData: lineData,
+        lineNumber: y
+      });
+      
+      if (!result.success) {
+        throw new Error(`Failed to process line ${y}: ${result.message}`);
+      }
+      
+      console.log('Line sent:', result);
+    }
+
+    stopEngraving();
+  } catch (err) {
+    console.error('Error during engraving:', err);
+    stopEngraving();
+  }
 });
+
+function updateProgressBar(percent) {
+  const progressFill = document.querySelector('.progress-fill');
+  const progressText = document.querySelector('.progress-text');
+  
+  if (progressFill && progressText) {
+      progressFill.style.width = `${percent}%`;
+      progressText.textContent = `${Math.round(percent)}%`;
+  }
+} 
+
+function stopEngraving() {
+  updateProgressBar(100);
+  console.log('Stopping engraving...');
+  ipcRenderer.send('stop-engraving', {});
+  isRunning = false;
+  startButton.disabled = false;
+  stopButton.disabled = true;
+}
 
 // Handle stop button click
 stopButton.addEventListener('click', () => {
@@ -476,42 +538,152 @@ function sendLogMessage(message, type = 'info') {
 
 // Add event listener for grid test pattern button
 document.getElementById('gridTestButton').addEventListener('click', () => {
-    const canvas = document.getElementById('bitmapCanvas');
-    const ctx = canvas.getContext('2d');
-    const displaySize = 512;
+    // Clear the buffer
+    imageBuffer.clear();
+    
+    // Fill buffer with white
+    for (let i = 0; i < imageBuffer.data.length; i += 4) {
+        imageBuffer.data[i] = 255;     // Red
+        imageBuffer.data[i + 1] = 255; // Green
+        imageBuffer.data[i + 2] = 255; // Blue
+        imageBuffer.data[i + 3] = 255; // Alpha
+    }
+    
     const gridSize = 32; // 16x16 grid
     
-    // Create a temporary canvas for the internal bitmap
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = internalWidth;
-    tempCanvas.height = internalHeight;
-    const tempCtx = tempCanvas.getContext('2d');
-    
-    // Clear temporary canvas
-    tempCtx.fillStyle = 'white';
-    tempCtx.fillRect(0, 0, internalWidth, internalHeight);
-    
-    // Draw grid
-    tempCtx.strokeStyle = 'black';
-    tempCtx.lineWidth = 1;
-    
-    // Draw vertical lines
-    for (let x = 0; x <= internalWidth; x += gridSize) {
-        tempCtx.beginPath();
-        tempCtx.moveTo(x, 0);
-        tempCtx.lineTo(x, internalHeight);
-        tempCtx.stroke();
+    // Draw grid lines in the buffer
+    for (let y = 0; y < internalHeight; y++) {
+        for (let x = 0; x < internalWidth; x++) {
+            // Check if we're on a grid line
+            if (x % gridSize === 0 || y % gridSize === 0) {
+                const i = (y * internalWidth + x) * 4;
+                imageBuffer.data[i] = 0;     // Red
+                imageBuffer.data[i + 1] = 0; // Green
+                imageBuffer.data[i + 2] = 0; // Blue
+                imageBuffer.data[i + 3] = 255; // Alpha
+            }
+        }
     }
     
-    // Draw horizontal lines
-    for (let y = 0; y <= internalHeight; y += gridSize) {
-        tempCtx.beginPath();
-        tempCtx.moveTo(0, y);
-        tempCtx.lineTo(internalWidth, y);
-        tempCtx.stroke();
-    }
+    // Render the buffer to the canvas
+    renderBufferToCanvas();
+});
+
+// Function to render the buffer to the canvas with scaling
+function renderBufferToCanvas() {
+  const canvas = document.getElementById('engraveCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Create ImageData from our buffer
+  const imageData = new ImageData(imageBuffer.data, imageBuffer.width, imageBuffer.height);
+  
+  // Create a temporary canvas to hold the full-size image
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = imageBuffer.width;
+  tempCanvas.height = imageBuffer.height;
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.putImageData(imageData, 0, 0);
+  
+  // Clear main canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Calculate scaling factor to fit in canvas
+  const scaleX = canvas.width / imageBuffer.width;
+  const scaleY = canvas.height / imageBuffer.height;
+  const scale = Math.min(scaleX, scaleY);
+  
+  // Draw scaled image centered in canvas
+  const scaledWidth = imageBuffer.width * scale;
+  const scaledHeight = imageBuffer.height * scale;
+  const offsetX = (canvas.width - scaledWidth) / 2;
+  const offsetY = (canvas.height - scaledHeight) / 2;
+  
+  ctx.drawImage(tempCanvas, offsetX, offsetY, scaledWidth, scaledHeight);
+}
+
+// Load image button handler
+document.getElementById('loadButton').addEventListener('click', async () => {
+  try {
+    const filePath = await window.api.openFileDialog();
+    if (!filePath) return;
     
-    // Scale and draw to the display canvas
-    ctx.clearRect(0, 0, displaySize, displaySize);
-    ctx.drawImage(tempCanvas, 0, 0, displaySize, displaySize);
-}); 
+    // Load image into a temp img element
+    const img = new Image();
+    img.onload = () => {
+      // Clear the buffer
+      imageBuffer.clear();
+      
+      // Create a temporary canvas to process the image
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = imageBuffer.width;
+      tempCanvas.height = imageBuffer.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      // Calculate scaling to fit image into buffer while maintaining aspect ratio
+      const scale = Math.min(
+        imageBuffer.width / img.width,
+        imageBuffer.height / img.height
+      );
+      
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const offsetX = (imageBuffer.width - scaledWidth) / 2;
+      const offsetY = (imageBuffer.height - scaledHeight) / 2;
+      
+      // Draw image centered in buffer
+      tempCtx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+      
+      // Get image data and copy to our buffer
+      const imageData = tempCtx.getImageData(0, 0, imageBuffer.width, imageBuffer.height);
+      imageBuffer.data.set(imageData.data);
+      
+      // Render to visible canvas
+      renderBufferToCanvas();
+      
+      //document.getElementById('statusBar').textContent = `Image loaded: ${filePath}`;
+    };
+    
+    img.onerror = () => {
+      //document.getElementById('statusBar').textContent = 'Failed to load image';
+    };
+    
+    img.src = filePath;
+  } catch (err) {
+    //document.getElementById('statusBar').textContent = `Error: ${err.message}`;
+  }
+});
+
+
+// Initialize canvas when the page loads
+window.addEventListener('load', () => {
+  const canvas = document.getElementById('engraveCanvas');
+  canvas.width = 800;  // Set appropriate display size
+  canvas.height = 760;
+  renderBufferToCanvas();
+});
+
+// Function to update the status bar
+function updateStatusBar(message, showProgress = false, progress = 0) {
+    const statusText = document.querySelector('.status-text');
+    const statusProgress = document.querySelector('.status-progress');
+    const progressFill = statusProgress.querySelector('.progress-fill');
+    const progressText = statusProgress.querySelector('.progress-text');
+    
+    // Update text
+    statusText.textContent = message;
+    
+    // Update progress
+    if (showProgress) {
+        statusProgress.style.display = 'flex';
+        progressFill.style.width = `${progress}%`;
+        progressText.textContent = `${Math.round(progress)}%`;
+    } else {
+        statusProgress.style.display = 'none';
+    }
+}
+
+// Export the function for use in other parts of the code
+window.updateStatusBar = updateStatusBar;
+
+// Initialize status bar
+updateStatusBar('Ready'); 

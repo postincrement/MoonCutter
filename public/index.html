@@ -23,16 +23,25 @@
             </div>
             <div class="tabs-container">
                 <div class="tabs-header">
-                    <button class="tab-button active" data-tab="controls">Controls</button>
+                    <button class="tab-button active" data-tab="device">Device</button>
+                    <button class="tab-button" data-tab="media">Media</button>
                     <button class="tab-button" data-tab="image">Image</button>
-                    <button class="tab-button" data-tab="run">Run</button>
+                    <button class="tab-button" data-tab="engrave">Engrave</button>
                 </div>
                 <div class="tabs-content">
-                    <div class="tab-pane active" id="controls-tab">
+                    <div class="tab-pane active" id="device-tab">
                         <div class="controls">
+                            <div class="device-type-wrapper">
+                                <label for="deviceTypeSelect">Type:</label>
+                                <select id="deviceTypeSelect">
+                                    <option value="kkmoon">KKMoon</option>
+                                    <option value="gcode">GCode</option>
+                                    <option value="test">Test</option>
+                                </select>
+                            </div>
                             <div class="serial-port-wrapper">
                                 <select id="serialPortSelect">
-                                    <option value="">Select Serial Port</option>
+                                    <option value="">Serial Port</option>
                                 </select>
                                 <button id="refreshButton">Refresh</button>
                             </div>
@@ -62,6 +71,11 @@
                             </div>
                         </div>
                     </div>
+                    <div class="tab-pane" id="media-tab">
+                        <div class="media-content">
+                            <!-- Media tab content will go here -->
+                        </div>
+                    </div>
                     <div class="tab-pane" id="image-tab">
                         <div class="image-content">
                             <input type="file" id="fileInput" accept=".png,.jpg,.jpeg" style="display: none">
@@ -69,7 +83,7 @@
                             <button id="gridTestButton">Grid Test Pattern</button>
                         </div>
                     </div>
-                    <div class="tab-pane" id="run-tab">
+                    <div class="tab-pane" id="engrave-tab">
                         <div class="run-content">
                             <button id="startButton">Start</button>
                             <button id="stopButton" disabled>Stop</button>
@@ -82,10 +96,18 @@
                         </div>
                     </div>
                 </div>
+                <div class="status-bar">
+                    <div class="status-text"></div>
+                    <div class="status-progress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <span class="progress-text">0%</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     <script src="renderer.js"></script>
-    <script src="logwindow.js"></script>
 </body>
 </html> 
