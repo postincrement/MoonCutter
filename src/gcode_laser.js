@@ -10,10 +10,6 @@ class GCodeLaser extends Protocol {
         return 'GCode';
     }
 
-    static needsSerialPort() {
-      return false;
-    }
-    
     constructor() {
         super();
     }

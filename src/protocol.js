@@ -1,7 +1,11 @@
 const { logToWindow } = require('./log');
 
 class Protocol {
-    
+
+    static needsSerialPort() {
+        return true;
+    }
+
     constructor() {
     }
     

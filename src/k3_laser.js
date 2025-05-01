@@ -10,10 +10,6 @@ class K3Laser extends Protocol {
         return 'K3 Laser';
     }
 
-    static needsSerialPort() {
-        return true;
-    }
-    
     constructor() {
       super();
     }
