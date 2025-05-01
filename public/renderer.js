@@ -6,7 +6,6 @@ const g_connectionIndicator = document.getElementById('connectionIndicator');
 const g_currentXDisplay     = document.getElementById('currentX');
 const g_currentYDisplay     = document.getElementById('currentY');
 
-const g_imageFileInput      = document.getElementById('imageFileInput');
 const g_loadImageButton     = document.getElementById('loadImageButton');
 const g_fanButton           = document.getElementById('fanButton');
 const g_homeButton          = document.getElementById('homeButton');
@@ -274,19 +273,6 @@ function getPixel(x, y) {
   };
 }
 
-// Handle file input change
-g_imageFileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      loadImageFromFile(file);
-    }
-});
-
-// Handle load button click
-g_loadImageButton.addEventListener('click', () => {
-    g_imageFileInput.click();
-});
-
 // Function to check connection and show alert if not connected
 function checkConnection() {
   if (!g_isConnected) {
@@ -331,7 +317,7 @@ document.getElementById('gridTestButton').addEventListener('click', () => {
   renderBufferToCanvas();
 });
 
-// Load image button handler
+// Keep only this event listener for the load image button
 g_loadImageButton.addEventListener('click', async () => {
   try {
     const filePath = await window.api.openFileDialog();

@@ -26,52 +26,73 @@ function loadImageFromFile(file) {
   
   reader.readAsDataURL(file);
 }
-
-
-// load image from image object
 function loadImage(img) {
 
   // resize the image buffer to the image size
   createImageBuffer(img.width, img.height);
 
-  // clear the image buffer
-  g_imageBuffer.clear();
-
-  // Create a temporary canvas so we can get the image data
+  // Create a temporary canvas to extract image data
   const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = g_imageBuffer.width;
+  tempCanvas.width  = g_imageBuffer.width;
   tempCanvas.height = g_imageBuffer.height;
   const tempCtx = tempCanvas.getContext('2d');
 
-  // Get image data and copy to our buffer
-  const imageData = tempCtx.getImageData(0, 0, g_imageBuffer.width, g_imageBuffer.height);
-  g_imageBuffer.data.set(imageData.data);
-  
-  // calculate initial scaling factor to display the image on the canvas
+  // Calculate scaling to fit image into buffer while maintaining aspect ratio
   const canvas = document.getElementById('bitmapCanvas');
-
   g_displayScale = Math.min(
     canvas.width / img.width,
     canvas.height / img.height
   );
 
-  // Render to visible canvas
-  renderBufferToCanvas();
-};
+  // Calculate centered position
+  const scaledWidth = img.width * g_displayScale;
+  const scaledHeight = img.height * g_displayScale;
+  const offsetX = (g_imageBuffer.width - scaledWidth) / 2;
+  const offsetY = (g_imageBuffer.height - scaledHeight) / 2;
+
+  // Clear the temporary canvas with white
+  tempCtx.fillStyle = 'grey';
+  tempCtx.fillRect(0, 0, g_imageBuffer.width, g_imageBuffer.height);
+
+  // Draw the scaled image centered on the temporary canvas
+  //tempCtx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+  tempCtx.drawImage(img, 0, 0, img.width, img.height);
+
+  g_imageBuffer.data = tempCtx.getImageData(0, 0, g_imageBuffer.width, g_imageBuffer.height).data;
+
+  /*
+  // Convert to grayscale and store in g_imageBuffer
+  const imageData = tempCtx.getImageData(0, 0, g_imageBuffer.width, g_imageBuffer.height);
   
+  // Process each pixel
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    // Convert RGB to grayscale using luminance formula
+    const grayValue = Math.round(
+      0.299 * data[i] +      // Red
+      0.587 * data[i + 1] +  // Green
+      0.114 * data[i + 2]    // Blue
+    );
 
-// Function to render the buffer to the canvas with scaling
+    // Store grayscale value in all RGB channels of g_imageBuffer
+    g_imageBuffer.data[i] = grayValue;     // Red
+    g_imageBuffer.data[i + 1] = grayValue; // Green
+    g_imageBuffer.data[i + 2] = grayValue; // Blue
+    g_imageBuffer.data[i + 3] = 255;       // Alpha (fully opaque)
+  }
+*/
+
+  // Render the buffer to the canvas
+  renderBufferToCanvas();
+
+  // Log success
+  logToWindow('info', `Image loaded and converted: ${img.width}x${img.height} -> ${g_imageBuffer.width}x${g_imageBuffer.height}`);
+}
+
 function renderBufferToCanvas() {
-
-  // get display canvas
+  
   const canvas = document.getElementById('bitmapCanvas');
-
-  // get context
   const ctx = canvas.getContext('2d');
-
-  // get display canvas dimensions
-  const displayWidth  = canvas.width;
-  const displayHeight = canvas.height;
 
   // Create ImageData from our buffer
   const imageData = new ImageData(g_imageBuffer.data, g_imageBuffer.width, g_imageBuffer.height);
@@ -87,11 +108,10 @@ function renderBufferToCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Draw scaled image centered in canvas
-  const scaledWidth  = g_imageBuffer.width * g_displayScale;
+  const scaledWidth = g_imageBuffer.width * g_displayScale;
   const scaledHeight = g_imageBuffer.height * g_displayScale;
-  const offsetX      = (canvas.width - scaledWidth) / 2;
-  const offsetY      = (canvas.height - scaledHeight) / 2;
+  const offsetX = (canvas.width - scaledWidth) / 2;
+  const offsetY = (canvas.height - scaledHeight) / 2;
 
   ctx.drawImage(tempCanvas, offsetX, offsetY, scaledWidth, scaledHeight);
-}
-
+} 

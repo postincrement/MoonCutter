@@ -1,5 +1,5 @@
 {
-  "name": "MoonCutter",
+  "name": "mooncutter",
   "version": "1.0.0",
   "description": "A tool for controlling the KKMoon laser engraver",
   "main": "src/main.js",
