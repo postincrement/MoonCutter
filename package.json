@@ -35,6 +35,7 @@
       "public/log.html",
       "public/renderer.js",
       "public/logwindow.js",
+      "public/image.js",
       "public/styles.css",
       "public/images/home.png",
       "public/images/up.png",

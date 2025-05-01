@@ -2,8 +2,20 @@ const { logToWindow } = require('./log');
 
 class Protocol {
 
+    static getDeviceName() {
+        return 'Protocol';
+    }
+
+    static getNudgeSize() {
+        return 1;
+    }
+
     static needsSerialPort() {
         return true;
+    }
+
+    static getNudgeSize() {
+        return 1;
     }
 
     constructor() {
@@ -12,30 +24,57 @@ class Protocol {
     // Initialize the protocol handler
     init(port) 
     {
+      return {
+        status: 'connected'
+      };
     }
 
     sendFanOn() 
     {
+      return {
+        status: 'error',
+        message: 'not implemented'
+      };
     }
 
     sendFanOff() 
     {
+      return {
+        status: 'error',
+        message: 'not implemented'
+      };
     }
 
     sendCenter() 
     {
+      return {
+        status: 'error',
+        message: 'not implemented'
+      };
     }
 
     sendHome() 
     {
+      return {
+        status: 'error',
+        message: 'not implemented'
+      };
     }
 
-    sendMove(command) 
+    sendRelativeMove(command) 
     {
+      return {
+        status: 'error',
+        message: 'not implemented'
+      };
     }
 
     sendLineData(lineData, lineNumber) 
     {
+      return {
+        status: 'error',
+        message: 'not implemented'
+      };
     }
 }
 

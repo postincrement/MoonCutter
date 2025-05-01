@@ -15,12 +15,15 @@ function createLogWindow() {
         height: 600,
         title: 'Log Window',
         webPreferences: {
+          nodeIntegration: true,
           contextIsolation: false
       },
       modal: false,
       parent: null,
       show: true
   });
+
+  //logWindow.webContents.openDevTools()
 
   logWindow.loadFile('public/log.html');
 
@@ -31,6 +34,12 @@ function createLogWindow() {
 
 // Function to send messages to log window
 function logToWindow(type, ...items) {
+  if (type === 'error') {
+    console.error(items);
+  }
+  else {
+    console.log(items);
+  }
   if (logWindow) {
       const formattedMessage = items.map(item => {
           if (typeof item === 'object') {

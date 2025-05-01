@@ -4,10 +4,46 @@ const { logToWindow } = require('./log');
 
 const { SerialPort } = require('serialport');
 
+let BED_WIDTH  = 1600;  // Default values
+let BED_HEIGHT = 1520;
+
+
+// if true, clamp movements to the bed size
+const g_clampMovements = false;
+
+// the size of a movement nudge
+const g_nudgeSize = 100;
+
+// Command constants
+const COMMANDS = {
+  CONNECT: [10, 0, 4, 0],
+  HOME:    [23, 0, 4, 0],
+  CENTER:  [26, 0, 4, 0],
+  FAN_ON:  [ 4, 0, 4, 0],
+  FAN_OFF: [ 5, 0, 4, 0],
+                         //xmsb  xlsb  ymsb  ylsb
+  MOVE:    [ 1, 0, 7,       0,    0,     0,    0]
+};
+
+// Timeout constants (in milliseconds)
+const TIMEOUTS = {
+  CONNECT: 100,
+  FAN: 100,
+  HOME: 6000,
+  CENTER: 6000,
+  MOVE: 500
+};
+
+const ACK = 0x09;
+
 class K3Laser extends Protocol {
 
     static getDeviceName() {
         return 'K3 Laser';
+    }
+
+    static getNudgeSize() {
+        return g_nudgeSize;
     }
 
     constructor() {
@@ -23,6 +59,10 @@ class K3Laser extends Protocol {
       this.responseResolve = null;
       this.responseTimeout = null;
 
+      this.m_xCoordinate = 0;
+      this.m_yCoordinate = 0;
+      this.m_fanOn       = false;
+
       this.port.on('data', (data) => {
             this.buffer = Buffer.concat([this.buffer, data]);
             this.processBuffer();
@@ -36,8 +76,8 @@ class K3Laser extends Protocol {
             }
         });
 
-        // send command and wait for ack
-        const ack = await protocol.sendMessageAndWaitForAck(Buffer.from(COMMANDS.CONNECT), TIMEOUTS.CONNECT);
+        // send connect command and wait for ack
+        const ack = await this.sendMessageAndWaitForAck("connect", Buffer.from(COMMANDS.CONNECT), TIMEOUTS.CONNECT);
         if (!ack) {
             logToWindow('error', 'Failed to send connect command');
             return { 
@@ -47,7 +87,7 @@ class K3Laser extends Protocol {
         }
 
         // Send fan off and wait for ack
-        const fanAck = await protocol.sendMessageAndWaitForAck(Buffer.from(COMMANDS.FAN_OFF), TIMEOUTS.FAN);
+        const fanAck = await this.sendFanOff();
         if (!fanAck) {
             logToWindow('error', 'Failed to send fan off command');
             return {
@@ -57,19 +97,17 @@ class K3Laser extends Protocol {
         }
 
         // Send home command and wait for ack
-        const homeAck = await protocol.sendMessageAndWaitForAck(Buffer.from(COMMANDS.HOME), TIMEOUTS.HOME);
+        const homeAck = await this.sendHome();
         if (!homeAck) {
             logToWindow('error', 'Failed to send home command');
             return {
               status: 'error',
               message: 'Failed to send home command'
             };
-            return;
         }
 
         return {
-            status: 'success',
-            message: 'Connected to K3 Laser'
+            status: 'connected'
         };
     }
 
@@ -131,8 +169,8 @@ class K3Laser extends Protocol {
     }
 
     // send a message and wait for an ack
-    async sendMessageAndWaitForAck(message, timeout = null) {
-      logToWindow('info', 'Sending message:', message);
+    async sendMessageAndWaitForAck(name, message, timeout = null) {
+      logToWindow('info', 'Sending ' + name + ' message:', message);
 
       const response = await this.sendMessageAndWaitForReply(message, timeout);
       if (response.error) {
@@ -151,7 +189,8 @@ class K3Laser extends Protocol {
     }
 
     async sendFanOn() {
-      const ack = await this.sendMessageAndWaitForAck(Buffer.from(COMMANDS.FAN_ON), TIMEOUTS.FAN);
+      this.m_fanOn = true;
+      const ack = await this.sendMessageAndWaitForAck("fan on", Buffer.from(COMMANDS.FAN_ON), TIMEOUTS.FAN);
       if (!ack) {
         logToWindow('error', 'Failed to send fan on command');
         return false;
@@ -161,7 +200,8 @@ class K3Laser extends Protocol {
     }
 
     async sendFanOff() {
-      const ack = await this.sendMessageAndWaitForAck(Buffer.from(COMMANDS.FAN_OFF), TIMEOUTS.FAN);
+      this.m_fanOn = false;
+      const ack = await this.sendMessageAndWaitForAck("fan off", Buffer.from(COMMANDS.FAN_OFF), TIMEOUTS.FAN);
       if (!ack) {
         logToWindow('error', 'Failed to send fan off command');
         return false;
@@ -171,7 +211,10 @@ class K3Laser extends Protocol {
     }
 
     async sendCenter() {
-      const ack = await this.sendMessageAndWaitForAck(Buffer.from(COMMANDS.CENTER), TIMEOUTS.CENTER);
+      this.xCoordinate = BED_WIDTH / 2;
+      this.yCoordinate = BED_HEIGHT / 2;
+
+      const ack = await this.sendMessageAndWaitForAck("center", Buffer.from(COMMANDS.CENTER), TIMEOUTS.CENTER);
       if (!ack) {
         logToWindow('error', 'Failed to send center command');
         return false;
@@ -182,7 +225,10 @@ class K3Laser extends Protocol {
 
     // send home command and wait for ack
     async sendHome() {
-      const ack = await this.sendMessageAndWaitForAck(Buffer.from(COMMANDS.HOME), TIMEOUTS.HOME);
+      this.xCoordinate = 0;
+      this.yCoordinate = 0;
+
+      const ack = await this.sendMessageAndWaitForAck("home", Buffer.from(COMMANDS.HOME), TIMEOUTS.HOME);
       if (!ack) {
         logToWindow('error', 'Failed to send home command');
         return false;
@@ -192,8 +238,40 @@ class K3Laser extends Protocol {
     }
 
     // send move command and wait for ack
-    async sendMove(command) {
-      const moveAck = await this.sendMessageAndWaitForAck(Buffer.from(command), TIMEOUTS.MOVE);
+    async sendRelativeMove(directionData) {
+
+      // update the x coordinate
+      this.m_xCoordinate += directionData.dx;
+      this.m_yCoordinate += directionData.dy;
+
+      if (g_clampMovements) {
+
+        if (this.m_xCoordinate < 0) {
+          this.m_xCoordinate = 0;
+        }
+        else if (this.m_xCoordinate > BED_WIDTH) {
+          this.m_xCoordinate = BED_WIDTH;
+        }
+        directionData.dx = this.m_xCoordinate - currentX;
+
+        // update the y coordinate
+        if (this.m_yCoordinate < 0) {
+          this.m_yCoordinate = 0;
+        }
+        else if (this.m_yCoordinate > BED_HEIGHT) {
+          this.m_yCoordinate = BED_HEIGHT;
+        }
+        directionData.dy = this.m_yCoordinate - currentY;
+      }
+      
+      // create the command
+      const command = COMMANDS.MOVE;
+      command[3] = (directionData.dx >> 8) & 0xFF;
+      command[4] = directionData.dx & 0xFF;
+      command[5] = (directionData.dy >> 8) & 0xFF;
+      command[6] = directionData.dy & 0xFF;
+
+      const moveAck = await this.sendMessageAndWaitForAck("move", Buffer.from(command), TIMEOUTS.MOVE);
       if (!moveAck) {
         logToWindow('error', 'Failed to send move command');
         return false;

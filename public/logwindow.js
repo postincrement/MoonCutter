@@ -1,6 +1,6 @@
 const { ipcRenderer } = require('electron');
+const { dialog } = require('electron');
 
-let logMessages = [];
 const logWindow = document.getElementById('logWindow');
 
 function logMessage(message, type = 'info') {
@@ -15,10 +15,12 @@ function logMessage(message, type = 'info') {
 // Listen for log messages from the main window
 ipcRenderer.on('log-message', (event, { message, type }) => {
     logMessage(message, type);
+    if (type === 'error') {
+      dialog.showErrorBox('Error', message);
+    }
 });
 
 // Clear logs button handler
 document.getElementById('clearLogsButton').addEventListener('click', () => {
     logWindow.innerHTML = '';
-    logMessages = [];
 }); 
