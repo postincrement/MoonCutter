@@ -1,23 +1,26 @@
 const { ipcRenderer } = require('electron');
-const canvas = document.getElementById('bitmapCanvas');
-const ctx = canvas.getContext('2d');
-const fileInput = document.getElementById('fileInput');
-const loadButton = document.getElementById('loadButton');
-const connectButton = document.getElementById('connectButton');
-const serialPortSelect = document.getElementById('serialPortSelect');
-const refreshButton = document.getElementById('refreshButton');
-const fanButton = document.getElementById('fanButton');
-const homeButton = document.getElementById('homeButton');
-const centerButton = document.getElementById('centerButton');
-const upButton = document.getElementById('upButton');
-const downButton = document.getElementById('downButton');
-const leftButton = document.getElementById('leftButton');
-const rightButton = document.getElementById('rightButton');
+
+const canvas              = document.getElementById('bitmapCanvas');
+const deviceTypeSelect    = document.getElementById('deviceTypeSelect');
+const serialPortSelect    = document.getElementById('serialPortSelect');
+const refreshButton       = document.getElementById('refreshButton');
+const connectButton       = document.getElementById('connectButton');
 const connectionIndicator = document.getElementById('connectionIndicator');
-const currentXDisplay = document.getElementById('currentX');
-const currentYDisplay = document.getElementById('currentY');
-const startButton = document.getElementById('startButton');
-const stopButton = document.getElementById('stopButton');
+const currentXDisplay     = document.getElementById('currentX');
+const currentYDisplay     = document.getElementById('currentY');
+
+const fileInput           = document.getElementById('fileInput');
+const loadButton          = document.getElementById('loadButton');
+const fanButton           = document.getElementById('fanButton');
+const homeButton          = document.getElementById('homeButton');
+const centerButton        = document.getElementById('centerButton');
+const upButton            = document.getElementById('upButton');
+const downButton          = document.getElementById('downButton');
+const leftButton          = document.getElementById('leftButton');
+const rightButton         = document.getElementById('rightButton');
+
+const startButton         = document.getElementById('startButton');
+const stopButton          = document.getElementById('stopButton');
 
 let fanState = false; // false = off, true = on
 let isConnected = false; // Track connection state
@@ -44,10 +47,79 @@ imageBuffer.clear();
 
 // Handle internal dimensions message from main process
 ipcRenderer.on('set-internal-dimensions', (event, dimensions) => {
-    internalWidth = dimensions.width;
-    internalHeight = dimensions.height;
+    internalWidth   = dimensions.width;
+    internalHeight  = dimensions.height;
     console.log(`Internal dimensions set to ${internalWidth}x${internalHeight}`);
     createBitmap();  // Recreate bitmap with new dimensions
+});
+
+////////////////////////////////////////////////////////////
+//
+//  device type handling
+//
+
+ipcRenderer.on('set-device-types', (event, data) => {
+  const deviceNames = data.deviceNames;
+  deviceTypeSelect.innerHTML = '';
+
+  deviceNames.forEach(name => {
+    // add new option
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    deviceTypeSelect.appendChild(option);
+  });
+
+  setDeviceType(deviceNames[0]);
+});
+
+deviceTypeSelect.addEventListener('change', async (event) => {
+  setDeviceType(event.target.value);
+});
+
+async function setDeviceType(deviceType) {
+  const result = await ipcRenderer.invoke('set-device-type', {
+    deviceType: deviceType
+  });
+  if (result.success) {
+    if (result.needsSerialPort) {
+      serialPortSelect.disabled = false;
+    } else {
+      serialPortSelect.disabled = true;
+    }
+  }
+  setConnectedState(false);
+};
+
+////////////////////////////////////////////////////////////
+//
+//  serial port handling
+//
+
+// Request available serial ports when the page loads
+ipcRenderer.send('request-serial-ports');
+
+// Handle refresh button click
+refreshButton.addEventListener('click', () => {
+  ipcRenderer.send('request-serial-ports');
+});
+
+// Handle serial port list update
+ipcRenderer.on('serial-ports-list', (event, ports) => {
+  updateSerialPortList(ports);
+});
+
+// Handle serial port list update
+ipcRenderer.on('serial-ports-state', (event, enabled) => {
+  serialPortSelect.disabled = !enabled;
+  if (!enabled) {
+    setConnectedState(false);
+  }
+});
+
+// Handle serial port selection change
+serialPortSelect.addEventListener('change', () => {
+  setConnectedState(false);
 });
 
 // Function to update serial port list
@@ -77,23 +149,49 @@ function updateSerialPortList(ports) {
     }
 }
 
-// Request available serial ports when the page loads
-ipcRenderer.send('request-serial-ports');
+////////////////////////////////////////////////////////////
+//
+//  connect button handling
+//
 
-// Handle refresh button click
-refreshButton.addEventListener('click', () => {
-    ipcRenderer.send('request-serial-ports');
+// Handle connect button click
+connectButton.addEventListener('click', () => {
+  const selectedPort = serialPortSelect.value;
+  if (!selectedPort) {
+      alert('Please select a serial port first');
+      return;
+  }
+
+  // Send a message to the main process with the selected port and initial values
+  ipcRenderer.send('connect-button-clicked', {
+      port: selectedPort,
+      timestamp: new Date().toISOString()
+  });
 });
 
-// Handle serial port list update
-ipcRenderer.on('serial-ports-list', (event, ports) => {
-    updateSerialPortList(ports);
+// Handle connection response
+ipcRenderer.on('connect-response', (event, data) => {
+sendLogMessage('Connection response:', data);
+  if (data.status === 'connected') {
+      setConnectedState(true);
+      
+      // Log successful connection
+      sendLogMessage('Successfully connected to serial port');
+      sendLogMessage('Home response:', data.homeResponse);
+      sendLogMessage('Fan response:', data.fanResponse);
+  } else if (data.status === 'error') {
+      setConnectedState(false);
+      
+      // Log connection error
+      console.error('Connection error:', data.message);
+      alert(`Connection error: ${data.message}`);
+  }
 });
 
-// Handle serial port selection change
-serialPortSelect.addEventListener('change', () => {
-    setConnectedState(false);
-});
+////////////////////////////////////////////////////////////
+//
+//  bitmap handling
+//
 
 // Create a grayscale bitmap
 function createBitmap() {
@@ -132,6 +230,58 @@ function convertToGrayscale(imageData) {
         // Alpha channel remains unchanged
     }
     return imageData;
+}
+
+// Function to update a single pixel
+function updatePixel(x, y, grayValue, a = 255) {
+  const canvas = document.getElementById('bitmapCanvas');
+  
+  // Create a temporary canvas for the internal bitmap
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = internalWidth;
+  tempCanvas.height = internalHeight;
+  const tempCtx = tempCanvas.getContext('2d');
+  
+  // Get the current image data
+  const imageData = tempCtx.getImageData(0, 0, internalWidth, internalHeight);
+  const data = imageData.data;
+  const i = (y * internalWidth + x) * 4;
+  
+  // Set all color channels to the same value for grayscale
+  data[i] = grayValue;     // Red
+  data[i + 1] = grayValue; // Green
+  data[i + 2] = grayValue; // Blue
+  data[i + 3] = a;         // Alpha
+  
+  // Put the image data back on the temporary canvas
+  tempCtx.putImageData(imageData, 0, 0);
+  
+  // Scale and draw to the display canvas
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+}
+
+// Function to get pixel value
+function getPixel(x, y) {
+  const canvas = document.getElementById('bitmapCanvas');
+  
+  // Create a temporary canvas for the internal bitmap
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = internalWidth;
+  tempCanvas.height = internalHeight;
+  const tempCtx = tempCanvas.getContext('2d');
+  
+  // Get the current image data
+  const imageData = tempCtx.getImageData(0, 0, internalWidth, internalHeight);
+  const data = imageData.data;
+  const i = (y * internalWidth + x) * 4;
+  
+  // Since it's grayscale, we can return any of the RGB channels
+  return {
+      gray: data[i],
+      a: data[i + 3]
+  };
 }
 
 // Calculate dimensions to maintain aspect ratio
@@ -205,6 +355,140 @@ loadButton.addEventListener('click', () => {
     fileInput.click();
 });
 
+
+// Function to check connection and show alert if not connected
+function checkConnection() {
+  if (!isConnected) {
+      alert('Please connect to a serial port first');
+      return false;
+  }
+  return true;
+}
+
+
+// Add event listener for grid test pattern button
+document.getElementById('gridTestButton').addEventListener('click', () => {
+  // Clear the buffer
+  imageBuffer.clear();
+  
+  // Fill buffer with white
+  for (let i = 0; i < imageBuffer.data.length; i += 4) {
+      imageBuffer.data[i] = 255;     // Red
+      imageBuffer.data[i + 1] = 255; // Green
+      imageBuffer.data[i + 2] = 255; // Blue
+      imageBuffer.data[i + 3] = 255; // Alpha
+  }
+  
+  const gridSize = 32; // 16x16 grid
+  
+  // Draw grid lines in the buffer
+  for (let y = 0; y < internalHeight; y++) {
+      for (let x = 0; x < internalWidth; x++) {
+          // Check if we're on a grid line
+          if (x % gridSize === 0 || y % gridSize === 0) {
+              const i = (y * internalWidth + x) * 4;
+              imageBuffer.data[i] = 0;     // Red
+              imageBuffer.data[i + 1] = 0; // Green
+              imageBuffer.data[i + 2] = 0; // Blue
+              imageBuffer.data[i + 3] = 255; // Alpha
+          }
+      }
+  }
+  
+  // Render the buffer to the canvas
+  renderBufferToCanvas();
+});
+
+// Function to render the buffer to the canvas with scaling
+function renderBufferToCanvas() {
+  const canvas = document.getElementById('bitmapCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Create ImageData from our buffer
+  const imageData = new ImageData(imageBuffer.data, imageBuffer.width, imageBuffer.height);
+
+  // Create a temporary canvas to hold the full-size image
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = imageBuffer.width;
+  tempCanvas.height = imageBuffer.height;
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.putImageData(imageData, 0, 0);
+
+  // Clear main canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Calculate scaling factor to fit in canvas
+  const scaleX = canvas.width / imageBuffer.width;
+  const scaleY = canvas.height / imageBuffer.height;
+  const scale = Math.min(scaleX, scaleY);
+
+  // Draw scaled image centered in canvas
+  const scaledWidth = imageBuffer.width * scale;
+  const scaledHeight = imageBuffer.height * scale;
+  const offsetX = (canvas.width - scaledWidth) / 2;
+  const offsetY = (canvas.height - scaledHeight) / 2;
+
+  ctx.drawImage(tempCanvas, offsetX, offsetY, scaledWidth, scaledHeight);
+}
+
+// Load image button handler
+document.getElementById('loadButton').addEventListener('click', async () => {
+try {
+  const filePath = await window.api.openFileDialog();
+  if (!filePath) return;
+  
+  // Load image into a temp img element
+  const img = new Image();
+  img.onload = () => {
+    // Clear the buffer
+    imageBuffer.clear();
+    
+    // Create a temporary canvas to process the image
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = imageBuffer.width;
+    tempCanvas.height = imageBuffer.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Calculate scaling to fit image into buffer while maintaining aspect ratio
+    const scale = Math.min(
+      imageBuffer.width / img.width,
+      imageBuffer.height / img.height
+    );
+    
+    const scaledWidth = img.width * scale;
+    const scaledHeight = img.height * scale;
+    const offsetX = (imageBuffer.width - scaledWidth) / 2;
+    const offsetY = (imageBuffer.height - scaledHeight) / 2;
+    
+    // Draw image centered in buffer
+    tempCtx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+    
+    // Get image data and copy to our buffer
+    const imageData = tempCtx.getImageData(0, 0, imageBuffer.width, imageBuffer.height);
+    imageBuffer.data.set(imageData.data);
+    
+    // Render to visible canvas
+    renderBufferToCanvas();
+    
+    //document.getElementById('statusBar').textContent = `Image loaded: ${filePath}`;
+  };
+  
+  img.onerror = () => {
+    //document.getElementById('statusBar').textContent = 'Failed to load image';
+  };
+  
+  img.src = filePath;
+} catch (err) {
+  //document.getElementById('statusBar').textContent = `Error: ${err.message}`;
+}
+});
+
+
+////////////////////////////////////////////////////////////
+//
+//  device button handling
+//
+
 // set enable status of all buttons
 function setConnectedState(connected) {
 
@@ -238,52 +522,10 @@ function setConnectedState(connected) {
     stopButton.disabled     = true;
 }
 
-// Handle connect button click
-connectButton.addEventListener('click', () => {
-    const selectedPort = serialPortSelect.value;
-    if (!selectedPort) {
-        alert('Please select a serial port first');
-        return;
-    }
-
-    // Send a message to the main process with the selected port and initial values
-    ipcRenderer.send('connect-button-clicked', {
-        port: selectedPort,
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Handle connection response
-ipcRenderer.on('connect-response', (event, data) => {
-  sendLogMessage('Connection response:', data);
-    if (data.status === 'connected') {
-        setConnectedState(true);
-        
-        // Log successful connection
-        sendLogMessage('Successfully connected to serial port');
-        sendLogMessage('Home response:', data.homeResponse);
-        sendLogMessage('Fan response:', data.fanResponse);
-    } else if (data.status === 'error') {
-        setConnectedState(false);
-        
-        // Log connection error
-        console.error('Connection error:', data.message);
-        alert(`Connection error: ${data.message}`);
-    }
-});
-
-// Function to check connection and show alert if not connected
-function checkConnection() {
-    if (!isConnected) {
-        alert('Please connect to a serial port first');
-        return false;
-    }
-    return true;
-}
-
 // Handle fan button click
 fanButton.addEventListener('click', () => {
-    if (!checkConnection()) return;
+    if (!checkConnection()) 
+      return;
 
     // Toggle fan state
     fanState = !fanState;
@@ -300,7 +542,8 @@ fanButton.addEventListener('click', () => {
 
 // Handle home button click
 homeButton.addEventListener('click', () => {
-    if (!checkConnection()) return;
+    if (!checkConnection()) 
+      return;
 
     // Reset coordinates when home is called
     resetCoordinates();
@@ -313,7 +556,8 @@ homeButton.addEventListener('click', () => {
 
 // Handle center button click
 centerButton.addEventListener('click', () => {
-    if (!checkConnection()) return;
+    if (!checkConnection()) 
+      return;
 
     // Send a message to the main process for the center command
     ipcRenderer.send('center-button-clicked', {
@@ -332,6 +576,17 @@ function handleDirectionButton(command, xOffset, yOffset) {
         yOffset: yOffset
     });
 }
+
+// Handle move response
+ipcRenderer.on('move-response', (event, data) => {
+  if (data.status === 'success') {
+      // Update coordinates after successful ACK using offsets from the message
+      updateCoordinates(currentX + data.xOffset, currentY + data.yOffset);
+  } else if (data.status === 'error') {
+      console.error('Move command error:', data.message);
+      alert(`Move failed: ${data.message}`);
+  }
+});
 
 // Handle up button click
 upButton.addEventListener('click', () => {
@@ -352,6 +607,91 @@ leftButton.addEventListener('click', () => {
 rightButton.addEventListener('click', () => {
     handleDirectionButton('right-button-clicked', 100, 0);
 });
+
+
+// Function to update coordinates
+function updateCoordinates(x, y) {
+    currentX = x;
+    currentY = y;
+    currentXDisplay.textContent = currentX;
+    currentYDisplay.textContent = currentY;
+    console.log(`Coordinates updated: X=${currentX}, Y=${currentY}`);
+}
+
+// Function to reset coordinates to zero
+function resetCoordinates() {
+    updateCoordinates(0, 0);
+}
+
+// Initialize coordinates to zero
+resetCoordinates();
+
+
+////////////////////////////////////////////////////////////
+//
+//  tab switching handling
+//
+
+// Tab switching functionality
+document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', () => {
+        // Remove active class from all buttons and panes
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+        
+        // Add active class to clicked button and corresponding pane
+        button.classList.add('active');
+        document.getElementById(`${button.dataset.tab}-tab`).classList.add('active');
+    });
+});
+
+
+////////////////////////////////////////////////////////////
+//
+//  log handling
+//
+
+// Function to send log messages to the log window
+function sendLogMessage(message, type = 'info') {
+    ipcRenderer.send('log-message', { message, type });
+}
+
+////////////////////////////////////////////////////////////
+//
+//  status bar handling
+//
+
+// Function to update the status bar
+function updateStatusBar(message, showProgress = false, progress = 0) {
+    const statusText = document.querySelector('.status-text');
+    const statusProgress = document.querySelector('.status-progress');
+    const progressFill = statusProgress.querySelector('.progress-fill');
+    const progressText = statusProgress.querySelector('.progress-text');
+    
+    // Update text
+    statusText.textContent = message;
+    
+    // Update progress
+    if (showProgress) {
+        statusProgress.style.display = 'flex';
+        progressFill.style.width = `${progress}%`;
+        progressText.textContent = `${Math.round(progress)}%`;
+    } else {
+        statusProgress.style.display = 'none';
+    }
+}
+
+// Export the function for use in other parts of the code
+window.updateStatusBar = updateStatusBar;
+
+// Initialize status bar
+updateStatusBar('Ready'); 
+
+
+////////////////////////////////////////////////////////////
+//
+//  engrave button handling
+//
 
 // Handle start button click
 startButton.addEventListener('click', async () => {
@@ -431,259 +771,3 @@ stopButton.addEventListener('click', () => {
   stopButton.disabled = true;
 });
 
-// Handle move response
-ipcRenderer.on('move-response', (event, data) => {
-    if (data.status === 'success') {
-        // Update coordinates after successful ACK using offsets from the message
-        updateCoordinates(currentX + data.xOffset, currentY + data.yOffset);
-    } else if (data.status === 'error') {
-        console.error('Move command error:', data.message);
-        alert(`Move failed: ${data.message}`);
-    }
-});
-
-// Function to update a single pixel
-function updatePixel(x, y, grayValue, a = 255) {
-    const canvas = document.getElementById('bitmapCanvas');
-    
-    // Create a temporary canvas for the internal bitmap
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = internalWidth;
-    tempCanvas.height = internalHeight;
-    const tempCtx = tempCanvas.getContext('2d');
-    
-    // Get the current image data
-    const imageData = tempCtx.getImageData(0, 0, internalWidth, internalHeight);
-    const data = imageData.data;
-    const i = (y * internalWidth + x) * 4;
-    
-    // Set all color channels to the same value for grayscale
-    data[i] = grayValue;     // Red
-    data[i + 1] = grayValue; // Green
-    data[i + 2] = grayValue; // Blue
-    data[i + 3] = a;         // Alpha
-    
-    // Put the image data back on the temporary canvas
-    tempCtx.putImageData(imageData, 0, 0);
-    
-    // Scale and draw to the display canvas
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
-}
-
-// Function to get pixel value
-function getPixel(x, y) {
-    const canvas = document.getElementById('bitmapCanvas');
-    
-    // Create a temporary canvas for the internal bitmap
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = internalWidth;
-    tempCanvas.height = internalHeight;
-    const tempCtx = tempCanvas.getContext('2d');
-    
-    // Get the current image data
-    const imageData = tempCtx.getImageData(0, 0, internalWidth, internalHeight);
-    const data = imageData.data;
-    const i = (y * internalWidth + x) * 4;
-    
-    // Since it's grayscale, we can return any of the RGB channels
-    return {
-        gray: data[i],
-        a: data[i + 3]
-    };
-}
-
-// Function to update coordinates
-function updateCoordinates(x, y) {
-    currentX = x;
-    currentY = y;
-    currentXDisplay.textContent = currentX;
-    currentYDisplay.textContent = currentY;
-    console.log(`Coordinates updated: X=${currentX}, Y=${currentY}`);
-}
-
-// Function to reset coordinates to zero
-function resetCoordinates() {
-    updateCoordinates(0, 0);
-}
-
-// Initialize coordinates to zero
-resetCoordinates();
-
-// Export functions for use in the main process
-window.bitmapAPI = {
-    updatePixel,
-    getPixel,
-    createBitmap
-};
-
-// Tab switching functionality
-document.querySelectorAll('.tab-button').forEach(button => {
-    button.addEventListener('click', () => {
-        // Remove active class from all buttons and panes
-        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-        
-        // Add active class to clicked button and corresponding pane
-        button.classList.add('active');
-        document.getElementById(`${button.dataset.tab}-tab`).classList.add('active');
-    });
-});
-
-// Function to send log messages to the log window
-function sendLogMessage(message, type = 'info') {
-    ipcRenderer.send('log-message', { message, type });
-}
-
-// Add event listener for grid test pattern button
-document.getElementById('gridTestButton').addEventListener('click', () => {
-    // Clear the buffer
-    imageBuffer.clear();
-    
-    // Fill buffer with white
-    for (let i = 0; i < imageBuffer.data.length; i += 4) {
-        imageBuffer.data[i] = 255;     // Red
-        imageBuffer.data[i + 1] = 255; // Green
-        imageBuffer.data[i + 2] = 255; // Blue
-        imageBuffer.data[i + 3] = 255; // Alpha
-    }
-    
-    const gridSize = 32; // 16x16 grid
-    
-    // Draw grid lines in the buffer
-    for (let y = 0; y < internalHeight; y++) {
-        for (let x = 0; x < internalWidth; x++) {
-            // Check if we're on a grid line
-            if (x % gridSize === 0 || y % gridSize === 0) {
-                const i = (y * internalWidth + x) * 4;
-                imageBuffer.data[i] = 0;     // Red
-                imageBuffer.data[i + 1] = 0; // Green
-                imageBuffer.data[i + 2] = 0; // Blue
-                imageBuffer.data[i + 3] = 255; // Alpha
-            }
-        }
-    }
-    
-    // Render the buffer to the canvas
-    renderBufferToCanvas();
-});
-
-// Function to render the buffer to the canvas with scaling
-function renderBufferToCanvas() {
-  const canvas = document.getElementById('engraveCanvas');
-  const ctx = canvas.getContext('2d');
-  
-  // Create ImageData from our buffer
-  const imageData = new ImageData(imageBuffer.data, imageBuffer.width, imageBuffer.height);
-  
-  // Create a temporary canvas to hold the full-size image
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = imageBuffer.width;
-  tempCanvas.height = imageBuffer.height;
-  const tempCtx = tempCanvas.getContext('2d');
-  tempCtx.putImageData(imageData, 0, 0);
-  
-  // Clear main canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  // Calculate scaling factor to fit in canvas
-  const scaleX = canvas.width / imageBuffer.width;
-  const scaleY = canvas.height / imageBuffer.height;
-  const scale = Math.min(scaleX, scaleY);
-  
-  // Draw scaled image centered in canvas
-  const scaledWidth = imageBuffer.width * scale;
-  const scaledHeight = imageBuffer.height * scale;
-  const offsetX = (canvas.width - scaledWidth) / 2;
-  const offsetY = (canvas.height - scaledHeight) / 2;
-  
-  ctx.drawImage(tempCanvas, offsetX, offsetY, scaledWidth, scaledHeight);
-}
-
-// Load image button handler
-document.getElementById('loadButton').addEventListener('click', async () => {
-  try {
-    const filePath = await window.api.openFileDialog();
-    if (!filePath) return;
-    
-    // Load image into a temp img element
-    const img = new Image();
-    img.onload = () => {
-      // Clear the buffer
-      imageBuffer.clear();
-      
-      // Create a temporary canvas to process the image
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = imageBuffer.width;
-      tempCanvas.height = imageBuffer.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      
-      // Calculate scaling to fit image into buffer while maintaining aspect ratio
-      const scale = Math.min(
-        imageBuffer.width / img.width,
-        imageBuffer.height / img.height
-      );
-      
-      const scaledWidth = img.width * scale;
-      const scaledHeight = img.height * scale;
-      const offsetX = (imageBuffer.width - scaledWidth) / 2;
-      const offsetY = (imageBuffer.height - scaledHeight) / 2;
-      
-      // Draw image centered in buffer
-      tempCtx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
-      
-      // Get image data and copy to our buffer
-      const imageData = tempCtx.getImageData(0, 0, imageBuffer.width, imageBuffer.height);
-      imageBuffer.data.set(imageData.data);
-      
-      // Render to visible canvas
-      renderBufferToCanvas();
-      
-      //document.getElementById('statusBar').textContent = `Image loaded: ${filePath}`;
-    };
-    
-    img.onerror = () => {
-      //document.getElementById('statusBar').textContent = 'Failed to load image';
-    };
-    
-    img.src = filePath;
-  } catch (err) {
-    //document.getElementById('statusBar').textContent = `Error: ${err.message}`;
-  }
-});
-
-
-// Initialize canvas when the page loads
-window.addEventListener('load', () => {
-  const canvas = document.getElementById('engraveCanvas');
-  canvas.width = 800;  // Set appropriate display size
-  canvas.height = 760;
-  renderBufferToCanvas();
-});
-
-// Function to update the status bar
-function updateStatusBar(message, showProgress = false, progress = 0) {
-    const statusText = document.querySelector('.status-text');
-    const statusProgress = document.querySelector('.status-progress');
-    const progressFill = statusProgress.querySelector('.progress-fill');
-    const progressText = statusProgress.querySelector('.progress-text');
-    
-    // Update text
-    statusText.textContent = message;
-    
-    // Update progress
-    if (showProgress) {
-        statusProgress.style.display = 'flex';
-        progressFill.style.width = `${progress}%`;
-        progressText.textContent = `${Math.round(progress)}%`;
-    } else {
-        statusProgress.style.display = 'none';
-    }
-}
-
-// Export the function for use in other parts of the code
-window.updateStatusBar = updateStatusBar;
-
-// Initialize status bar
-updateStatusBar('Ready'); 

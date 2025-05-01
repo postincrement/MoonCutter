@@ -40,7 +40,10 @@
       "public/images/up.png",
       "src/main.js",
       "src/log.js",
-      "src/protocol.js",
+      "src/protocol.js",  
+      "src/k3_laser.js",
+      "src/gcode_laser.js",
+      "src/test_laser.js",
       "package.json"
     ],
     "directories": {
