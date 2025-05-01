@@ -224,8 +224,9 @@ function createWindow() {
         minHeight: 632,
         resizable: true,
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js')
         }
     });
 
@@ -343,7 +344,7 @@ const menu = Menu.buildFromTemplate(template);
 Menu.setApplicationMenu(menu); 
 
 // Add new IPC handlers for the image buffer functionality
-ipcMain.on('open-file-dialog', async () => {
+ipcMain.handle('open-file-dialog', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ['openFile'],
     filters: [

@@ -1,5 +1,3 @@
-const { ipcRenderer } = require('electron');
-
 const g_deviceTypeSelect    = document.getElementById('deviceTypeSelect');
 const g_serialPortSelect    = document.getElementById('serialPortSelect');
 const g_refreshButton       = document.getElementById('refreshButton');
@@ -30,17 +28,17 @@ let g_currentY = 0;             // Current Y coordinate
 
 function logToWindow(type, ...items) {
   const formattedMessage = items.map(item => {
-      if (typeof item === 'object') {
-          try {
-              return JSON.stringify(item, null, 2); 
-          } catch (e) {
-              return String(item);
-          }
+    if (typeof item === 'object') {
+      try {
+        return JSON.stringify(item, null, 2); 
+      } catch (e) {
+        return String(item);
       }
-      return String(item);
+    }
+    return String(item);
   }).join(' ');
   console.log(formattedMessage);
-  ipcRenderer.send('log-message', { message: formattedMessage, type });
+  window.api.logMessage(formattedMessage, type);
 }
 
 ////////////////////////////////////////////////////////////
@@ -48,12 +46,11 @@ function logToWindow(type, ...items) {
 //  device type handling
 //
 
-ipcRenderer.on('set-device-types', (event, data) => {
+window.api.onSetDeviceTypes((event, data) => {
   const deviceNames = data.deviceNames;
   g_deviceTypeSelect.innerHTML = '';
 
   deviceNames.forEach(name => {
-    // add new option
     const option = document.createElement('option');
     option.value = name;
     option.textContent = name;
@@ -68,15 +65,13 @@ g_deviceTypeSelect.addEventListener('change', async (event) => {
 });
 
 async function setDeviceType(deviceType) {
-  const result = await ipcRenderer.invoke('set-device-type', {
-    deviceType: deviceType
-  });
+  const result = await window.api.setDeviceType({ deviceType });
   if (result.success) {
     g_needsSerialPort = result.needsSerialPort;
     g_serialPortSelect.disabled = !g_needsSerialPort;
   }
   setConnectedState(false);
-};
+}
 
 ////////////////////////////////////////////////////////////
 //
@@ -84,20 +79,20 @@ async function setDeviceType(deviceType) {
 //
 
 // Request available serial ports when the page loads
-ipcRenderer.send('request-serial-ports');
+window.api.requestSerialPorts();
 
 // Handle refresh button click
 g_refreshButton.addEventListener('click', () => {
-  ipcRenderer.send('request-serial-ports');
+  window.api.requestSerialPorts();
 });
 
 // Handle serial port list update
-ipcRenderer.on('serial-ports-list', (event, ports) => {
+window.api.onSerialPortsList((event, ports) => {
   updateSerialPortList(ports);
 });
 
 // Handle serial port list update
-ipcRenderer.on('serial-ports-state', (event, enabled) => {
+window.api.onSerialPortsState((event, enabled) => {
   g_serialPortSelect.disabled = !enabled;
   if (!enabled) {
     setConnectedState(false);
@@ -145,33 +140,27 @@ function updateSerialPortList(ports) {
 g_connectButton.addEventListener('click', () => {
   const selectedPort = g_serialPortSelect.value;
   if (!selectedPort) {
-      alert('Please select a serial port first');
-      return;
+    alert('Please select a serial port first');
+    return;
   }
 
-  // Send a message to the main process with the selected port and initial values
-  ipcRenderer.send('connect-button-clicked', {
-      port: selectedPort,
-      timestamp: new Date().toISOString()
+  window.api.connectPort({
+    port: selectedPort,
+    timestamp: new Date().toISOString()
   });
 });
 
 // Handle connection response
-ipcRenderer.on('connect-response', (event, data) => {
-sendLogMessage('Connection response:', data);
+window.api.onConnectResponse((event, data) => {
   if (data.status === 'connected') {
-      setConnectedState(true);
-      
-      // Log successful connection
-      sendLogMessage('Successfully connected to serial port');
-      sendLogMessage('Home response:', data.homeResponse);
-      sendLogMessage('Fan response:', data.fanResponse);
+    setConnectedState(true);
+    logToWindow('info', 'Successfully connected to serial port');
+    logToWindow('info', 'Home response:', data.homeResponse);
+    logToWindow('info', 'Fan response:', data.fanResponse);
   } else if (data.status === 'error') {
-      setConnectedState(false);
-      
-      // Log connection error
-      console.error('Connection error:', data.message);
-      alert(`Connection error: ${data.message}`);
+    setConnectedState(false);
+    console.error('Connection error:', data.message);
+    alert(`Connection error: ${data.message}`);
   }
 });
 
@@ -194,10 +183,9 @@ const g_imageBuffer = {
 g_imageBuffer.clear();
 
 // Handle internal dimensions message from main process
-ipcRenderer.on('set-internal-dimensions', (event, dimensions) => {
-
+window.api.onSetInternalDimensions((event, dimensions) => {
   createImageBuffer(dimensions.width, dimensions.height);
-  logToWindow(`Internal dimensions set to ${g_imageBuffer.width}x${g_imageBuffer.height}`);
+  logToWindow('info', `Internal dimensions set to ${g_imageBuffer.width}x${g_imageBuffer.height}`);
 
   // Create a grayscale gradient pattern directly in the buffer
   for (let y = 0; y < g_imageBuffer.height; y++) {
@@ -326,11 +314,11 @@ document.getElementById('gridTestButton').addEventListener('click', () => {
   const gridSize = 32; // 16x16 grid
   
   // Draw grid lines in the buffer
-  for (let y = 0; y < g_internalHeight; y++) {
-      for (let x = 0; x < g_internalWidth; x++) {
+  for (let y = 0; y < g_imageBuffer.height; y++) {
+      for (let x = 0; x < g_imageBuffer.width; x++) {
           // Check if we're on a grid line
           if (x % gridSize === 0 || y % gridSize === 0) {
-              const i = (y * g_internalWidth + x) * 4;
+              const i = (y * g_imageBuffer.width + x) * 4;
               g_imageBuffer.data[i] = 0;     // Red
               g_imageBuffer.data[i + 1] = 0; // Green
               g_imageBuffer.data[i + 2] = 0; // Blue
@@ -410,13 +398,13 @@ g_fanButton.addEventListener('click', () => {
       return;
 
     // Toggle fan state
-    fanState = !fanState;
+    g_fanState = !g_fanState;
     
     // Update button text
     g_fanButton.textContent = g_fanState ? 'Fan On' : 'Fan Off';
     
     // Send a message to the main process for the fan command
-    ipcRenderer.send('fan-button-clicked', {
+    window.api.sendFanCommand({
         state: g_fanState,
         timestamp: new Date().toISOString()
     });
@@ -431,7 +419,7 @@ g_homeButton.addEventListener('click', () => {
     resetCoordinates();
 
     // Send a message to the main process for the home command
-    ipcRenderer.send('home-button-clicked', {
+    window.api.sendHomeCommand({
         timestamp: new Date().toISOString()
     });
 });
@@ -442,7 +430,7 @@ g_centerButton.addEventListener('click', () => {
       return;
 
     // Send a message to the main process for the center command
-    ipcRenderer.send('center-button-clicked', {
+    window.api.sendCenterCommand({
         timestamp: new Date().toISOString()
     });
 });
@@ -452,17 +440,17 @@ function handleDirectionButton(xOffset, yOffset) {
     if (!checkConnection()) return;
 
     // Send a message to the main process for the direction command
-    ipcRenderer.send('relative-move-command', {
+    window.api.sendRelativeMove({
         dx: xOffset,
         dy: yOffset
     });
 }
 
 // Handle move response
-ipcRenderer.on('relative-move-response', (event, data) => {
+window.api.onRelativeMoveResponse((event, data) => {
   if (data.status === 'success') {
       // Update coordinates after successful ACK using offsets from the message
-      updateCoordinates(currentX + data.xOffset, currentY + data.yOffset);
+      updateCoordinates(g_currentX + data.xOffset, g_currentY + data.yOffset);
   } else if (data.status === 'error') {
       console.error('Move command error:', data.message);
       alert(`Move failed: ${data.message}`);
@@ -534,7 +522,7 @@ document.querySelectorAll('.tab-button').forEach(button => {
 
 // Function to send log messages to the log window
 function sendLogMessage(message, type = 'info') {
-    ipcRenderer.send('log-message', { message, type });
+    logToWindow(type, message);
 }
 
 ////////////////////////////////////////////////////////////
@@ -582,7 +570,7 @@ g_startButton.addEventListener('click', async () => {
 
   // start engraving
   logToWindow('info', 'Starting engraving...'); 
-  ipcRenderer.send('start-engraving', {
+  window.api.startEngraving({
     timestamp: new Date().toISOString()
   });
 
@@ -607,7 +595,7 @@ g_startButton.addEventListener('click', async () => {
       }
       
       // Send line to the serial port and wait for response
-      const result = await ipcRenderer.invoke('send-line-to-engraver', {
+      const result = await window.api.sendLineToEngraver({
         lineData: lineData,
         lineNumber: y
       });
@@ -639,7 +627,7 @@ function updateProgressBar(percent) {
 function stopEngraving() {
   updateProgressBar(100);
   logToWindow('info', 'Stopping engraving...');
-  ipcRenderer.send('stop-engraving', {});
+  window.api.stopEngraving({});
   g_isRunning = false;
   g_startButton.disabled = false;
   g_stopButton.disabled = true;
