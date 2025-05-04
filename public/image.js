@@ -1,4 +1,3 @@
-
 let g_displayScale = 1;
 
 // Declare internal image buffer 
@@ -51,7 +50,7 @@ function loadImage(img) {
   const offsetY = (g_imageBuffer.height - scaledHeight) / 2;
 
   // Clear the temporary canvas with white
-  tempCtx.fillStyle = 'grey';
+  tempCtx.fillStyle = 'white';
   tempCtx.fillRect(0, 0, g_imageBuffer.width, g_imageBuffer.height);
 
   // Draw the scaled image centered on the temporary canvas
@@ -113,5 +112,23 @@ function renderBufferToCanvas() {
   const offsetX = (canvas.width - scaledWidth) / 2;
   const offsetY = (canvas.height - scaledHeight) / 2;
 
+  ctx.save();
   ctx.drawImage(tempCanvas, offsetX, offsetY, scaledWidth, scaledHeight);
+  ctx.restore();
+
+  // Draw center lines
+  ctx.strokeStyle = 'red';
+  ctx.lineWidth = 1;
+
+  // Vertical center line
+  ctx.beginPath();
+  ctx.moveTo(canvas.width/2, 0);
+  ctx.lineTo(canvas.width/2, canvas.height);
+  ctx.stroke();
+
+  // Horizontal center line
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height/2);
+  ctx.lineTo(canvas.width, canvas.height/2);
+  ctx.stroke();
 } 

@@ -18,31 +18,36 @@ class Protocol {
         return 1;
     }
 
-    constructor() {
+    constructor(bedWidthPixels, bedHeightPixels, bedWidthMm, bedHeightMm) {
+      this.m_bedWidthPixels = bedWidthPixels;
+      this.m_bedHeightPixels = bedHeightPixels;
+      this.m_bedWidthMm = bedWidthMm;
+      this.m_bedHeightMm = bedHeightMm;
+      this.m_fanOn = false;
+      this.m_port = null;
     }
     
     // Initialize the protocol handler
     init(port) 
     {
+      this.m_port = port;
+      this.m_fanOn = false;
       return {
         status: 'connected'
       };
     }
 
-    sendFanOn() 
+    setFan(fanOn) 
     {
+      this.m_fanOn = fanOn;
       return {
-        status: 'error',
-        message: 'not implemented'
+        status: 'success'
       };
     }
 
-    sendFanOff() 
+    getFan()
     {
-      return {
-        status: 'error',
-        message: 'not implemented'
-      };
+      return this.m_fanOn;
     }
 
     sendCenter() 

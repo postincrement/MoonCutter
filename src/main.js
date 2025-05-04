@@ -158,7 +158,7 @@ ipcMain.on('fan-button-clicked', async (event, data) => {
     return;
   }
 
-  response = await g_currentDevice.sendFanOn();
+  g_currentDevice.setFan(!g_currentDevice.getFan());
 
   // send reply to renderer with all responses
   event.reply('fan-response', response); 

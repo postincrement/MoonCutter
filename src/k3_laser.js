@@ -4,8 +4,11 @@ const { logToWindow } = require('./log');
 
 const { SerialPort } = require('serialport');
 
-let BED_WIDTH  = 1600;  // Default values
-let BED_HEIGHT = 1520;
+let BED_WIDTH_PIXELS  = 1600;  // size of the bed in pixels
+let BED_HEIGHT_PIXELS = 1520;  
+
+let BED_WIDTH_MM  = 80;  // size of the bed in mm
+let BED_HEIGHT_MM = 76;  
 
 
 // if true, clamp movements to the bed size
@@ -47,12 +50,12 @@ class K3Laser extends Protocol {
     }
 
     constructor() {
-      super();
+      super(BED_WIDTH_PIXELS, BED_HEIGHT_PIXELS, BED_WIDTH_MM, BED_HEIGHT_MM);
     }
 
     // Initialize the protocol handler
     async init(port) {
-      this.port = port;
+      super.init(port);
       this.buffer = Buffer.alloc(0);
       this.callbacks = new Map();
       this.responsePromise = null;
@@ -61,20 +64,19 @@ class K3Laser extends Protocol {
 
       this.m_xCoordinate = 0;
       this.m_yCoordinate = 0;
-      this.m_fanOn       = false;
 
-      this.port.on('data', (data) => {
+      this.m_port.on('data', (data) => {
             this.buffer = Buffer.concat([this.buffer, data]);
             this.processBuffer();
         });
 
-        this.port.on('error', (error) => {
-            console.error('Protocol error:', error);
-            if (this.responseResolve) {
-                this.responseResolve({ error: error.message });
-                this.clearResponseHandlers();
-            }
-        });
+      this.m_port.on('error', (error) => {
+          console.error('Protocol error:', error);
+          if (this.responseResolve) {
+              this.responseResolve({ error: error.message });
+              this.clearResponseHandlers();
+          }
+      });
 
         // send connect command and wait for ack
         const ack = await this.sendMessageAndWaitForAck("connect", Buffer.from(COMMANDS.CONNECT), TIMEOUTS.CONNECT);
@@ -87,7 +89,7 @@ class K3Laser extends Protocol {
         }
 
         // Send fan off and wait for ack
-        const fanAck = await this.sendFanOff();
+        const fanAck = await this.setFan(false);
         if (!fanAck) {
             logToWindow('error', 'Failed to send fan off command');
             return {
@@ -97,17 +99,21 @@ class K3Laser extends Protocol {
         }
 
         // Send home command and wait for ack
-        const homeAck = await this.sendHome();
-        if (!homeAck) {
-            logToWindow('error', 'Failed to send home command');
-            return {
-              status: 'error',
-              message: 'Failed to send home command'
-            };
+        if (false) {
+          const homeAck = await this.sendHome();
+          if (!homeAck) {
+              logToWindow('error', 'Failed to send home command');
+              return {
+                status: 'error',
+                message: 'Failed to send home command'
+              };
+          }
         }
 
         return {
-            status: 'connected'
+            status: 'connected',
+            xSize: BED_WIDTH_MM,
+            ySize: BED_HEIGHT_MM
         };
     }
 
@@ -142,7 +148,7 @@ class K3Laser extends Protocol {
 
     // Send a message of any length and wait for a reply
     async sendMessageAndWaitForReply(message, timeout = null) {
-        if (!this.port.isOpen) {
+        if (!this.m_port.isOpen) {
             throw new Error('Port is not open');
         }
 
@@ -159,7 +165,7 @@ class K3Laser extends Protocol {
             this.responseResolve = resolve;
 
             // Send the message
-            this.port.write(message, (err) => {
+            this.m_port.write(message, (err) => {
                 if (err) {
                     this.clearResponseHandlers();
                     resolve({ error: err.message });
@@ -188,9 +194,10 @@ class K3Laser extends Protocol {
       return false;
     }
 
-    async sendFanOn() {
-      this.m_fanOn = true;
-      const ack = await this.sendMessageAndWaitForAck("fan on", Buffer.from(COMMANDS.FAN_ON), TIMEOUTS.FAN);
+    async setFan(fanOn) {
+      super.setFan(fanOn);
+      const command = this.m_fanOn ? COMMANDS.FAN_ON : COMMANDS.FAN_OFF;
+      const ack = await this.sendMessageAndWaitForAck("fan on", Buffer.from(command), TIMEOUTS.FAN);
       if (!ack) {
         logToWindow('error', 'Failed to send fan on command');
         return false;
@@ -199,20 +206,9 @@ class K3Laser extends Protocol {
       return true;  
     }
 
-    async sendFanOff() {
-      this.m_fanOn = false;
-      const ack = await this.sendMessageAndWaitForAck("fan off", Buffer.from(COMMANDS.FAN_OFF), TIMEOUTS.FAN);
-      if (!ack) {
-        logToWindow('error', 'Failed to send fan off command');
-        return false;
-      }
-
-      return true;  
-    }
-
     async sendCenter() {
-      this.xCoordinate = BED_WIDTH / 2;
-      this.yCoordinate = BED_HEIGHT / 2;
+      this.xCoordinate = BED_WIDTH_PIXELS / 2;
+      this.yCoordinate = BED_HEIGHT_PIXELS / 2;
 
       const ack = await this.sendMessageAndWaitForAck("center", Buffer.from(COMMANDS.CENTER), TIMEOUTS.CENTER);
       if (!ack) {
@@ -282,7 +278,7 @@ class K3Laser extends Protocol {
 
     // Add function to send line data to the engraver
     async sendLineData(lineData, lineNumber) {
-      if (!this.port || !this.port.isOpen) {
+      if (!this.m_port || !this.m_port.isOpen) {
         throw new Error('Serial port is not open');
       }
       

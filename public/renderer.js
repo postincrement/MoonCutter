@@ -153,9 +153,9 @@ g_connectButton.addEventListener('click', () => {
 window.api.onConnectResponse((event, data) => {
   if (data.status === 'connected') {
     setConnectedState(true);
-    logToWindow('info', 'Successfully connected to serial port');
-    logToWindow('info', 'Home response:', data.homeResponse);
-    logToWindow('info', 'Fan response:', data.fanResponse);
+    logToWindow('info', 'Connected');
+    setHorizontalScaleText(data.xSize + ' mm');
+    setVerticalScaleText(data.ySize + ' mm');
   } else if (data.status === 'error') {
     setConnectedState(false);
     console.error('Connection error:', data.message);
@@ -338,6 +338,12 @@ g_loadImageButton.addEventListener('click', async () => {
   }
 });
 
+// Add this after the other image tab button handlers
+document.getElementById('clearImageButton').addEventListener('click', () => {
+  g_imageBuffer.clear();
+  renderBufferToCanvas();
+  logToWindow('info', 'Image buffer cleared');
+});
 
 ////////////////////////////////////////////////////////////
 //
@@ -625,4 +631,44 @@ g_stopButton.addEventListener('click', () => {
   g_startButton.disabled = false;
   g_stopButton.disabled = true;
 });
+
+function getMediaSettings() {
+  const width = parseFloat(document.getElementById('media-width').value);
+  const widthUnit = document.getElementById('media-width-unit').value;
+  const height = parseFloat(document.getElementById('media-height').value);
+  const heightUnit = document.getElementById('media-height-unit').value;
+  const material = document.getElementById('media-material').value;
+
+  return {
+    width,
+    widthUnit,
+    height,
+    heightUnit,
+    material
+  };
+}
+
+// Example usage:
+const settings = getMediaSettings();
+console.log(settings);
+// { width: 100, widthUnit: "mm", height: 100, heightUnit: "mm", material: "basswood" }
+
+/**
+ * Set the text of the horizontal scale indicator.
+ * @param {string} text - The text to display (e.g., "100 mm", "4 in").
+ */
+function setHorizontalScaleText(text) {
+  const el = document.getElementById('horizontal-scale-indicator');
+  if (el) el.textContent = text;
+}
+
+/**
+ * Set the text of the vertical scale indicator.
+ * @param {string} text - The text to display (e.g., "100 mm", "4 in").
+ */
+function setVerticalScaleText(text) {
+  const el = document.getElementById('vertical-scale-indicator');
+  if (el) el.textContent = text;
+}
+
 

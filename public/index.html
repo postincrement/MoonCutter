@@ -11,12 +11,12 @@
             <div class="bitmap-container">
                 <div class="scale-indicator horizontal">
                     <div class="scale-arrow left">◀</div>
-                    <div class="scale-text">78 mm</div>
+                    <div class="scale-text" id="horizontal-scale-indicator"></div>
                     <div class="scale-arrow right">▶</div>
                 </div>
                 <div class="scale-indicator vertical">
                     <div class="scale-arrow left">◀</div>
-                    <div class="scale-text"></div>
+                    <div class="scale-text" id="vertical-scale-indicator"></div>
                     <div class="scale-arrow right">▶</div>
                 </div>
                 <canvas id="bitmapCanvas" width="512" height="512"></canvas>
@@ -45,41 +45,76 @@
                                 <button id="connectButton">Connect</button>
                                 <span id="connectionIndicator" class="connection-indicator"></span>
                             </div>
-                            <div class="direction-controls">
-                                <div class="direction-row">
-                                    <button id="homeButton"><img src="images/home.png" alt="Home"></button>
-                                    <button id="upButton" class="icon-button"><img src="images/up.png" alt="Up"></button>
-                                    <button id="fanButton">Fan Off</button>
-                                </div>
-                                <div class="direction-row">
-                                    <button id="leftButton" class="icon-button"><img src="images/up.png" alt="Left"></button>
-                                    <button id="centerButton">Center</button>
-                                    <button id="rightButton" class="icon-button"><img src="images/up.png" alt="Right"></button>
-                                </div>
-                                <div class="direction-row">
-                                    <div class="spacer"></div>
-                                    <button id="downButton" class="icon-button"><img src="images/up.png" alt="Down"></button>
-                                    <div class="spacer"></div>
-                                </div>
-                            </div>
-                            <div class="coordinate-display">
-                                <span>Position: X=<span id="currentX">0</span>, Y=<span id="currentY">0</span></span>
-                            </div>
                         </div>
                     </div>
                     <div class="tab-pane" id="media-tab">
                         <div class="media-content">
-                            <!-- Media tab content will go here -->
+                          <div id="media-controls" style="margin-bottom: 1em;">
+                            <div class="media-wrapper">
+                              <label for="media-width">
+                                Width:
+                              </label>
+                              <input type="number" id="media-width" min="1" step="0.1" value="100">
+                              <select id="media-width-unit">
+                                <option value="mm">mm</option>
+                                <option value="in">inches</option>
+                              </select>
+                            </div>
+                            <div class="media-wrapper">
+                              <label for="media-height">
+                                Height:
+                              </label>
+                              <input type="number" id="media-height" min="1" step="0.1" value="100">
+                              <select id="media-height-unit">
+                                <option value="mm">mm</option>
+                                <option value="in">inches</option>
+                              </select>
+                            </div>
+                            <div class="media-wrapper">
+                              <label for="media-material">
+                                Material:
+                              </label>
+                              <select id="media-material">
+                                  <option value="basswood">Basswood</option>
+                                  <option value="pine">Pine</option>
+                                  <option value="cardboard">Cardboard</option>
+                                  <option value="paper">Paper</option>
+                                </select>
+                            </div>
+                          </div>                          
                         </div>
                     </div>
                     <div class="tab-pane" id="image-tab">
                         <div class="image-content">
+                          <div class="image-content" style="display: flex; flex-direction: column; gap: 1em;">
                             <button id="loadImageButton">Load Image File</button>
                             <button id="gridTestButton">Grid Test Pattern</button>
-                        </div>
+                            <button id="clearImageButton">Clear Image</button>
+                        </div>                          
                     </div>
                     <div class="tab-pane" id="engrave-tab">
                         <div class="run-content">
+                          <div class="direction-controls">
+                            <div class="direction-row">
+                                <button id="homeButton"><img src="images/home.png" alt="Home"></button>
+                                <button id="upButton" class="icon-button"><img src="images/up.png" alt="Up"></button>
+                                <button id="fanButton">Fan Off</button>
+                            </div>
+                            <div class="direction-row">
+                                <button id="leftButton" class="icon-button"><img src="images/up.png" alt="Left"></button>
+                                <button id="centerButton">Center</button>
+                                <button id="rightButton" class="icon-button"><img src="images/up.png" alt="Right"></button>
+                            </div>
+                            <div class="direction-row">
+                                <div class="spacer"></div>
+                                <button id="downButton" class="icon-button"><img src="images/up.png" alt="Down"></button>
+                                <div class="spacer"></div>
+                            </div>
+                        </div>
+                        <div class="coordinate-display">
+                            <span>Position: X=<span id="currentX">0</span>, Y=<span id="currentY">0</span></span>
+                        </div>
+                        <div>
                             <button id="startButton">Start</button>
                             <button id="stopButton" disabled>Stop</button>
                             <div class="progress-container">

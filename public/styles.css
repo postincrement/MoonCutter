@@ -435,6 +435,30 @@ p {
     padding: 20px;
 }
 
+.media-wrapper {
+  width: 100%;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.media-wrapper label {
+  font-size: 14px;
+  color: #666;
+}
+
+#media-width, #media-height {
+  font-size: 14px;
+  width: 80px;
+}
+
+#media-width-unit, #media-height-unit {
+  font-size: 14px;
+  width: 50px;
+}
+
 #startButton, #stopButton {
     width: 100%;
     padding: 12px;
@@ -507,7 +531,8 @@ p {
     width: 100%;
     margin-bottom: 10px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: baseline;
     gap: 5px;
 }
 
