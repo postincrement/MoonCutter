@@ -3,17 +3,7 @@ const g_serialPortSelect    = document.getElementById('serialPortSelect');
 const g_refreshButton       = document.getElementById('refreshButton');
 const g_connectButton       = document.getElementById('connectButton');
 const g_connectionIndicator = document.getElementById('connectionIndicator');
-const g_currentXDisplay     = document.getElementById('currentX');
-const g_currentYDisplay     = document.getElementById('currentY');
-
 const g_loadImageButton     = document.getElementById('loadImageButton');
-const g_fanButton           = document.getElementById('fanButton');
-const g_homeButton          = document.getElementById('homeButton');
-const g_centerButton        = document.getElementById('centerButton');
-const g_upButton            = document.getElementById('upButton');
-const g_downButton          = document.getElementById('downButton');
-const g_leftButton          = document.getElementById('leftButton');
-const g_rightButton         = document.getElementById('rightButton');
 
 const g_startButton         = document.getElementById('startButton');
 const g_stopButton          = document.getElementById('stopButton');
@@ -22,8 +12,11 @@ let g_fanState = false;         // false = off, true = on
 let g_isConnected = false;      // Track connection state
 let g_needsSerialPort = false;  // Track if serial port is needed
 let g_isRunning = false;        // Track running state
-let g_currentX = 0;             // Current X coordinate
-let g_currentY = 0;             // Current Y coordinate
+
+// max size of the bitmap window. Unrelated to the image buffer size or the engraver dimensions
+const BITMAP_WINDOW_WIDTH   = 512;
+const BITMAP_WINDOW_HEIGHT  = 512;
+
 
 function logToWindow(type, ...items) {
   const formattedMessage = items.map(item => {
@@ -45,7 +38,7 @@ function logToWindow(type, ...items) {
 //  device type handling
 //
 
-window.api.onSetDeviceTypes((event, data) => {
+window.api.onSetDeviceTypes(async (event, data) => {
   const deviceNames = data.deviceNames;
   g_deviceTypeSelect.innerHTML = '';
 
@@ -56,20 +49,34 @@ window.api.onSetDeviceTypes((event, data) => {
     g_deviceTypeSelect.appendChild(option);
   });
 
-  setDeviceType(deviceNames[0]);
+  await setDeviceType(deviceNames[0])
+  .then(() => {
+    setDefaultImage();
+    renderImageToCanvas();
+  });
 });
 
 g_deviceTypeSelect.addEventListener('change', async (event) => {
-  setDeviceType(event.target.value);
+  const result = await setDeviceType(event.target.value);
 });
 
 async function setDeviceType(deviceType) {
   const result = await window.api.setDeviceType({ deviceType });
   if (result.success) {
-    g_needsSerialPort = result.needsSerialPort;
+    g_needsSerialPort           = result.needsSerialPort;
     g_serialPortSelect.disabled = !g_needsSerialPort;
+    g_engraverDimensions        = result.engraverDimensions;
+
+    g_engraveBuffer             = new ImageBuffer(g_engraverDimensions.width, g_engraverDimensions.height);
+
+    setHorizontalScaleText(g_engraverDimensions.widthMm + ' mm');
+    setVerticalScaleText(g_engraverDimensions.heightMm + ' mm');
+    
+    logToWindow('info', `engraver dimensions: ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
+    resizeBitmapCanvas();
   }
   setConnectedState(false);
+
 }
 
 ////////////////////////////////////////////////////////////
@@ -154,8 +161,6 @@ window.api.onConnectResponse((event, data) => {
   if (data.status === 'connected') {
     setConnectedState(true);
     logToWindow('info', 'Connected');
-    setHorizontalScaleText(data.xSize + ' mm');
-    setVerticalScaleText(data.ySize + ' mm');
   } else if (data.status === 'error') {
     setConnectedState(false);
     console.error('Connection error:', data.message);
@@ -167,43 +172,6 @@ window.api.onConnectResponse((event, data) => {
 //
 //  bitmap handling
 //
-
-// Declare internal image buffer 
-const g_imageBuffer = {
-  width:  1024,
-  height: 1024,
-  data: new Uint8ClampedArray(1024 * 1024 * 4), // RGBA data
-  clear() {
-    this.data.fill(0); // Fill with transparent black
-  }
-};
-
-// Clear buffer on startup
-g_imageBuffer.clear();
-
-// Handle internal dimensions message from main process
-window.api.onSetInternalDimensions((event, dimensions) => {
-  createImageBuffer(dimensions.width, dimensions.height);
-  logToWindow('info', `Internal dimensions set to ${g_imageBuffer.width}x${g_imageBuffer.height}`);
-
-  // Create a grayscale gradient pattern directly in the buffer
-  for (let y = 0; y < g_imageBuffer.height; y++) {
-      for (let x = 0; x < g_imageBuffer.width; x++) {
-          const i = (y * g_imageBuffer.width + x) * 4;
-          const grayValue = Math.floor((x + y) / 4) % 256; // Creates a grayscale value between 0-255
-          
-          // Set RGBA values (all channels same for grayscale)
-          g_imageBuffer.data[i] = grayValue;     // Red
-          g_imageBuffer.data[i + 1] = grayValue; // Green
-          g_imageBuffer.data[i + 2] = grayValue; // Blue
-          g_imageBuffer.data[i + 3] = 255;       // Alpha (fully opaque)
-      }
-  }
-  
-  // Render the buffer to the canvas
-  renderBufferToCanvas();
-});
-
 
 // Convert image to grayscale
 function convertToGrayscale(imageData) {
@@ -221,58 +189,6 @@ function convertToGrayscale(imageData) {
     return imageData;
 }
 
-// Function to update a single pixel
-function updatePixel(x, y, grayValue, a = 255) {
-  const canvas = document.getElementById('bitmapCanvas');
-  
-  // Create a temporary canvas for the internal bitmap
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = g_imageBuffer.width;
-  tempCanvas.height = g_imageBuffer.height;
-  const tempCtx = tempCanvas.getContext('2d');
-  
-  // Get the current image data
-  const imageData = tempCtx.getImageData(0, 0, g_imageBuffer.width, g_imageBuffer.height);
-  const data = imageData.data;
-  const i = (y * g_imageBuffer.width + x) * 4;
-  
-  // Set all color channels to the same value for grayscale
-  data[i] = grayValue;     // Red
-  data[i + 1] = grayValue; // Green
-  data[i + 2] = grayValue; // Blue
-  data[i + 3] = a;         // Alpha
-  
-  // Put the image data back on the temporary canvas
-  tempCtx.putImageData(imageData, 0, 0);
-  
-  // Scale and draw to the display canvas
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
-}
-
-// Function to get pixel value
-function getPixel(x, y) {
-  const canvas = document.getElementById('bitmapCanvas');
-  
-  // Create a temporary canvas for the internal bitmap
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = g_imageBuffer.width;
-  tempCanvas.height = g_imageBuffer.height;
-  const tempCtx = tempCanvas.getContext('2d');
-  
-  // Get the current image data
-  const imageData = tempCtx.getImageData(0, 0, g_imageBuffer.width, g_imageBuffer.height);
-  const data = imageData.data;
-  const i = (y * g_imageBuffer.width + x) * 4;
-  
-  // Since it's grayscale, we can return any of the RGB channels
-  return {
-      gray: data[i],
-      a: data[i + 3]
-  };
-}
-
 // Function to check connection and show alert if not connected
 function checkConnection() {
   if (!g_isConnected) {
@@ -287,34 +203,34 @@ function checkConnection() {
 document.getElementById('gridTestButton').addEventListener('click', () => {
 
   // Clear the buffer
-  g_imageBuffer.clear();
+  g_loadedImageBuffer.clear();
   
   // Fill buffer with white
-  for (let i = 0; i < g_imageBuffer.data.length; i += 4) {
-      g_imageBuffer.data[i] = 255;     // Red
-      g_imageBuffer.data[i + 1] = 255; // Green
-      g_imageBuffer.data[i + 2] = 255; // Blue
-      g_imageBuffer.data[i + 3] = 255; // Alpha
+  for (let i = 0; i < g_loadedImageBuffer.m_data.length; i += 4) {
+    g_loadedImageBuffer.m_data[i] = 255;     // Red
+    g_loadedImageBuffer.m_data[i + 1] = 255; // Green
+    g_loadedImageBuffer.m_data[i + 2] = 255; // Blue
+    g_loadedImageBuffer.m_data[i + 3] = 255; // Alpha
   }
   
   const gridSize = 32; // 16x16 grid
   
   // Draw grid lines in the buffer
-  for (let y = 0; y < g_imageBuffer.height; y++) {
-      for (let x = 0; x < g_imageBuffer.width; x++) {
+  for (let y = 0; y < g_loadedImageBuffer.m_height; y++) {
+      for (let x = 0; x < g_loadedImageBuffer.m_width; x++) {
           // Check if we're on a grid line
           if (x % gridSize === 0 || y % gridSize === 0) {
-              const i = (y * g_imageBuffer.width + x) * 4;
-              g_imageBuffer.data[i] = 0;     // Red
-              g_imageBuffer.data[i + 1] = 0; // Green
-              g_imageBuffer.data[i + 2] = 0; // Blue
-              g_imageBuffer.data[i + 3] = 255; // Alpha
+              const i = (y * g_loadedImageBuffer.m_width + x) * 4;
+              g_loadedImageBuffer.m_data[i] = 0;     // Red
+              g_loadedImageBuffer.m_data[i + 1] = 0; // Green
+              g_loadedImageBuffer.m_data[i + 2] = 0; // Blue
+              g_loadedImageBuffer.m_data[i + 3] = 255; // Alpha
           }
       }
   }
   
-  // Render the buffer to the canvas
-  renderBufferToCanvas();
+  // Render the image to the canvas
+  renderImageToCanvas();
 });
 
 // Keep only this event listener for the load image button
@@ -341,7 +257,7 @@ g_loadImageButton.addEventListener('click', async () => {
 // Add this after the other image tab button handlers
 document.getElementById('clearImageButton').addEventListener('click', () => {
   g_imageBuffer.clear();
-  renderBufferToCanvas();
+  renderImageToCanvas();
   logToWindow('info', 'Image buffer cleared');
 });
 
@@ -373,120 +289,9 @@ function setConnectedState(connected) {
 
   g_isConnected = connected;
 
-  g_fanButton.disabled      = !connected;
-  g_homeButton.disabled     = !connected;
-  g_centerButton.disabled   = !connected;
-  g_upButton.disabled       = !connected;
-  g_downButton.disabled     = !connected;
-  g_leftButton.disabled     = !connected;
-  g_rightButton.disabled    = !connected;
   g_startButton.disabled    = !connected;
   g_stopButton.disabled     = true;
 }
-
-// Handle fan button click
-g_fanButton.addEventListener('click', () => {
-    if (!checkConnection()) 
-      return;
-
-    // Toggle fan state
-    g_fanState = !g_fanState;
-    
-    // Update button text
-    g_fanButton.textContent = g_fanState ? 'Fan On' : 'Fan Off';
-    
-    // Send a message to the main process for the fan command
-    window.api.sendFanCommand({
-        state: g_fanState,
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Handle home button click
-g_homeButton.addEventListener('click', () => {
-    if (!checkConnection()) 
-      return;
-
-    // Reset coordinates when home is called
-    resetCoordinates();
-
-    // Send a message to the main process for the home command
-    window.api.sendHomeCommand({
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Handle center button click
-g_centerButton.addEventListener('click', () => {
-    if (!checkConnection()) 
-      return;
-
-    // Send a message to the main process for the center command
-    window.api.sendCenterCommand({
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Function to handle direction button clicks
-function handleDirectionButton(xOffset, yOffset) {
-    if (!checkConnection()) return;
-
-    // Send a message to the main process for the direction command
-    window.api.sendRelativeMove({
-        dx: xOffset,
-        dy: yOffset
-    });
-}
-
-// Handle move response
-window.api.onRelativeMoveResponse((event, data) => {
-  if (data.status === 'success') {
-      // Update coordinates after successful ACK using offsets from the message
-      updateCoordinates(g_currentX + data.xOffset, g_currentY + data.yOffset);
-  } else if (data.status === 'error') {
-      console.error('Move command error:', data.message);
-      alert(`Move failed: ${data.message}`);
-  }
-});
-
-// Handle up button click
-g_upButton.addEventListener('click', () => {
-    handleDirectionButton(0, -1);
-});
-
-// Handle down button click
-g_downButton.addEventListener('click', () => {
-    handleDirectionButton(0, 1);
-});
-
-// Handle left button click
-g_leftButton.addEventListener('click', () => {
-    handleDirectionButton(-1, 0);
-});
-
-// Handle right button click
-g_rightButton.addEventListener('click', () => {
-    handleDirectionButton(1, 0);
-});
-
-
-// Function to update coordinates
-function updateCoordinates(x, y) {
-    g_currentX = x;
-    g_currentY = y;
-    g_currentXDisplay.textContent = g_currentX;
-    g_currentYDisplay.textContent = g_currentY;
-    logToWindow('debug', `Coordinates updated: X=${g_currentX}, Y=${g_currentY}`);
-}
-
-// Function to reset coordinates to zero
-function resetCoordinates() {
-    updateCoordinates(0, 0);
-}
-
-// Initialize coordinates to zero
-resetCoordinates();
-
 
 ////////////////////////////////////////////////////////////
 //
@@ -554,6 +359,10 @@ updateStatusBar('Ready');
 //  engrave button handling
 //
 
+document.getElementById('engraveAreaButton').addEventListener('click', () => {
+  logToWindow('info', 'Engrave Area button clicked');
+});
+
 // Handle start button click
 g_startButton.addEventListener('click', async () => {
   g_isRunning = true;
@@ -576,14 +385,11 @@ g_startButton.addEventListener('click', async () => {
       }
       updateProgressBar((y / g_imageBuffer.height) * 100);
       sendLogMessage('Processing line ' + y);
-      
-      // Create line data (just looking at red channel for simplicity)
-      const lineData = new Uint8Array(g_imageBuffer.width);
-      
-      for (let x = 0; x < g_imageBuffer.width; x++) {
-        const index = (y * g_imageBuffer.width + x) * 4;
+
+      for (let x = 0; x < g_engraveBuffer.m_width; x++) {
+        const index = (y * g_engraveBuffer.m_width + x) * 4;
         // data is already grayscale - return any color channel (in this case red)
-        lineData[x] = g_imageBuffer.data[index]; 
+        lineData[x] = g_engraveBuffer.m_data[index]; 
       }
       
       // Send line to the serial port and wait for response
@@ -648,11 +454,6 @@ function getMediaSettings() {
   };
 }
 
-// Example usage:
-const settings = getMediaSettings();
-console.log(settings);
-// { width: 100, widthUnit: "mm", height: 100, heightUnit: "mm", material: "basswood" }
-
 /**
  * Set the text of the horizontal scale indicator.
  * @param {string} text - The text to display (e.g., "100 mm", "4 in").
@@ -671,4 +472,29 @@ function setVerticalScaleText(text) {
   if (el) el.textContent = text;
 }
 
+// calculate the scale between the bitmap window and the engraver dimensions
+function resizeBitmapCanvas() 
+{
+  const canvas = document.getElementById('bitmapCanvas');
 
+  scale = 1
+  yOffset = 0;
+  xOffset = 0;
+
+  // work out if the width or height is the limiting factor
+  if (g_engraveBuffer.m_width < g_engraveBuffer.m_height) {
+    canvas.height = BITMAP_WINDOW_HEIGHT;
+    canvas.width  = g_engraveBuffer.m_width / g_engraveBuffer.m_height * BITMAP_WINDOW_WIDTH;
+    xOffset = (BITMAP_WINDOW_WIDTH - canvas.width) / 2;
+  } else {
+    canvas.width  = BITMAP_WINDOW_WIDTH;
+    canvas.height = g_engraveBuffer.m_height / g_engraveBuffer.m_width * BITMAP_WINDOW_HEIGHT;
+    yOffset = (BITMAP_WINDOW_HEIGHT - canvas.height) / 2;
+  }
+
+  logToWindow('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
+
+  // update the bitmap window position
+  //g_bitmapWindow.style.left = xOffset + 'px';
+  //g_bitmapWindow.style.top  = yOffset + 'px';
+}

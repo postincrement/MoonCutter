@@ -7,9 +7,6 @@ const K3Laser     = require('./k3_laser');
 const GCodeLaser  = require('./gcode_laser');
 const TestLaser   = require('./test_laser');
 
-const BITMAP_WINDOW_WIDTH  = 512;
-const BITMAP_WINDOW_HEIGHT = 512;
-
 const { createLogWindow, logToWindow } = require('./log');
 
 // Enable debugging logs
@@ -49,7 +46,9 @@ ipcMain.handle('set-device-type', async (event, data) => {
   g_currentDevice      = new g_currentDeviceClass();
   g_needsSerialPort    = g_currentDeviceClass.needsSerialPort();
 
-  return { success: true, needsSerialPort: g_needsSerialPort };
+  return { success            : true, 
+           needsSerialPort    : g_needsSerialPort,
+           engraverDimensions : g_currentDevice.getDimensions() };
 });
 
 ////////////////////////////////////////////////////////////
@@ -197,25 +196,6 @@ ipcMain.on('home-button-clicked', async (event, data) => {
     event.reply('home-response', response); 
 });
 
-// nudge button click from renderer
-ipcMain.on('relative-move-command', async (event, directionData) => {
-    console.log('Nudge button clicked:', directionData);    
-    
-    const connStatus = isConnected();
-    if (connStatus.status === 'error') {
-        event.reply('relative-move-response', connStatus);
-        return;
-    }
-
-    response = await g_currentDevice.sendRelativeMove(
-        { dx: directionData.dx * g_currentDeviceClass.getNudgeSize(), 
-          dy: directionData.dy * g_currentDeviceClass.getNudgeSize()}
-    );  
-
-    // send reply to renderer with all responses
-    event.reply('relative-move-response', response); 
-});
-
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 900,
@@ -236,10 +216,6 @@ function createWindow() {
 
     // Send internal dimensions when window is ready
     mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.send('set-internal-dimensions', {
-            width: BITMAP_WINDOW_WIDTH,
-            height: BITMAP_WINDOW_HEIGHT
-        });
         deviceNames = deviceTypeFactory.map(type => type.name );
         mainWindow.webContents.send('set-device-types', { deviceNames: deviceNames });
     });
@@ -289,7 +265,6 @@ app.on('window-all-closed', function () {
     }
     if (process.platform !== 'darwin') app.quit();
 });
-
 
 // Add menu item to open log window
 const template = [

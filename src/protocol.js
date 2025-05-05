@@ -6,16 +6,8 @@ class Protocol {
         return 'Protocol';
     }
 
-    static getNudgeSize() {
-        return 1;
-    }
-
     static needsSerialPort() {
         return true;
-    }
-
-    static getNudgeSize() {
-        return 1;
     }
 
     constructor(bedWidthPixels, bedHeightPixels, bedWidthMm, bedHeightMm) {
@@ -26,7 +18,7 @@ class Protocol {
       this.m_fanOn = false;
       this.m_port = null;
     }
-    
+
     // Initialize the protocol handler
     init(port) 
     {
@@ -37,6 +29,15 @@ class Protocol {
       };
     }
 
+    getDimensions() {
+      return {
+        width: this.m_bedWidthPixels,
+        height: this.m_bedHeightPixels,
+        widthMm: this.m_bedWidthMm,
+        heightMm: this.m_bedHeightMm
+      };
+    }
+    
     setFan(fanOn) 
     {
       this.m_fanOn = fanOn;

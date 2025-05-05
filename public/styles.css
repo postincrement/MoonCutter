@@ -498,6 +498,11 @@ p {
     cursor: not-allowed;
 }
 
+#engraveAreaButton img {
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
 .progress-container {
     width: 100%;
     display: flex;

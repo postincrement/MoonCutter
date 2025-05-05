@@ -45,10 +45,6 @@ class K3Laser extends Protocol {
         return 'K3 Laser';
     }
 
-    static getNudgeSize() {
-        return g_nudgeSize;
-    }
-
     constructor() {
       super(BED_WIDTH_PIXELS, BED_HEIGHT_PIXELS, BED_WIDTH_MM, BED_HEIGHT_MM);
     }
