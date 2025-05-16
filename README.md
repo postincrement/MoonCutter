@@ -88,3 +88,16 @@ npm run package
 
 This builds installers for all configured platforms.
 
+### Creating icons 
+
+For MacOS:
+
+  - ensure the icons are in `images/icon.iconset` as `.png` files
+  - run the command in the `images` directory
+
+  ```bash
+  iconutil -c icns icon.iconset
+  ```
+
+For Windows:  
+  - the icon is in `images/icon.ico`

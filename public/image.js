@@ -207,3 +207,50 @@ function renderImageToCanvas()
   ctx.lineTo(canvas.width, canvas.height/2);
   ctx.stroke();
 } 
+
+// find the bounding box of the engraver image
+function findBoundingBox()
+{
+  let top    = -1;
+  let bottom = -1;
+  let left   = -1;
+  let right  = -1;
+
+  // search from top of engraver image for the top non-white pixel and leftmost non-white pixel
+  let found = false;
+  let topy = -1;
+  let leftx = -1;
+  for (let y = 0; y < g_engraveBuffer.m_height; y++) {
+    for (let x = 0; x < g_engraveBuffer.m_width; x++) {
+      const index = (y * g_engraveBuffer.m_width + x) * 4;
+      if (g_engraveBuffer.m_data[index] !== 255) {
+        if (topy == -1) {
+          topy = y;
+        }
+        if (leftx > x) {
+          leftx = x;
+        }
+      }
+    }
+  }
+
+  // search from bottom of engraver image for the bottom non-white pixel and rightmost non-white pixel
+  found = false;
+  let bottomy = -1;
+  let rightx = -1;
+  for (let y = g_engraveBuffer.m_height - 1; y >= 0; y--) {
+    for (let x = g_engraveBuffer.m_width - 1; x >= 0; x--) {  
+      const index = (y * g_engraveBuffer.m_width + x) * 4;
+      if (g_engraveBuffer.m_data[index] !== 255) {
+        if (bottomy == -1) {
+          bottomy = y;
+        }
+        if (rightx < x) { 
+          rightx = x;
+        }
+      }
+    }
+  }
+
+  return { topx, topy, bottomx, bottomy, leftx, rightx }; 
+}

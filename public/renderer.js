@@ -71,7 +71,7 @@ async function setDeviceType(deviceType) {
 
     setHorizontalScaleText(g_engraverDimensions.widthMm + ' mm');
     setVerticalScaleText(g_engraverDimensions.heightMm + ' mm');
-    
+
     logToWindow('info', `engraver dimensions: ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
     resizeBitmapCanvas();
   }
@@ -365,9 +365,9 @@ document.getElementById('engraveAreaButton').addEventListener('click', () => {
 
 // Handle start button click
 g_startButton.addEventListener('click', async () => {
-  g_isRunning = true;
+  g_isRunning            = true;
   g_startButton.disabled = true;
-  g_stopButton.disabled = false;
+  g_stopButton.disabled  = false;
 
   // start engraving
   logToWindow('info', 'Starting engraving...'); 
