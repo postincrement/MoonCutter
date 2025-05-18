@@ -3,7 +3,7 @@ const { dialog } = require('electron');
 
 const logWindow = document.getElementById('logWindow');
 
-function logMessage(message, type = 'info') {
+function logMessageToWindow(message, type = 'info') {
     const timestamp = new Date().toISOString();
     const logEntry = document.createElement('div');
     logEntry.className = `log-entry ${type}`;
@@ -13,11 +13,8 @@ function logMessage(message, type = 'info') {
 }
 
 // Listen for log messages from the main window
-ipcRenderer.on('log-message', (event, { message, type }) => {
-    logMessage(message, type);
-    if (type === 'error') {
-      dialog.showErrorBox('Error', message);
-    }
+ipcRenderer.on('log-message-to-window', (event, { message, type }) => {
+    logMessageToWindow(message, type);
 });
 
 // Clear logs button handler

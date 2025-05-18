@@ -18,7 +18,7 @@ const BITMAP_WINDOW_WIDTH   = 512;
 const BITMAP_WINDOW_HEIGHT  = 512;
 
 
-function logToWindow(type, ...items) {
+function logMessage(type, ...items) {
   const formattedMessage = items.map(item => {
     if (typeof item === 'object') {
       try {
@@ -72,7 +72,7 @@ async function setDeviceType(deviceType) {
     setHorizontalScaleText(g_engraverDimensions.widthMm + ' mm');
     setVerticalScaleText(g_engraverDimensions.heightMm + ' mm');
 
-    logToWindow('info', `engraver dimensions: ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
+    logMessage('info', `engraver dimensions: ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
     resizeBitmapCanvas();
   }
   setConnectedState(false);
@@ -160,7 +160,7 @@ g_connectButton.addEventListener('click', () => {
 window.api.onConnectResponse((event, data) => {
   if (data.status === 'connected') {
     setConnectedState(true);
-    logToWindow('info', 'Connected');
+    logMessage('info', 'Connected');
   } else if (data.status === 'error') {
     setConnectedState(false);
     console.error('Connection error:', data.message);
@@ -246,20 +246,30 @@ g_loadImageButton.addEventListener('click', async () => {
       loadImage(img);
     }
     img.onerror = () => {
-      logToWindow('error', `Failed to load image ${filePath}`);
+      logMessage('error', `Failed to load image ${filePath}`);
     };    
     img.src = filePath;
   } catch (err) {
-    logToWindow('error', `Failed to load image: ${err.message}`);
+    logMessage('error', `Failed to load image: ${err.message}`);
   }
 });
 
 // Add this after the other image tab button handlers
 document.getElementById('clearImageButton').addEventListener('click', () => {
-  g_imageBuffer.clear();
+  clearImage();
   renderImageToCanvas();
-  logToWindow('info', 'Image buffer cleared');
 });
+
+function clearImage()
+{
+    // Clear the image buffer
+    g_loadedImageBuffer.clear();
+
+    // clear the engrave buffer
+    g_engraveBuffer.clear();
+
+    logMessage('info', 'Image buffer cleared');  
+}
 
 ////////////////////////////////////////////////////////////
 //
@@ -319,7 +329,7 @@ document.querySelectorAll('.tab-button').forEach(button => {
 
 // Function to send log messages to the log window
 function sendLogMessage(message, type = 'info') {
-    logToWindow(type, message);
+    logMessage(type, message);
 }
 
 ////////////////////////////////////////////////////////////
@@ -356,11 +366,26 @@ updateStatusBar('Ready');
 
 ////////////////////////////////////////////////////////////
 //
-//  engrave button handling
+//  engrave area button handling
 //
 
 document.getElementById('engraveAreaButton').addEventListener('click', () => {
-  logToWindow('info', 'Engrave Area button clicked');
+  if (!checkConnection()) {
+    return;
+  }
+  
+  logMessage('info', 'Engrave Area button clicked');
+  window.api.engraveArea();
+});
+
+// Add handler for engrave area response
+window.api.onEngraveAreaResponse((event, data) => {
+  if (data.status === 'error') {
+    logMessage('error', 'Engrave area error:', data.message);
+    alert('Engrave area error: ' + data.message);
+  } else {
+    logMessage('info', 'Engrave area command sent successfully');
+  }
 });
 
 // Handle start button click
@@ -370,7 +395,7 @@ g_startButton.addEventListener('click', async () => {
   g_stopButton.disabled  = false;
 
   // start engraving
-  logToWindow('info', 'Starting engraving...'); 
+  logMessage('info', 'Starting engraving...'); 
   window.api.startEngraving({
     timestamp: new Date().toISOString()
   });
@@ -402,12 +427,12 @@ g_startButton.addEventListener('click', async () => {
         throw new Error(`Failed to process line ${y}: ${result.message}`);
       }
       
-      logToWindow('info', 'Line sent:', result);
+      logMessage('info', 'Line sent:', result);
     }
 
     stopEngraving();
   } catch (err) {
-    logToWindow('error', 'engraving error:', err);
+    logMessage('error', 'engraving error:', err);
     stopEngraving();
   }
 });
@@ -424,7 +449,7 @@ function updateProgressBar(percent) {
 
 function stopEngraving() {
   updateProgressBar(100);
-  logToWindow('info', 'Stopping engraving...');
+  logMessage('info', 'Stopping engraving...');
   window.api.stopEngraving({});
   g_isRunning = false;
   g_startButton.disabled = false;
@@ -492,7 +517,7 @@ function resizeBitmapCanvas()
     yOffset = (BITMAP_WINDOW_HEIGHT - canvas.height) / 2;
   }
 
-  logToWindow('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
+  logMessage('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
 
   // update the bitmap window position
   //g_bitmapWindow.style.left = xOffset + 'px';

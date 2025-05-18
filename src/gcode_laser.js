@@ -1,6 +1,6 @@
 
 const Protocol = require('./protocol');
-const { logToWindow } = require('./log');
+const { logMessage } = require('./log');
 
 const { SerialPort } = require('serialport');
 

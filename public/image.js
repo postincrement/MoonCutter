@@ -18,6 +18,7 @@ let g_imageOffsetX = 0;
 let g_imageOffsetY = 0;
 let g_imageScale   = 1;
 let g_maxImageScale = 1;
+let g_boundingBox = null;
 
 // image buffer loaded from a file or created from text
 g_loadedImageBuffer = null;
@@ -29,20 +30,20 @@ g_engraveBuffer = null;
 function setDefaultImage() 
 {
   if (g_engraveBuffer) {
-    logToWindow('info', `engrave buffer size is ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
+    logMessage('info', `engrave buffer size is ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
     g_loadedImageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
   }
   else {
-    logToWindow('error', 'engrave buffer not initialized');
+    logMessage('error', 'engrave buffer not initialized');
     g_loadedImageBuffer = new ImageBuffer(512, 512);
   }
 
   g_loadedImageBuffer.m_default = true;
 
-  logToWindow('info', `default image size is ${g_loadedImageBuffer.m_width}x${g_loadedImageBuffer.m_height}`);
+  logMessage('info', `default image size is ${g_loadedImageBuffer.m_width}x${g_loadedImageBuffer.m_height}`);
 
   const scale = Math.floor((g_loadedImageBuffer.m_height + g_loadedImageBuffer.m_width) / 256);
-  logToWindow('info', `scale: ${scale}`);
+  logMessage('info', `scale: ${scale}`);
   // Create a grayscale gradient pattern directly in the buffer
     for (let y = 0; y < g_loadedImageBuffer.m_height; y++) {
       for (let x = 0; x < g_loadedImageBuffer.m_width; x++) {
@@ -58,6 +59,9 @@ function setDefaultImage()
     }
 
   newImage();
+
+  g_boundingBox = findBoundingBox();
+  logMessage('info', `default bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
 
   renderImageToCanvas();
 };
@@ -83,12 +87,13 @@ function loadImage(img)
   // copy the image data to the image buffer
   g_loadedImageBuffer.m_data.set(imageData.data);
 
+  logMessage('debug', `image loaded: ${img.width}x${img.height}`);
+
   newImage()
 }
 
 function newImage() 
 {
-
   /*
   // Convert to grayscale and store in g_imageBuffer
   const imageData = tempCtx.getImageData(0, 0, g_imageBuffer.width, g_imageBuffer.height);
@@ -115,26 +120,27 @@ function newImage()
   if (g_loadedImageBuffer.m_width > g_loadedImageBuffer.m_height) {
     g_maxImageScale = g_engraveBuffer.m_width / g_loadedImageBuffer.m_width;
     g_imageOffsetX = 0;
-    g_imageOffsetY = (g_engraveBuffer.m_height - g_loadedImageBuffer.m_height * g_imageScale) / 2;
+    g_imageOffsetY = (g_engraveBuffer.m_height - g_loadedImageBuffer.m_height * g_maxImageScale) / 2;
   }
   else {
     g_maxImageScale = g_engraveBuffer.m_height / g_loadedImageBuffer.m_height;
-    g_imageOffsetX = (g_engraveBuffer.m_width - g_loadedImageBuffer.m_width * g_imageScale) / 2;
+    g_imageOffsetX = (g_engraveBuffer.m_width - g_loadedImageBuffer.m_width * g_maxImageScale) / 2;
     g_imageOffsetY = 0;
   }
   g_imageScale = g_maxImageScale;
 
+  // Log success
+  logMessage('info', `new image ${g_loadedImageBuffer.m_width}x${g_loadedImageBuffer.m_height}`);
+
   // render the image to the canvas
   renderImageToCanvas();
-
-  // Log success
-  logToWindow('info', `Image loaded ${g_loadedImageBuffer.m_width}x${g_loadedImageBuffer.m_height}`);
 }
 
 // render the image buffer to the engrave buffer
-function renderImageToEngraveBuffer() {
+function renderImageToEngraveBuffer() 
+{
   if (!g_loadedImageBuffer || !g_engraveBuffer) {
-    logToWindow('error', 'Image buffers not initialized');
+    logMessage('error', 'Image buffers not initialized');
     return;
   }
 
@@ -164,7 +170,7 @@ function renderImageToEngraveBuffer() {
   const scaledWidth  = g_loadedImageBuffer.m_width * g_imageScale;
   const scaledHeight = g_loadedImageBuffer.m_height * g_imageScale;
 
-  // Draw the loaded image onto the engrave canvas, scaled and centered
+  // Draw the loaded image onto the engrave canvas, scaled and at the appropriate offset
   engraveCtx.drawImage(
     tempCanvas,
     0, 0, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height,
@@ -174,6 +180,10 @@ function renderImageToEngraveBuffer() {
   // Copy the result into g_engraveBuffer.m_data
   const resultImageData = engraveCtx.getImageData(0, 0, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
   g_engraveBuffer.m_data.set(resultImageData.data);
+
+  // find the bounding box of the engraved image
+  g_boundingBox = findBoundingBox();
+  logMessage('info', `image bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
 
   return engraveCanvas;
 }
@@ -206,16 +216,26 @@ function renderImageToCanvas()
   ctx.moveTo(0, canvas.height/2);
   ctx.lineTo(canvas.width, canvas.height/2);
   ctx.stroke();
+
+  // convert bounding box to canvas coordinates
+  const canvasScale = canvas.width / g_engraveBuffer.m_width;
+  const canvasBoundingBox = {
+    left:g_boundingBox.left * canvasScale,
+    top: g_boundingBox.top * canvasScale,
+    right: g_boundingBox.right * canvasScale,
+    bottom: g_boundingBox.bottom * canvasScale
+  };
+
+  // draw the outline of the bounding box
+  ctx.strokeStyle = 'green';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.strokeRect(canvasBoundingBox.left, canvasBoundingBox.top, canvasBoundingBox.right - canvasBoundingBox.left, canvasBoundingBox.bottom - canvasBoundingBox.top);
 } 
 
 // find the bounding box of the engraver image
 function findBoundingBox()
 {
-  let top    = -1;
-  let bottom = -1;
-  let left   = -1;
-  let right  = -1;
-
   // search from top of engraver image for the top non-white pixel and leftmost non-white pixel
   let found = false;
   let topy = -1;
@@ -223,11 +243,16 @@ function findBoundingBox()
   for (let y = 0; y < g_engraveBuffer.m_height; y++) {
     for (let x = 0; x < g_engraveBuffer.m_width; x++) {
       const index = (y * g_engraveBuffer.m_width + x) * 4;
-      if (g_engraveBuffer.m_data[index] !== 255) {
+
+      const grayData = g_engraveBuffer.m_data[index];
+      const alphaData = g_engraveBuffer.m_data[index + 3];  
+      const pixelSet = (alphaData != 0) && (grayData != 255);
+
+      if (pixelSet) {
         if (topy == -1) {
           topy = y;
         }
-        if (leftx > x) {
+        if ((leftx == -1) || (x < leftx)) {
           leftx = x;
         }
       }
@@ -241,16 +266,21 @@ function findBoundingBox()
   for (let y = g_engraveBuffer.m_height - 1; y >= 0; y--) {
     for (let x = g_engraveBuffer.m_width - 1; x >= 0; x--) {  
       const index = (y * g_engraveBuffer.m_width + x) * 4;
-      if (g_engraveBuffer.m_data[index] !== 255) {
+
+      const grayData = g_engraveBuffer.m_data[index];
+      const alphaData = g_engraveBuffer.m_data[index + 3];  
+      const pixelSet = (alphaData != 0) && (grayData != 255);
+
+      if (pixelSet) {
         if (bottomy == -1) {
           bottomy = y;
         }
-        if (rightx < x) { 
+        if ((rightx == -1) || (rightx < x)) { 
           rightx = x;
         }
       }
     }
   }
 
-  return { topx, topy, bottomx, bottomy, leftx, rightx }; 
+  return { left: leftx, top: topy, right: rightx, bottom: bottomy }; 
 }

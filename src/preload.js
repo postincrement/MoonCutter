@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   sendHomeCommand: (data) => ipcRenderer.send('home-button-clicked', data),
   sendCenterCommand: (data) => ipcRenderer.send('center-button-clicked', data),
   sendRelativeMove: (data) => ipcRenderer.send('relative-move-command', data),
+  engraveArea: () => ipcRenderer.send('engrave-area-clicked'),
   
   // Image handling
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
@@ -27,5 +28,6 @@ contextBridge.exposeInMainWorld('api', {
   onFanResponse: (callback) => ipcRenderer.on('fan-response', callback),
   onHomeResponse: (callback) => ipcRenderer.on('home-response', callback),
   onCenterResponse: (callback) => ipcRenderer.on('center-response', callback),
-  onSetDeviceTypes: (callback) => ipcRenderer.on('set-device-types', callback)
+  onSetDeviceTypes: (callback) => ipcRenderer.on('set-device-types', callback),
+  onEngraveAreaResponse: (callback) => ipcRenderer.on('engrave-area-response', callback)
 }); 

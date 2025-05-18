@@ -1,4 +1,4 @@
-const { logToWindow } = require('./log');
+const { logMessage } = require('./log');
 
 class Protocol {
 
@@ -17,6 +17,8 @@ class Protocol {
       this.m_bedHeightMm = bedHeightMm;
       this.m_fanOn = false;
       this.m_port = null;
+      this.m_laserX = 0;
+      this.m_laserY = 0;
     }
 
     // Initialize the protocol handler
@@ -53,6 +55,8 @@ class Protocol {
 
     sendCenter() 
     {
+      this.m_laserX = this.m_bedWidthPixels / 2;
+      this.m_laserY = this.m_bedHeightPixels / 2;
       return {
         status: 'error',
         message: 'not implemented'
@@ -61,6 +65,8 @@ class Protocol {
 
     sendHome() 
     {
+      this.m_laserX = 0;
+      this.m_laserY = 0;
       return {
         status: 'error',
         message: 'not implemented'

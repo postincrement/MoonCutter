@@ -1,5 +1,5 @@
 
-const { logToWindow } = require('./log');
+const { logMessage } = require('./log');
 
 const Protocol = require('./protocol');
 

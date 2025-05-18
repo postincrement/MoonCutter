@@ -1,6 +1,6 @@
-
-
 const { BrowserWindow } = require('electron');
+const { ipcMain } = require('electron');
+const { dialog } = require('electron');
 
 let logWindow = null;
 
@@ -32,10 +32,16 @@ function createLogWindow() {
   });
 }
 
+// listen to log messages from the main window
+ipcMain.on('log-message', (event, { message, type }) => {
+  logMessage(type, message);
+});
+
 // Function to send messages to log window
-function logToWindow(type, ...items) {
+function logMessage(type, ...items) {
   if (type === 'error') {
     console.error(items);
+    dialog.showErrorBox('Error', items);
   }
   else {
     console.log(items);
@@ -51,8 +57,8 @@ function logToWindow(type, ...items) {
           }
           return String(item);
       }).join(' ');
-      logWindow.webContents.send('log-message', { message: formattedMessage, type });
+      logWindow.webContents.send('log-message-to-window', { message: formattedMessage, type });
   }
 }
 
-module.exports = { logToWindow, createLogWindow };
+module.exports = { logMessage, createLogWindow };
