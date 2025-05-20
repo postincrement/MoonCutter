@@ -1,4 +1,3 @@
-
 const Protocol = require('./protocol');
 const { logMessage } = require('./log');
 
@@ -71,141 +70,112 @@ class K3Laser extends Protocol {
     async init(port) {
       super.init(port);
       this.buffer = Buffer.alloc(0);
-      this.callbacks = new Map();
-      this.responsePromise = null;
-      this.responseResolve = null;
       this.responseTimeout = null;
 
       this.m_laserX = 0;
       this.m_laserY = 0;
 
-      this.m_port.on('data', (data) => {
-            this.buffer = Buffer.concat([this.buffer, data]);
-            this.processBuffer();
-        });
-
       this.m_port.on('error', (error) => {
           console.error('Protocol error:', error);
-          if (this.responseResolve) {
-              this.responseResolve({ error: error.message });
-              this.clearResponseHandlers();
-          }
       });
 
-        // send connect command and wait for ack
-        const ack = await this.sendMessageAndWaitForAck("connect", Buffer.from(COMMANDS.CONNECT), TIMEOUTS.CONNECT);
-        if (!ack) {
-            logMessage('error', 'Failed to send connect command');
-            return { 
-              status: 'error', 
-              message: 'Failed to send connect command' 
-            };
-        }
-
-        // Send fan off and wait for ack
-        const fanAck = await this.setFan(false);
-        if (!fanAck) {
-            logMessage('error', 'Failed to send fan off command');
-            return {
-                status: 'error',
-                message: 'Failed to send fan off command'
-            };
-        }
-
-        // Send home command and wait for ack
-        const homeAck = await this.sendHome();
-        if (!homeAck) {
-            logMessage('error', 'Failed to send home command');
-            return {
-              status: 'error',
-              message: 'Failed to send home command'
-            };
-        }
-        this.m_laserX = 0;
-        this.m_laserY = 0;
-
-        return {
-            status: 'connected',
-            xSize: BED_WIDTH_MM,
-            ySize: BED_HEIGHT_MM
+      // send connect command and wait for ack
+      const ack = await this.sendMessageAndWaitForAck("connect", Buffer.from(COMMANDS.CONNECT), TIMEOUTS.CONNECT);
+      if (!ack) {
+        logMessage('error', 'Failed to send connect command');
+        return { 
+          status: 'error', 
+          message: 'Failed to send connect command' 
         };
-    }
+      }
 
-    // Process incoming data buffer
-    processBuffer() {
-        // If we have data and are waiting for a response
-        if (this.responseResolve && this.buffer.length > 0) {
+      // Send fan off and wait for ack
+      const fanAck = await this.setFan(false);
+      if (!fanAck) {
+        logMessage('error', 'Failed to send fan off command');
+        return {
+          status: 'error',
+          message: 'Failed to send fan off command'
+        };
+      }
 
-          // get the oldest character from the buffer
-          const oldestChar = this.buffer[0];
+      // Send home command and wait for ack
+      const homeAck = await this.sendHome();
+      if (!homeAck) {
+        logMessage('error', 'Failed to send home command');
+        return {
+          status: 'error',
+          message: 'Failed to send home command'
+        };
+      }
+      this.m_laserX = 0;
+      this.m_laserY = 0;
 
-          // remove the oldest character from the buffer
-          this.buffer = this.buffer.slice(1);
-
-          // return the oldest character
-          this.responseResolve({ data: oldestChar });
-
-          // clear the response handlers
-          this.clearResponseHandlers();
-        }
-    }
-
-    // Clear response handlers
-    clearResponseHandlers() {
-        if (this.responseTimeout) {
-            clearTimeout(this.responseTimeout);
-            this.responseTimeout = null;
-        }
-        this.responseResolve = null;
-        this.responsePromise = null;
-    }
-
-    // Send a message of any length and wait for a reply
-    async sendMessageAndWaitForReply(message, timeout = null) {
-        if (!this.m_port.isOpen) {
-            throw new Error('Port is not open');
-        }
-
-        return new Promise((resolve, reject) => {
-            // Set up response timeout if specified
-            if (timeout !== null) {
-                this.responseTimeout = setTimeout(() => {
-                    this.clearResponseHandlers();
-                    resolve({ error: `Response timeout after ${timeout}ms` });
-                }, timeout);
-            }
-
-            // Store resolve function for when we get the response
-            this.responseResolve = resolve;
-
-            // Send the message
-            this.m_port.write(message, (err) => {
-                if (err) {
-                    this.clearResponseHandlers();
-                    resolve({ error: err.message });
-                }
-            });
-        });
+      return {
+        status: 'connected',
+        xSize: BED_WIDTH_MM,
+        ySize: BED_HEIGHT_MM
+      };
     }
 
     // send a message and wait for an ack
     async sendMessageAndWaitForAck(name, message, timeout = null) {
-      logMessage('info', 'Sending ' + name + ' message:', message);
+        logMessage('info', 'Sending ' + name + ' message:', message);
 
-      const response = await this.sendMessageAndWaitForReply(message, timeout);
-      if (response.error) {
-        logMessage('error', 'Error sending message:', response.error);
-          return false;
-      }
+        if (!this.m_port.isOpen) {
+            logMessage('error', 'Port is not open');
+            return false;
+        }
 
-      if (response.data === ACK) {
-        logMessage('info', 'received ACK');
-        return true;
-      }
+        // Clear any pending data
+        this.buffer = Buffer.alloc(0);
 
-      // if the response is not an ack, return false
-      logMessage('error', 'Received unexpected response:', response.data);
-      return false;
+        return new Promise((resolve) => {
+            // Set up response timeout if specified
+            if (timeout !== null) {
+                this.responseTimeout = setTimeout(() => {
+                    logMessage('error', `Response timeout after ${timeout}ms`);
+                    resolve(false);
+                }, timeout);
+            }
+
+            // Set up one-time data handler
+            const dataHandler = (data) => {
+                // Remove the handler after first use
+                this.m_port.removeListener('data', dataHandler);
+                
+                // Clear timeout
+                if (this.responseTimeout) {
+                    clearTimeout(this.responseTimeout);
+                    this.responseTimeout = null;
+                }
+
+                // Check for ACK
+                if (data[0] === ACK) {
+                    logMessage('info', 'Received ACK');
+                    resolve(true);
+                } else {
+                    logMessage('error', 'Received unexpected response:', data[0]);
+                    resolve(false);
+                }
+            };
+
+            // Add the data handler
+            this.m_port.once('data', dataHandler);
+
+            // Send the message
+            this.m_port.write(message, (err) => {
+                if (err) {
+                    logMessage('error', 'Error writing to port:', err.message);
+                    this.m_port.removeListener('data', dataHandler);
+                    if (this.responseTimeout) {
+                        clearTimeout(this.responseTimeout);
+                        this.responseTimeout = null;
+                    }
+                    resolve(false);
+                }
+            });
+        });
     }
 
     async setFan(fanOn) {

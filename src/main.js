@@ -119,54 +119,31 @@ app.whenReady().then(() => {
     ipcMain.on('engrave-area-clicked', async (event, boundingBox) => {
       const connStatus = isConnected();
       if (connStatus.status === 'error') {
-        event.reply('engrave-area-response', connStatus);
+        event.reply('engrave-area-response', { status: 'error', message: connStatus.message });
         return;
       }
 
       logMessage('info', 'Engrave area command received');
 
+      var errorString = '';
       try {
-        var response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top });
-        if (response.status === 'error') {
-          event.reply('engrave-area-response', response);
+        var response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top })
+                       && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.top })
+                       && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.bottom })
+                       && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.bottom })
+                       && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top });
+        if (response) {
+          event.reply('engrave-area-response', { status: 'success', message: 'Engrave area command sent successfully' });
           return;
         }
 
-        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.top });
-        if (response.status === 'error') {
-          event.reply('engrave-area-response', response);
-          return;
-        }
-
-        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.bottom });
-        if (response.status === 'error') {
-          event.reply('engrave-area-response', response);
-          return;
-        }
-
-        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.bottom });
-        if (response.status === 'error') {
-          event.reply('engrave-area-response', response);
-          return;
-        }
-
-        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top });
-        if (response.status === 'error') {
-          event.reply('engrave-area-response', response);
-          return;
-        }
-
-        event.reply('engrave-area-response', { 
-          status: 'success',
-          message: 'Engrave area command sent successfully'
-        });
+        errorString = 'Failed to send engrave area command';
       } catch (err) {
-        logMessage('error', 'Failed to send engrave area command:', err);
-        event.reply('engrave-area-response', {
-          status: 'error',
-          message: 'Failed to send engrave area command: ' + err.message
-        });
+        errorString = 'move command error: ' + err.message;
       }
+      logMessage('error', 'move command error', errorString);
+      event.reply('engrave-area-response', { status: 'error', message: errorString
+      });
     });
 
     // Serial port handling
@@ -263,7 +240,7 @@ app.whenReady().then(() => {
       response = await g_currentDevice.sendCenter();
 
       // send reply to renderer with all responses
-      event.reply('center-response', response); 
+      event.reply('center-response', { status: 'success', message: "center command sent successfully" }); 
     });
 
     ipcMain.on('home-button-clicked', async (event, data) => {
@@ -278,7 +255,7 @@ app.whenReady().then(() => {
       response = await g_currentDevice.sendHome();
 
       // send reply to renderer with all responses
-      event.reply('home-response', response); 
+      event.reply('home-response', { status: 'success', message: "home command sent successfully" }); 
     });
 
     app.on('activate', () => {
@@ -370,19 +347,29 @@ ipcMain.handle('open-file-dialog', async () => {
   return filePaths[0];
 });
 
+function isConnected()
+{    
+  if (!g_currentPort || !g_currentDevice) {
+    logMessage('error', 'Not connected to serial port');
+    return { status: 'error', message: 'Not connected to serial port' };
+  }
+  return { status: 'success' };
+}
+
+
 ipcMain.on('start-engraving', async (event, data) => {
   console.log('Start engraving command received:', data);
 
   const connStatus = isConnected();
   if (connStatus.status === 'error') {
-    event.reply('engrave-area-response', connStatus);
+    event.reply('engrave-area-response', connStatus );
     return;
   }
 
   response = await g_currentDevice.startEngraving();
 
   // send reply to renderer with all responses
-  event.reply('start-engraving-response', response);
+  event.reply('start-engraving-response', { status: 'success', message: "start engraving command sent successfully" });
 });
 
 ipcMain.on('stop-engraving', async (event, data) => {
@@ -390,17 +377,24 @@ ipcMain.on('stop-engraving', async (event, data) => {
 
   const connStatus = isConnected();
   if (connStatus.status === 'error') {
-    event.reply('engrave-area-response', connStatus);
+    event.reply('engrave-area-response', connStatus );
     return;
   }
 
   response = await g_currentDevice.stopEngraving();
 
   // send reply to renderer with all responses
-  event.reply('stop-engraving-response', response);
+  event.reply('stop-engraving-response', { status: 'success', message: "stop engraving command sent successfully" });
 });
 
 ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) => {
+
+  const connStatus = isConnected();
+  if (connStatus.status === 'error') {
+    event.reply('engrave-area-response', connStatus );
+    return;
+  }
+
   //console.log('Sending line to engraver:', lineData, lineNumber);
 
   // insert delay here
@@ -416,16 +410,8 @@ ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) 
   //  logMessage('error', 'Failed to send engraver command');
   //  return { success: false, message: 'Failed to send engraver command' };
   //}
-  
-  return { success: true };
+
+  event.reply('engrave-area-response', { status: 'success', message: "line sent successfully" } );
 });
 
-function isConnected()
-{    
-  if (!g_currentPort || !g_currentDevice) {
-    logMessage('error', 'Not connected to serial port');
-    return { status: 'error', message: 'Not connected to serial port' };
-  }
-  return { status: 'success' };
-}
 
