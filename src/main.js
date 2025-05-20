@@ -20,6 +20,7 @@ const { createLogWindow, logMessage } = require('./log');
 let g_currentDeviceClass = null;
 let g_currentDevice = null;
 let g_currentPort   = null;
+let g_needsSerialPort = false;
 
 ////////////////////////////////////////////////////////////
 //
@@ -109,6 +110,11 @@ app.whenReady().then(() => {
       g_currentDeviceClass = deviceType.class;
       g_currentDevice      = new g_currentDeviceClass();
       g_needsSerialPort    = g_currentDeviceClass.needsSerialPort();
+
+      // get the dimensions of the device
+      const dimensions = g_currentDevice.getDimensions();
+
+      logMessage('info', `setting device type to ${data.deviceType}, dimensions: ${dimensions.width}x${dimensions.height}`);
 
       return { success            : true, 
                needsSerialPort    : g_needsSerialPort,
@@ -349,7 +355,7 @@ ipcMain.handle('open-file-dialog', async () => {
 
 function isConnected()
 {    
-  if (!g_currentPort || !g_currentDevice) {
+  if (g_needsSerialPort && (!g_currentPort || !g_currentDevice)) {
     logMessage('error', 'Not connected to serial port');
     return { status: 'error', message: 'Not connected to serial port' };
   }
@@ -357,7 +363,7 @@ function isConnected()
 }
 
 
-ipcMain.on('start-engraving', async (event, data) => {
+ipcMain.handle('start-engraving', async (event, data) => {
   console.log('Start engraving command received:', data);
 
   const connStatus = isConnected();
@@ -366,13 +372,12 @@ ipcMain.on('start-engraving', async (event, data) => {
     return;
   }
 
-  response = await g_currentDevice.startEngraving();
-
-  // send reply to renderer with all responses
-  event.reply('start-engraving-response', { status: 'success', message: "start engraving command sent successfully" });
+  await g_currentDevice.startEngraving().then(() => {
+    return { status: 'success', message: "start engraving command sent successfully" };
+  });
 });
 
-ipcMain.on('stop-engraving', async (event, data) => {
+ipcMain.handle('stop-engraving', async (event, data) => {
   console.log('Stop engraving command received:', data);
 
   const connStatus = isConnected();
@@ -381,18 +386,16 @@ ipcMain.on('stop-engraving', async (event, data) => {
     return;
   }
 
-  response = await g_currentDevice.stopEngraving();
-
-  // send reply to renderer with all responses
-  event.reply('stop-engraving-response', { status: 'success', message: "stop engraving command sent successfully" });
+  await g_currentDevice.stopEngraving().then(() => {
+    return { status: 'success', message: "stop engraving command sent successfully" };
+  });
 });
 
 ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) => {
 
   const connStatus = isConnected();
   if (connStatus.status === 'error') {
-    event.reply('engrave-area-response', connStatus );
-    return;
+    return connStatus;
   }
 
   //console.log('Sending line to engraver:', lineData, lineNumber);
@@ -411,7 +414,7 @@ ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) 
   //  return { success: false, message: 'Failed to send engraver command' };
   //}
 
-  event.reply('engrave-area-response', { status: 'success', message: "line sent successfully" } );
+  return { status: 'success', message: "line sent successfully" };
 });
 
 

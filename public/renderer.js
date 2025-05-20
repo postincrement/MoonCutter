@@ -57,14 +57,27 @@ window.api.onSetDeviceTypes(async (event, data) => {
 });
 
 g_deviceTypeSelect.addEventListener('change', async (event) => {
-  const result = await setDeviceType(event.target.value);
+  await setDeviceType(event.target.value)
+  .then(() => {
+    if (g_loadedImageBuffer.m_default) {
+      setDefaultImage();
+    }
+    else {
+      loadImage(g_loadedImageBuffer.m_image);
+    }
+    renderImageToCanvas();
+  });
 });
 
 async function setDeviceType(deviceType) {
   const result = await window.api.setDeviceType({ deviceType });
   if (result.success) {
+
+    logMessage('info', `device type requested ${deviceType}`);
+
     g_needsSerialPort           = result.needsSerialPort;
     g_serialPortSelect.disabled = !g_needsSerialPort;
+
     g_engraverDimensions        = result.engraverDimensions;
 
     g_engraveBuffer             = new ImageBuffer(g_engraverDimensions.width, g_engraverDimensions.height);
@@ -73,10 +86,10 @@ async function setDeviceType(deviceType) {
     
     resizeBitmapCanvas();
 
-    updateScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
+    drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
   }
   setConnectedState(false);
-
+  logMessage('info', `setDeviceType end`);
 }
 
 ////////////////////////////////////////////////////////////
@@ -429,6 +442,8 @@ g_startButton.addEventListener('click', async () => {
       throw new Error(response.message);
     }
 
+    logMessage('info', 'Engraving started');
+
     updateProgressBar(0);
 
     // Process each line of the image buffer and send to serial port
@@ -543,7 +558,7 @@ function resizeBitmapCanvas()
   logMessage('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
 }
 
-function drawScaleIndicators(ctx, horizontalValue, verticalValue) 
+function drawScaleIndicators(horizontalValue, verticalValue) 
 {
   logMessage('info', `drawScaleIndicators: ${horizontalValue}x${verticalValue}`);
     
@@ -561,16 +576,11 @@ function drawScaleIndicators(ctx, horizontalValue, verticalValue)
   {
     ctx.translate(BORDER, 0);
 
-    // start arrows
-    //ctx.beginPath();
-
     // Left arrow
     ctx.moveTo(0, BORDER/2);
     ctx.lineTo(5, BORDER/2 - 5);
     ctx.lineTo(5, BORDER/2 + 5);
     ctx.fill();
-
-    logMessage('info', `left arrow: ${0},${BORDER/2} to ${5},${BORDER/2 - 5} to ${5},${BORDER/2 + 5}`);
 
     // Right arrow
     ctx.moveTo(g_bitmapWidth,     BORDER/2);
@@ -633,11 +643,6 @@ function drawScaleIndicators(ctx, horizontalValue, verticalValue)
     ctx.fillText(verticalValue, g_bitmapHeight/2, BORDER/2);
   }
   ctx.restore();
-}
 
-// Update the existing updateScaleIndicators function
-function updateScaleIndicators(horizontalValue, verticalValue) {
-    const canvas = document.getElementById('bitmapCanvas');
-    const ctx = canvas.getContext('2d');
-    drawScaleIndicators(ctx, horizontalValue, verticalValue);
+  logMessage('info', `drawScaleIndicators end:`);
 }

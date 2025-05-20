@@ -33,6 +33,8 @@ g_engraveBuffer = null;
 // create a default image. Used on start
 function setDefaultImage() 
 {
+  logMessage('info', `setDefaultImage()`);
+
   if (g_engraveBuffer) {
     logMessage('info', `engrave buffer size is ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
     g_loadedImageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
@@ -120,6 +122,8 @@ function newImage()
   }
 */
 
+  logMessage('info', `newImage()`);
+
   // Calculate scaling to fit image into engraving buffer while maintaining aspect ratio
   if (g_loadedImageBuffer.m_width > g_loadedImageBuffer.m_height) {
     g_maxImageScale = g_engraveBuffer.m_width / g_loadedImageBuffer.m_width;
@@ -147,6 +151,8 @@ function renderImageToEngraveBuffer()
     logMessage('error', 'Image buffers not initialized');
     return;
   }
+
+  logMessage('info', `renderImageToEngraveBuffer()`);
 
   // load the raw image data into a new ImageData object
   const loadedImageData = new ImageData(g_loadedImageBuffer.m_data, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height);
@@ -195,6 +201,8 @@ function renderImageToEngraveBuffer()
 // render the image buffer to the canvas
 function renderImageToCanvas() 
 {
+  logMessage('info', `renderImageToCanvas()`);
+
   const engraveCanvas = renderImageToEngraveBuffer();
 
   // clear the bitmap portion of the canvas
@@ -203,9 +211,12 @@ function renderImageToCanvas()
 
   logMessage('info', `canvas size: ${canvas.width}x${canvas.height}`);
 
+  ctx.save();
+  ctx.translate(BORDER, BORDER);
+
   // draw the engrave buffer image on the canvas with offset
-  ctx.clearRect(BORDER, BORDER, g_bitmapWidth, g_bitmapHeight);
-  ctx.drawImage(engraveCanvas, BORDER, BORDER, g_bitmapWidth, g_bitmapHeight);
+  ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
+  ctx.drawImage(engraveCanvas, 0, 0, g_bitmapWidth, g_bitmapHeight);
 
   // Draw center lines
   ctx.strokeStyle = 'red';
@@ -213,32 +224,33 @@ function renderImageToCanvas()
 
   // Vertical center line
   ctx.beginPath();
-  ctx.moveTo(BORDER + g_bitmapWidth/2, BORDER);
-  ctx.lineTo(BORDER + g_bitmapWidth/2, BORDER + g_bitmapHeight);
+  ctx.moveTo(g_bitmapWidth/2, 0);
+  ctx.lineTo(g_bitmapWidth/2, g_bitmapHeight);
   ctx.stroke();
 
   // Horizontal center line
   ctx.beginPath();
-  ctx.moveTo(BORDER,               BORDER + g_bitmapHeight/2);
-  ctx.lineTo(BORDER + g_bitmapWidth, BORDER + g_bitmapHeight/2);
+  ctx.moveTo(0,             g_bitmapHeight/2);
+  ctx.lineTo(g_bitmapWidth, g_bitmapHeight/2);
   ctx.stroke();
 
   // convert bounding box to canvas coordinates
   const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
   const bitmapBoundingBox = {
-    left:   Math.floor(BORDER + g_boundingBox.left * canvasScale),
-    top:    Math.floor(BORDER + g_boundingBox.top * canvasScale),
-    right:  Math.floor(BORDER + g_boundingBox.right * canvasScale),
-    bottom: Math.floor(BORDER + g_boundingBox.bottom * canvasScale)
+    left:   Math.floor(g_boundingBox.left * canvasScale),
+    top:    Math.floor(g_boundingBox.top * canvasScale),
+    right:  Math.floor(g_boundingBox.right * canvasScale),
+    bottom: Math.floor(g_boundingBox.bottom * canvasScale)
   };
 
   // draw the outline of the bounding box
   ctx.strokeStyle = 'green';
   ctx.lineWidth = 1;
-  ctx.beginPath();
   ctx.strokeRect(bitmapBoundingBox.left, bitmapBoundingBox.top, 
                  bitmapBoundingBox.right - bitmapBoundingBox.left, 
                  bitmapBoundingBox.bottom - bitmapBoundingBox.top);
+
+  ctx.restore();
 }
 
 // find the bounding box of the engraver image
