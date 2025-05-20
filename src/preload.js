@@ -18,8 +18,11 @@ contextBridge.exposeInMainWorld('api', {
   
   // Image handling
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
-  sendLineToEngraver: (lineData, lineNumber) => 
-    ipcRenderer.invoke('send-line-to-engraver', { lineData, lineNumber }),
+
+  // Engraving
+  startEngraving: (data) => ipcRenderer.send('start-engraving', data),
+  sendLineToEngraver: (lineData, lineNumber) => ipcRenderer.invoke('send-line-to-engraver', { lineData, lineNumber }),
+  stopEngraving: () => ipcRenderer.send('stop-engraving'),
   
   // Listen for events
   onSerialPortsList: (callback) => ipcRenderer.on('serial-ports-list', callback),

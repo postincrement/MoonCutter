@@ -39,25 +39,27 @@ ipcMain.on('log-message', (event, { message, type }) => {
 
 // Function to send messages to log window
 function logMessage(type, ...items) {
+
+  const formattedMessage = items.map(item => {
+    if (typeof item === 'object') {
+        try {
+            return JSON.stringify(item, null, 2);
+        } catch (e) {
+            return String(item);
+        }
+    }
+    return String(item);
+  })
+
   if (type === 'error') {
-    console.error(items);
-    dialog.showErrorBox('Error', items);
+    console.error(formattedMessage);
+    dialog.showErrorBox('Error', formattedMessage);
   }
   else {
     console.log(items);
   }
   if (logWindow) {
-      const formattedMessage = items.map(item => {
-          if (typeof item === 'object') {
-              try {
-                  return JSON.stringify(item, null, 2);
-              } catch (e) {
-                  return String(item);
-              }
-          }
-          return String(item);
-      }).join(' ');
-      logWindow.webContents.send('log-message-to-window', { message: formattedMessage, type });
+    logWindow.webContents.send('log-message-to-window', { message: formattedMessage, type });
   }
 }
 

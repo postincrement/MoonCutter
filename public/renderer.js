@@ -422,13 +422,17 @@ g_startButton.addEventListener('click', async () => {
 
   // start engraving
   logMessage('info', 'Starting engraving...'); 
-  window.api.startEngraving({
-    timestamp: new Date().toISOString()
-  });
-
-  updateProgressBar(0);
-
   try {
+    const response = await window.api.startEngraving({
+      timestamp: new Date().toISOString()
+    });
+
+    if (response.status === 'error') {
+      throw new Error(response.message);
+    }
+
+    updateProgressBar(0);
+
     // Process each line of the image buffer and send to serial port
     for (let y = 0; y < g_imageBuffer.height; y++) {
       if (!g_isRunning) {
@@ -456,9 +460,13 @@ g_startButton.addEventListener('click', async () => {
       logMessage('info', 'Line sent:', result);
     }
 
-    stopEngraving();
+    const stopResponse = await window.api.stopEngraving();
+    if (stopResponse.status === 'error') {
+      throw new Error(stopResponse.message);
+    }
   } catch (err) {
-    logMessage('error', 'engraving error:', err);
+    logMessage('error', 'Engraving error:', err);
+    alert('Engraving error: ' + err.message);
     stopEngraving();
   }
 });
@@ -473,20 +481,27 @@ function updateProgressBar(percent) {
   }
 } 
 
-function stopEngraving() {
+async function stopEngraving() {
   updateProgressBar(100);
   logMessage('info', 'Stopping engraving...');
-  window.api.stopEngraving({});
-  g_isRunning = false;
-  g_startButton.disabled = false;
-  g_stopButton.disabled = true;
+  try {
+    const response = await window.api.stopEngraving();
+    if (response.status === 'error') {
+      throw new Error(response.message);
+    }
+  } catch (err) {
+    logMessage('error', 'Error stopping engraving:', err);
+    alert('Error stopping engraving: ' + err.message);
+  } finally {
+    g_isRunning = false;
+    g_startButton.disabled = false;
+    g_stopButton.disabled = true;
+  }
 }
 
 // Handle stop button click
 g_stopButton.addEventListener('click', () => {
-  g_isRunning = false;
-  g_startButton.disabled = false;
-  g_stopButton.disabled = true;
+  stopEngraving();
 });
 
 function getMediaSettings() {

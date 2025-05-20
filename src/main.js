@@ -126,7 +126,7 @@ app.whenReady().then(() => {
       logMessage('info', 'Engrave area command received');
 
       try {
-        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top });
+        var response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top });
         if (response.status === 'error') {
           event.reply('engrave-area-response', response);
           return;
@@ -368,6 +368,36 @@ ipcMain.handle('open-file-dialog', async () => {
   }
   
   return filePaths[0];
+});
+
+ipcMain.on('start-engraving', async (event, data) => {
+  console.log('Start engraving command received:', data);
+
+  const connStatus = isConnected();
+  if (connStatus.status === 'error') {
+    event.reply('engrave-area-response', connStatus);
+    return;
+  }
+
+  response = await g_currentDevice.startEngraving();
+
+  // send reply to renderer with all responses
+  event.reply('start-engraving-response', response);
+});
+
+ipcMain.on('stop-engraving', async (event, data) => {
+  console.log('Stop engraving command received:', data);
+
+  const connStatus = isConnected();
+  if (connStatus.status === 'error') {
+    event.reply('engrave-area-response', connStatus);
+    return;
+  }
+
+  response = await g_currentDevice.stopEngraving();
+
+  // send reply to renderer with all responses
+  event.reply('stop-engraving-response', response);
 });
 
 ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) => {

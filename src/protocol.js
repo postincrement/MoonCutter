@@ -89,7 +89,23 @@ class Protocol {
       };
     }
 
-    sendLineData(lineData, lineNumber) 
+    startEngraving() 
+    {
+      return {
+        status: 'error',
+        message: 'not implemented'
+      };
+    }
+
+    stopEngraving() 
+    {
+      return {
+        status: 'error',
+        message: 'not implemented'
+      };
+    }
+
+    engraveLine(lineData, lineNumber) 
     {
       return {
         status: 'error',

@@ -25,8 +25,26 @@ const COMMANDS = {
   FAN_ON:  [ 4, 0, 4, 0],
   FAN_OFF: [ 5, 0, 4, 0],
                          //xmsb  xlsb  ymsb  ylsb
-  MOVE:    [ 1, 0, 7,       0,    0,     0,    0]
+  MOVE:    [  1, 0, 7,      0,    0,    0,    0],
+  START:   [ 20, 0, 7,      0,    0,    0,    0],
+
+              // lmsb llsb  
+  ENGRAVE: [ 9,   0,   4,   0, 0,   0, 0,   0, 0]
 };
+
+/*
+        //SET CONFIGRATION SEEE README.md
+        img_line_buffer[0] = (BYTE)9;
+        img_line_buffer[1] = (BYTE) (ilbsize >> 8);
+        img_line_buffer[2] = (BYTE) (ilbsize);
+        img_line_buffer[3] = (BYTE) (_engraving_depth_intensity >> 8);
+        img_line_buffer[4] = (BYTE) (_engraving_depth_intensity);
+        const int laser_intesity_mw = LASER_POWER_MW;//TODO
+        img_line_buffer[5] = (BYTE) (laser_intesity_mw >> 8);
+        img_line_buffer[6] = (BYTE) (laser_intesity_mw);
+        img_line_buffer[7] = (BYTE) (current_height_progress >> 8);
+        img_line_buffer[8] = (BYTE) (current_height_progress);
+*/
 
 // Timeout constants (in milliseconds)
 const TIMEOUTS = {
@@ -263,7 +281,7 @@ class K3Laser extends Protocol {
       }
       
       // create the command
-      const command = COMMANDS.MOVE;
+      var command = COMMANDS.MOVE;
       command[3] = (directionData.dx >> 8) & 0xFF;
       command[4] = directionData.dx & 0xFF;
       command[5] = (directionData.dy >> 8) & 0xFF;
@@ -286,11 +304,20 @@ class K3Laser extends Protocol {
       return this.sendRelativeMove(relativeCommand);
     }
 
-    // Add function to send line data to the engraver
-    async sendLineData(lineData, lineNumber) {
-      if (!this.m_port || !this.m_port.isOpen) {
-        throw new Error('Serial port is not open');
+    async startEngraving() {
+      /*
+      const command = COMMANDS.START;
+      const ack = await this.sendMessageAndWaitForAck("start", Buffer.from(command), TIMEOUTS.START);
+      if (!ack) {
+        logMessage('error', 'Failed to send start command');
+        return { success: false, message: 'Failed to send start command' };
       }
+        */
+      return true;
+    }
+
+    // Add function to send line data to the engraver
+    async engraveLine(lineData, lineNumber) {
       
       // Convert lineData to binary format expected by engraver
       // This is a simplified example - adjust to match your engraver's protocol
@@ -301,38 +328,32 @@ class K3Laser extends Protocol {
 
       // if line is all 0s, nothing to send
       if (isAllZeros) {
-        resolve();
+        return true;
       }
 
-/*
-      const packetHeader = Buffer.from([0xA5, 0x5A]); // Example header
-      const lineNumberBuffer = Buffer.alloc(2);
-      lineNumberBuffer.writeUInt16LE(lineNumber, 0);
-      
-      
-      // Construct the complete packet
-      const packet = Buffer.concat([
-        packetHeader,
-        lineNumberBuffer,
-        dataBuffer
-      ]);
-      
-      // Send the packet to the engraver
-      return new Promise((resolve, reject) => {
-        this.port.write(packet, (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          
-          // Wait for acknowledgment if needed
-          // You may need to implement this based on your protocol
-          
-          resolve();
-        });
-      });
-    */
-  }
+      // send the line data to the engraver
+      /*
+      const ack = await this.sendMessageAndWaitForAck("engrave line", Buffer.from(dataBuffer), TIMEOUTS.ENGRAVE);
+      if (!ack) {
+        logMessage('error', 'Failed to send engrave line command');
+        return { success: false, message: 'Failed to send engrave line command' };
+      }
+        */
+
+      return true;
+    }
+
+    async stopEngraving() {
+      /*
+      const command = COMMANDS.STOP;
+      const ack = await this.sendMessageAndWaitForAck("stop", Buffer.from(command), TIMEOUTS.STOP);
+      if (!ack) {
+        logMessage('error', 'Failed to send stop command');
+        returnfalse;
+      }
+        */
+      return true;
+    }
 }
 
 module.exports = K3Laser; 
