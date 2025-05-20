@@ -46,11 +46,11 @@ function closePort(event, response)
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 900,
+        width: 915,
         height: 632,
         minWidth: 900,
         minHeight: 632,
-        resizable: true,
+        resizable: false,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -58,7 +58,7 @@ function createWindow() {
         }
     });
 
-    mainWindow.webContents.openDevTools()
+    //mainWindow.webContents.openDevTools()
 
     mainWindow.loadFile('public/index.html');
 

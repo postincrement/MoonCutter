@@ -7,6 +7,8 @@ const g_loadImageButton     = document.getElementById('loadImageButton');
 
 const g_startButton         = document.getElementById('startButton');
 const g_stopButton          = document.getElementById('stopButton');
+const g_homeButton          = document.getElementById('homeButton');
+const g_engraveAreaButton   = document.getElementById('engraveAreaButton');
 
 let g_fanState = false;         // false = off, true = on
 let g_isConnected = false;      // Track connection state
@@ -299,8 +301,10 @@ function setConnectedState(connected) {
 
   g_isConnected = connected;
 
-  g_startButton.disabled    = !connected;
-  g_stopButton.disabled     = true;
+  g_startButton.disabled     = !connected;
+  g_stopButton.disabled      = true;
+  g_homeButton.disabled      = !connected;
+  g_engraveAreaButton.disabled = !connected;
 }
 
 ////////////////////////////////////////////////////////////
@@ -385,6 +389,28 @@ window.api.onEngraveAreaResponse((event, data) => {
     alert('Engrave area error: ' + data.message);
   } else {
     logMessage('info', 'Engrave area command sent successfully');
+  }
+});
+
+// Add home button click handler
+document.getElementById('homeButton').addEventListener('click', () => {
+  if (!checkConnection()) {
+    return;
+  }
+  
+  logMessage('info', 'Home button clicked');
+  window.api.sendHomeCommand({
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add handler for home response
+window.api.onHomeResponse((event, data) => {
+  if (data.status === 'error') {
+    logMessage('error', 'Home command error:', data.message);
+    alert('Home command error: ' + data.message);
+  } else {
+    logMessage('info', 'Home command sent successfully');
   }
 });
 
