@@ -71,8 +71,7 @@ async function setDeviceType(deviceType) {
 
     g_engraveBuffer             = new ImageBuffer(g_engraverDimensions.width, g_engraverDimensions.height);
 
-    setHorizontalScaleText(g_engraverDimensions.widthMm + ' mm');
-    setVerticalScaleText(g_engraverDimensions.heightMm + ' mm');
+    updateScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
 
     logMessage('info', `engraver dimensions: ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
     resizeBitmapCanvas();
@@ -520,24 +519,6 @@ function getMediaSettings() {
   };
 }
 
-/**
- * Set the text of the horizontal scale indicator.
- * @param {string} text - The text to display (e.g., "100 mm", "4 in").
- */
-function setHorizontalScaleText(text) {
-  const el = document.getElementById('horizontal-scale-indicator');
-  if (el) el.textContent = text;
-}
-
-/**
- * Set the text of the vertical scale indicator.
- * @param {string} text - The text to display (e.g., "100 mm", "4 in").
- */
-function setVerticalScaleText(text) {
-  const el = document.getElementById('vertical-scale-indicator');
-  if (el) el.textContent = text;
-}
-
 // calculate the scale between the bitmap window and the engraver dimensions
 function resizeBitmapCanvas() 
 {
@@ -563,4 +544,57 @@ function resizeBitmapCanvas()
   // update the bitmap window position
   //g_bitmapWindow.style.left = xOffset + 'px';
   //g_bitmapWindow.style.top  = yOffset + 'px';
+}
+
+function drawScaleIndicator(canvas, value, isVertical = false) {
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Set text properties
+    ctx.font = '12px monospace';
+    ctx.fillStyle = '#666';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Draw arrows
+    ctx.beginPath();
+
+    // Left arrow
+    ctx.moveTo(0, height/2);
+    ctx.lineTo(5, height/2 - 5);
+    ctx.lineTo(5, height/2 + 5);
+
+    // Right arrow
+    ctx.moveTo(width, height/2);
+    ctx.lineTo(width - 5, height/2 - 5);
+    ctx.lineTo(width - 5, height/2 + 5);
+
+    ctx.fill();
+    
+    // Draw vertical line
+    ctx.moveTo(0, height);
+    ctx.lineTo(0, 0);
+    ctx.stroke();
+
+    ctx.moveTo(0,          height/2);
+    ctx.lineTo(width/2-20, height/2);
+    ctx.moveTo(width/2+20, height/2);
+    ctx.lineTo(width,      height/2);
+    ctx.stroke();
+    
+    // Draw text
+    ctx.fillText(value, width/2, height/2);
+}
+
+// Update the existing updateScaleIndicators function
+function updateScaleIndicators(horizontalValue, verticalValue) {
+    const horizontalCanvas = document.getElementById('horizontalScaleCanvas');
+    const verticalCanvas = document.getElementById('verticalScaleCanvas');
+    
+    drawScaleIndicator(horizontalCanvas, horizontalValue);
+    drawScaleIndicator(verticalCanvas, verticalValue, true);
 }

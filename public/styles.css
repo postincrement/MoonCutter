@@ -152,6 +152,22 @@ p {
     image-rendering: pixelated;
 }
 
+#horizontalScaleCanvas {
+    margin-bottom: 10px;
+}
+
+#verticalScaleCanvas {
+    position: absolute;
+    left: -250px;
+    top: 50%;
+    margin-top: -10px;
+    transform: rotate(-90deg);
+    transform-origin: center;
+    width: 512px;
+    height: 20px;
+    z-index: 1;
+}
+
 .connect-wrapper {
     display: flex;
     align-items: center;
@@ -411,38 +427,6 @@ p {
 #refreshButton {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     font-size: 14px;
-}
-
-.scale-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: monospace;
-    font-size: 12px;
-    color: #666;
-}
-
-.scale-indicator.horizontal {
-    margin-bottom: 10px;
-    width: 100%;
-    text-align: center;
-}
-
-.scale-indicator.vertical {
-    transform: rotate(-90deg);
-    transform-origin: center;
-    position: absolute;
-    left: -30px;
-    top: 50%;
-    margin-top: -15px;
-}
-
-.scale-arrow {
-    padding: 0 5px;
-}
-
-.scale-text {
-    padding: 0 5px;
 }
 
 .run-content {

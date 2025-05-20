@@ -9,17 +9,11 @@
     <div class="container">
         <div class="content-wrapper">
             <div class="bitmap-container">
-                <div class="scale-indicator horizontal">
-                    <div class="scale-arrow left">◀</div>
-                    <div class="scale-text" id="horizontal-scale-indicator"></div>
-                    <div class="scale-arrow right">▶</div>
+                <canvas id="horizontalScaleCanvas" width="512" height="20"></canvas>
+                <div class="scale-container">
+                    <canvas id="verticalScaleCanvas" width="512" height="20"></canvas>
+                    <canvas id="bitmapCanvas" width="512" height="512"></canvas>
                 </div>
-                <div class="scale-indicator vertical">
-                    <div class="scale-arrow left">◀</div>
-                    <div class="scale-text" id="vertical-scale-indicator"></div>
-                    <div class="scale-arrow right">▶</div>
-                </div>
-                <canvas id="bitmapCanvas" width="512" height="512"></canvas>
             </div>
             <div class="tabs-container">
                 <div class="tabs-header">
