@@ -39,7 +39,6 @@ ipcMain.on('log-message', (event, { message, type }) => {
 
 // Function to send messages to log window
 function logMessage(type, ...items) {
-
   const formattedMessage = items.map(item => {
     if (typeof item === 'object') {
         try {
@@ -49,7 +48,7 @@ function logMessage(type, ...items) {
         }
     }
     return String(item);
-  })
+  }).join(' ');  // Join array elements with spaces
 
   if (type === 'error') {
     console.error(formattedMessage);

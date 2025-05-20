@@ -364,55 +364,31 @@ function isConnected()
 
 
 ipcMain.handle('start-engraving', async (event, data) => {
-  console.log('Start engraving command received:', data);
-
-  const connStatus = isConnected();
-  if (connStatus.status === 'error') {
-    event.reply('engrave-area-response', connStatus );
-    return;
-  }
-
-  await g_currentDevice.startEngraving().then(() => {
-    return { status: 'success', message: "start engraving command sent successfully" };
-  });
-});
-
-ipcMain.handle('stop-engraving', async (event, data) => {
-  console.log('Stop engraving command received:', data);
-
-  const connStatus = isConnected();
-  if (connStatus.status === 'error') {
-    event.reply('engrave-area-response', connStatus );
-    return;
-  }
-
-  await g_currentDevice.stopEngraving().then(() => {
-    return { status: 'success', message: "stop engraving command sent successfully" };
-  });
-});
-
-ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) => {
-
+  logMessage('info', 'Start engraving command received:', data);
   const connStatus = isConnected();
   if (connStatus.status === 'error') {
     return connStatus;
   }
 
-  //console.log('Sending line to engraver:', lineData, lineNumber);
+  await g_currentDevice.startEngraving();
+  return { status: 'success', message: "start engraving command sent successfully" };
+});
 
-  // insert delay here
-  const delay = 1000;
-  logMessage('debug', 'Delaying for', delay, 'ms for line', lineNumber);
-  
-  // Wait for the delay
-  await new Promise(resolve => setTimeout(resolve, delay));
-  
-  // Send the line data and wait for ack
-  //const engraverAck = await protocol.sendMessageAndWaitForAck("line", Buffer.from(lineData), TIMEOUTS.ENGRAVER);
-  //if (!engraverAck) {
-  //  logMessage('error', 'Failed to send engraver command');
-  //  return { success: false, message: 'Failed to send engraver command' };
-  //}
+ipcMain.handle('stop-engraving', async (event) => {
+  logMessage('info', 'Stop engraving command received:');
+  await g_currentDevice.stopEngraving();
+  return { status: 'success', message: "stop engraving command sent successfully" };
+});
+
+ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) => {
+
+  logMessage('info', 'Sending line to engraver:', lineNumber);
+  const connStatus = isConnected();
+  if (connStatus.status === 'error') {
+    return connStatus;
+  }
+
+  await g_currentDevice.engraveLine(lineData, lineNumber)
 
   return { status: 'success', message: "line sent successfully" };
 });

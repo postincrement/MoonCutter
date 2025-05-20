@@ -434,54 +434,55 @@ g_startButton.addEventListener('click', async () => {
   // start engraving
   logMessage('info', 'Starting engraving...'); 
   try {
-    const response = await window.api.startEngraving({
+    await window.api.startEngraving({
       timestamp: new Date().toISOString()
+    }).then((response) => {
+      logMessage('info', `startEngraving response: ${response}`);
+      if (response.status === 'error') {
+        throw new Error(response.message);
+      }
     });
 
-    if (response.status === 'error') {
-      throw new Error(response.message);
-    }
-
-    logMessage('info', 'Engraving started');
+    logMessage('info', `Engraving started for ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
 
     updateProgressBar(0);
 
     // Process each line of the image buffer and send to serial port
-    for (let y = 0; y < g_imageBuffer.height; y++) {
+    //var lineData = new Uint8ClampedArray(g_engraveBuffer.m_width);
+    for (y = 0; y < g_engraveBuffer.m_height; y++) {
+
+      logMessage('debug', 'Processing line ', y);
+
       if (!g_isRunning) {
         break;
       }
-      updateProgressBar((y / g_imageBuffer.height) * 100);
-      sendLogMessage('Processing line ' + y);
 
+      updateProgressBar((y / g_engraveBuffer.m_height) * 100);
+
+      var lineData = new Uint8ClampedArray(g_engraveBuffer.m_width);
+
+      /*
       for (let x = 0; x < g_engraveBuffer.m_width; x++) {
         const index = (y * g_engraveBuffer.m_width + x) * 4;
         // data is already grayscale - return any color channel (in this case red)
         lineData[x] = g_engraveBuffer.m_data[index]; 
       }
+        */
       
       // Send line to the serial port and wait for response
-      const result = await window.api.sendLineToEngraver({
-        lineData: lineData,
-        lineNumber: y
+      await window.api.sendLineToEngraver(lineData, y).then((result) => {
+        if (result.status === 'error') {
+          throw new Error(`Failed to process line ${y}: ${result.message}`);
+        }
       });
-      
-      if (!result.success) {
-        throw new Error(`Failed to process line ${y}: ${result.message}`);
-      }
-      
-      logMessage('info', 'Line sent:', result);
     }
 
-    const stopResponse = await window.api.stopEngraving();
-    if (stopResponse.status === 'error') {
-      throw new Error(stopResponse.message);
-    }
   } catch (err) {
     logMessage('error', 'Engraving error:', err);
     alert('Engraving error: ' + err.message);
-    stopEngraving();
   }
+
+  stopEngraving();
 });
 
 function updateProgressBar(percent) {
@@ -514,7 +515,7 @@ async function stopEngraving() {
 
 // Handle stop button click
 g_stopButton.addEventListener('click', () => {
-  stopEngraving();
+  g_isRunning = false;
 });
 
 function getMediaSettings() {

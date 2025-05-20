@@ -65,7 +65,15 @@ class TestLaser extends K3Laser {
     }
 
     async engraveLine(lineData, lineNumber) {
-        logMessage('info', `engraveLine(${lineData.x}, ${lineData.y}, ${lineData.width}, ${lineData.height}, ${lineNumber})`);
+        logMessage('info', `engraveLine(lineNumber: ${lineNumber})`);
+
+        // insert delay here
+        const delay = 100;
+        //logMessage('debug', 'Delaying for', delay, 'ms for line', lineNumber);
+        
+        // Wait for the delay
+        await new Promise(resolve => setTimeout(resolve, delay));
+
         return true;
     }
 
