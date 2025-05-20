@@ -15,10 +15,8 @@ let g_isConnected = false;      // Track connection state
 let g_needsSerialPort = false;  // Track if serial port is needed
 let g_isRunning = false;        // Track running state
 
-// max size of the bitmap window. Unrelated to the image buffer size or the engraver dimensions
-const BITMAP_WINDOW_WIDTH   = 512;
-const BITMAP_WINDOW_HEIGHT  = 512;
-
+let g_bitmapWidth = 0;
+let g_bitmapHeight = 0;
 
 function logMessage(type, ...items) {
   const formattedMessage = items.map(item => {
@@ -71,10 +69,11 @@ async function setDeviceType(deviceType) {
 
     g_engraveBuffer             = new ImageBuffer(g_engraverDimensions.width, g_engraverDimensions.height);
 
-    updateScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
-
     logMessage('info', `engraver dimensions: ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
+    
     resizeBitmapCanvas();
+
+    updateScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
   }
   setConnectedState(false);
 
@@ -522,79 +521,123 @@ function getMediaSettings() {
 // calculate the scale between the bitmap window and the engraver dimensions
 function resizeBitmapCanvas() 
 {
-  const canvas = document.getElementById('bitmapCanvas');
-
-  scale = 1
+  scale = 1;
   yOffset = 0;
   xOffset = 0;
 
   // work out if the width or height is the limiting factor
   if (g_engraveBuffer.m_width < g_engraveBuffer.m_height) {
-    canvas.height = BITMAP_WINDOW_HEIGHT;
-    canvas.width  = g_engraveBuffer.m_width / g_engraveBuffer.m_height * BITMAP_WINDOW_WIDTH;
-    xOffset = (BITMAP_WINDOW_WIDTH - canvas.width) / 2;
+      g_bitmapHeight = BITMAP_SIZE;
+      g_bitmapWidth = g_engraveBuffer.m_width / g_engraveBuffer.m_height * BITMAP_SIZE;
+      xOffset = (BITMAP_SIZE - g_bitmapWidth) / 2;
   } else {
-    canvas.width  = BITMAP_WINDOW_WIDTH;
-    canvas.height = g_engraveBuffer.m_height / g_engraveBuffer.m_width * BITMAP_WINDOW_HEIGHT;
-    yOffset = (BITMAP_WINDOW_HEIGHT - canvas.height) / 2;
+    g_bitmapWidth = BITMAP_SIZE;
+    g_bitmapHeight = Math.floor(g_engraveBuffer.m_height / g_engraveBuffer.m_width * BITMAP_SIZE);
+    yOffset = (BITMAP_SIZE - g_bitmapHeight) / 2;
   }
 
+  canvas = document.getElementById('bitmapCanvas');
+  canvas.height = BORDER + g_bitmapHeight;
+  canvas.width  = BORDER + g_bitmapWidth;
+  logMessage('info', `bitmap size: ${g_bitmapWidth}x${g_bitmapHeight}`);
   logMessage('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
-
-  // update the bitmap window position
-  //g_bitmapWindow.style.left = xOffset + 'px';
-  //g_bitmapWindow.style.top  = yOffset + 'px';
 }
 
-function drawScaleIndicator(canvas, value, isVertical = false) {
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
+function drawScaleIndicators(ctx, horizontalValue, verticalValue) 
+{
+  logMessage('info', `drawScaleIndicators: ${horizontalValue}x${verticalValue}`);
     
-    // Clear the canvas
-    ctx.clearRect(0, 0, width, height);
+  canvas = document.getElementById('bitmapCanvas');
+  ctx = canvas.getContext('2d');
 
-    // Set text properties
-    ctx.font = '12px monospace';
-    ctx.fillStyle = '#666';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+  // Set text properties
+  ctx.font = '12px monospace';
+  ctx.fillStyle = '#666';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
     
-    // Draw arrows
-    ctx.beginPath();
+  // Draw horizontal scale
+  ctx.save();
+  {
+    ctx.translate(BORDER, 0);
+
+    // start arrows
+    //ctx.beginPath();
 
     // Left arrow
-    ctx.moveTo(0, height/2);
-    ctx.lineTo(5, height/2 - 5);
-    ctx.lineTo(5, height/2 + 5);
+    ctx.moveTo(0, BORDER/2);
+    ctx.lineTo(5, BORDER/2 - 5);
+    ctx.lineTo(5, BORDER/2 + 5);
+    ctx.fill();
+
+    logMessage('info', `left arrow: ${0},${BORDER/2} to ${5},${BORDER/2 - 5} to ${5},${BORDER/2 + 5}`);
 
     // Right arrow
-    ctx.moveTo(width, height/2);
-    ctx.lineTo(width - 5, height/2 - 5);
-    ctx.lineTo(width - 5, height/2 + 5);
-
+    ctx.moveTo(g_bitmapWidth,     BORDER/2);
+    ctx.lineTo(g_bitmapWidth - 5, BORDER/2 - 5);
+    ctx.lineTo(g_bitmapWidth - 5, BORDER/2 + 5);
     ctx.fill();
-    
-    // Draw vertical line
-    ctx.moveTo(0, height);
-    ctx.lineTo(0, 0);
+
+    // get the width of the text
+    const textWidth = ctx.measureText(horizontalValue).width;
+    const textLeftX = g_bitmapWidth/2 - textWidth/2;
+
+    // draw line from left arrow to just before the text
+    ctx.moveTo(0, BORDER/2);
+    ctx.lineTo(textLeftX - 5, BORDER/2);
     ctx.stroke();
 
-    ctx.moveTo(0,          height/2);
-    ctx.lineTo(width/2-20, height/2);
-    ctx.moveTo(width/2+20, height/2);
-    ctx.lineTo(width,      height/2);
+    // draw line from right arrow to just after the text
+    ctx.moveTo(g_bitmapWidth, BORDER/2);
+    ctx.lineTo(textLeftX + textWidth + 5, BORDER/2);
     ctx.stroke();
-    
+
     // Draw text
-    ctx.fillText(value, width/2, height/2);
+    ctx.fillText(horizontalValue, g_bitmapWidth/2, BORDER/2);
+  }
+  ctx.restore();
+
+  // Draw vertical scale
+  ctx.save();
+  {
+    ctx.translate(0, BORDER+g_bitmapHeight);
+    ctx.rotate(-Math.PI/2);
+    //ctx.translate(-BORDER, 0);
+    
+    // Top arrow
+    ctx.moveTo(g_bitmapHeight, BORDER/2);
+    ctx.lineTo(g_bitmapHeight - 5, BORDER/2 - 5);
+    ctx.lineTo(g_bitmapHeight - 5, BORDER/2 + 5);
+
+    // Bottom arrow
+    ctx.moveTo(0, BORDER/2);
+    ctx.lineTo(5, BORDER/2+5);
+    ctx.lineTo(5, BORDER/2-5);
+    ctx.fill();
+
+    // get the width of the text
+    const textWidth = ctx.measureText(verticalValue).width;
+    const textLeftX = g_bitmapHeight/2 - textWidth/2;
+
+    // draw line from left arrow to just before the text
+    ctx.moveTo(0, BORDER/2);
+    ctx.lineTo(textLeftX - 5, BORDER/2);
+    ctx.stroke();
+
+    // draw line from right arrow to just after the text
+    ctx.moveTo(g_bitmapHeight, BORDER/2);
+    ctx.lineTo(textLeftX + textWidth + 5, BORDER/2);
+    ctx.stroke();
+
+    // Draw text
+    ctx.fillText(verticalValue, g_bitmapHeight/2, BORDER/2);
+  }
+  ctx.restore();
 }
 
 // Update the existing updateScaleIndicators function
 function updateScaleIndicators(horizontalValue, verticalValue) {
-    const horizontalCanvas = document.getElementById('horizontalScaleCanvas');
-    const verticalCanvas = document.getElementById('verticalScaleCanvas');
-    
-    drawScaleIndicator(horizontalCanvas, horizontalValue);
-    drawScaleIndicator(verticalCanvas, verticalValue, true);
+    const canvas = document.getElementById('bitmapCanvas');
+    const ctx = canvas.getContext('2d');
+    drawScaleIndicators(ctx, horizontalValue, verticalValue);
 }

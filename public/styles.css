@@ -140,7 +140,6 @@ p {
 
 .bitmap-container {
     position: relative;
-    padding-left: 30px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -156,14 +155,20 @@ p {
     margin-bottom: 10px;
 }
 
+.scale-container {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+}
+
 #verticalScaleCanvas {
     position: absolute;
-    left: -250px;
+    left: -270px;
     top: 50%;
     margin-top: -10px;
     transform: rotate(-90deg);
     transform-origin: center;
-    width: 512px;
+    width: 490px;
     height: 20px;
     z-index: 1;
 }
