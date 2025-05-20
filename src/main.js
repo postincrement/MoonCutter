@@ -116,7 +116,7 @@ app.whenReady().then(() => {
     });
 
     // Handle engrave area button click
-    ipcMain.on('engrave-area-clicked', async (event) => {
+    ipcMain.on('engrave-area-clicked', async (event, boundingBox) => {
       const connStatus = isConnected();
       if (connStatus.status === 'error') {
         event.reply('engrave-area-response', connStatus);
@@ -124,8 +124,38 @@ app.whenReady().then(() => {
       }
 
       logMessage('info', 'Engrave area command received');
+
       try {
-        const response = await g_currentDevice.sendEngraveArea();
+        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top });
+        if (response.status === 'error') {
+          event.reply('engrave-area-response', response);
+          return;
+        }
+
+        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.top });
+        if (response.status === 'error') {
+          event.reply('engrave-area-response', response);
+          return;
+        }
+
+        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.bottom });
+        if (response.status === 'error') {
+          event.reply('engrave-area-response', response);
+          return;
+        }
+
+        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.bottom });
+        if (response.status === 'error') {
+          event.reply('engrave-area-response', response);
+          return;
+        }
+
+        response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top });
+        if (response.status === 'error') {
+          event.reply('engrave-area-response', response);
+          return;
+        }
+
         event.reply('engrave-area-response', { 
           status: 'success',
           message: 'Engrave area command sent successfully'

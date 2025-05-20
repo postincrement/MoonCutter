@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   sendHomeCommand: (data) => ipcRenderer.send('home-button-clicked', data),
   sendCenterCommand: (data) => ipcRenderer.send('center-button-clicked', data),
   sendRelativeMove: (data) => ipcRenderer.send('relative-move-command', data),
-  engraveArea: () => ipcRenderer.send('engrave-area-clicked'),
+  engraveArea: (boundingBox) => ipcRenderer.send('engrave-area-clicked', boundingBox),
   
   // Image handling
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),

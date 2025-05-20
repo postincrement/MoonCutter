@@ -236,6 +236,12 @@ class K3Laser extends Protocol {
       this.m_laserX += directionData.dx;
       this.m_laserY += directionData.dy;
 
+      // calculate the timeout based on the distance. 
+      const distance = Math.sqrt(Math.pow(directionData.dx, 2) + Math.pow(directionData.dy, 2));
+      const timeout = Math.max(100 + distance * (10000 / 1600), 1000);
+
+      logMessage('info', `Sending move dx=${directionData.dx} dy=${directionData.dy} with timeout: ${timeout}`);
+
       if (g_clampMovements) {
 
         if (this.m_laserX < 0) {
@@ -263,13 +269,21 @@ class K3Laser extends Protocol {
       command[5] = (directionData.dy >> 8) & 0xFF;
       command[6] = directionData.dy & 0xFF;
 
-      const moveAck = await this.sendMessageAndWaitForAck("move", Buffer.from(command), TIMEOUTS.MOVE);
+      const moveAck = await this.sendMessageAndWaitForAck("move", Buffer.from(command), timeout);
       if (!moveAck) {
         logMessage('error', 'Failed to send move command');
         return false;
       }
 
       return true;
+    }
+
+    async sendAbsoluteMove(command) {
+      const relativeCommand = {
+        dx: command.x - this.m_laserX,
+        dy: command.y - this.m_laserY
+      };
+      return this.sendRelativeMove(relativeCommand);
     }
 
     // Add function to send line data to the engraver

@@ -73,6 +73,14 @@ class Protocol {
       };
     }
 
+    sendAbsoluteMove(command) 
+    {
+      return {
+        status: 'error',
+        message: 'not implemented'
+      };
+    }
+
     sendRelativeMove(command) 
     {
       return {

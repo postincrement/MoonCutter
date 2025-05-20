@@ -375,7 +375,7 @@ document.getElementById('engraveAreaButton').addEventListener('click', () => {
   }
   
   logMessage('info', 'Engrave Area button clicked');
-  window.api.engraveArea();
+  window.api.engraveArea(g_boundingBox);
 });
 
 // Add handler for engrave area response
