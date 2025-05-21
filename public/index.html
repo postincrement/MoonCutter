@@ -41,7 +41,13 @@
                             <button id="loadImageButton">Load Image File</button>
                             <button id="gridTestButton">Grid Test Pattern</button>
                             <button id="clearImageButton">Clear Image</button>
-                            <div class="rotate-buttons">
+                            <div class="control-buttons">
+                                <button id="homeButton">
+                                    <img src="images/home.png" alt="Home">
+                                </button>
+                                <button id="engraveAreaButton">
+                                    <img src="images/border.png" alt="Engrave Area">
+                                </button>
                                 <button id="rotateLeftButton">
                                     <img src="images/rotate-left.png" alt="Rotate Left">
                                 </button>
@@ -53,18 +59,14 @@
                                 <label for="scaleSlider">Scale: <span id="scaleValue">100%</span></label>
                                 <input type="range" id="scaleSlider" min="10" max="200" value="100" class="slider">
                             </div>
+                            <div class="offset-display">
+                                <div class="offset-value">X: <span id="offsetX">0</span> mm</div>
+                                <div class="offset-value">Y: <span id="offsetY">0</span> mm</div>
+                            </div>
                         </div>
                     </div>
                     <div class="tab-pane" id="engrave-tab">
                         <div class="run-content">
-                          <div class="button-row">
-                            <button id="homeButton">
-                              <img src="images/home.png" alt="Home">
-                            </button>
-                            <button id="engraveAreaButton">
-                              <img src="images/border.png" alt="Engrave Area">
-                            </button>
-                          </div>
                           <div class="start-stop-buttons">
                             <button id="startButton">Start</button>
                             <button id="stopButton" disabled>Stop</button>

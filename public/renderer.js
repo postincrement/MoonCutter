@@ -35,6 +35,7 @@ function updateScaleSlider() {
     scaleSlider.value = 100;
     scaleValue.textContent = '100%';
     g_imageScale = g_maxImageScale;
+    updateOffsetDisplay();
 }
 
 function logMessage(type, ...items) {
@@ -345,6 +346,12 @@ function setConnectedState(connected) {
 // Tab switching functionality
 document.querySelectorAll('.tab-button').forEach(button => {
     button.addEventListener('click', () => {
+        // If engraving is running and trying to switch away from engrave tab, prevent it
+        if (g_isRunning && button.dataset.tab !== 'engrave') {
+            logMessage('info', 'Cannot switch tabs while engraving is in progress');
+            return;
+        }
+
         // Remove active class from all buttons and panes
         document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
@@ -685,6 +692,75 @@ document.getElementById('rotateRightButton').addEventListener('click', () => {
   adjustOffsetAfterRotation();
   renderImageToCanvas();
 });
+
+// Add click handler for bitmap canvas
+const bitmapCanvas = document.getElementById('bitmapCanvas');
+let isDragging = false;
+let lastX = 0;
+let lastY = 0;
+
+bitmapCanvas.addEventListener('mousedown', (event) => {
+    isDragging = true;
+    const rect = bitmapCanvas.getBoundingClientRect();
+    lastX = event.clientX - rect.left - BORDER;
+    lastY = event.clientY - rect.top - BORDER;
+});
+
+bitmapCanvas.addEventListener('mousemove', (event) => {
+    if (!isDragging) return;
+    
+    const rect = bitmapCanvas.getBoundingClientRect();
+    const currentX = event.clientX - rect.left - BORDER;
+    const currentY = event.clientY - rect.top - BORDER;
+    
+    // Calculate the change in position
+    const deltaX = currentX - lastX;
+    const deltaY = currentY - lastY;
+    
+    // Convert canvas coordinates to engrave buffer coordinates
+    const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
+    g_imageOffsetX += deltaX / canvasScale;
+    g_imageOffsetY += deltaY / canvasScale;
+    
+    // Update last position
+    lastX = currentX;
+    lastY = currentY;
+    
+    // Update offset display
+    updateOffsetDisplay();
+    
+    // Re-render the canvas
+    renderImageToCanvas();
+});
+
+// Add mouseup and mouseleave handlers to stop dragging
+bitmapCanvas.addEventListener('mouseup', () => {
+    isDragging = false;
+});
+
+bitmapCanvas.addEventListener('mouseleave', () => {
+    isDragging = false;
+});
+
+// Update cursor style when hovering over the canvas
+bitmapCanvas.addEventListener('mouseenter', () => {
+    bitmapCanvas.style.cursor = 'move';
+});
+
+bitmapCanvas.addEventListener('mouseleave', () => {
+    bitmapCanvas.style.cursor = 'default';
+});
+
+// Add offset display elements
+const offsetXDisplay = document.getElementById('offsetX');
+const offsetYDisplay = document.getElementById('offsetY');
+
+function updateOffsetDisplay() {
+    // Convert pixels to millimeters (assuming 1mm = 10 pixels)
+    const mmPerPixel = 0.1;
+    offsetXDisplay.textContent = (g_imageOffsetX * mmPerPixel).toFixed(1);
+    offsetYDisplay.textContent = (g_imageOffsetY * mmPerPixel).toFixed(1);
+}
 
 // Remove media-related event listeners and functions
 document.addEventListener('DOMContentLoaded', () => {

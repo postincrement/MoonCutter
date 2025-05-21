@@ -318,8 +318,8 @@ p {
 }
 
 #homeButton, #engraveAreaButton {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     padding: 0;
     display: flex;
     align-items: center;
@@ -336,8 +336,8 @@ p {
 }
 
 #homeButton img, #engraveAreaButton img {
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     object-fit: contain;
 }
 
@@ -616,14 +616,14 @@ p {
     gap: 1em;
 }
 
-.rotate-buttons {
+.control-buttons {
     display: flex;
     justify-content: center;
     gap: 1em;
     margin-top: 1em;
 }
 
-#rotateLeftButton, #rotateRightButton {
+#homeButton, #engraveAreaButton, #rotateLeftButton, #rotateRightButton {
     width: 48px;
     height: 48px;
     padding: 0;
@@ -637,11 +637,11 @@ p {
     transition: background-color 0.2s ease;
 }
 
-#rotateLeftButton:hover, #rotateRightButton:hover {
+#homeButton:hover, #engraveAreaButton:hover, #rotateLeftButton:hover, #rotateRightButton:hover {
     background-color: #e0e0e0;
 }
 
-#rotateLeftButton img, #rotateRightButton img {
+#homeButton img, #engraveAreaButton img, #rotateLeftButton img, #rotateRightButton img {
     width: 32px;
     height: 32px;
     object-fit: contain;
@@ -701,4 +701,34 @@ p {
 
 .slider::-moz-range-thumb:hover {
     background: #45a049;
+}
+
+.offset-display {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5em;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-family: monospace;
+    font-size: 14px;
+    color: #666;
+}
+
+.offset-value {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.offset-value span {
+    min-width: 3em;
+    text-align: right;
+}
+
+.position-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+    margin-top: 1em;
 } 
