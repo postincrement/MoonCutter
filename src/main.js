@@ -331,6 +331,30 @@ const template = [
                 }
             }
         ]
+    },
+    {
+        label: 'Help',
+        submenu: [
+            {
+                label: 'About MoonCutter',
+                click: () => {
+                    const aboutWindow = new BrowserWindow({
+                        width: 400,
+                        height: 300,
+                        resizable: false,
+                        minimizable: false,
+                        maximizable: false,
+                        webPreferences: {
+                            nodeIntegration: false,
+                            contextIsolation: true
+                        }
+                    });
+
+                    aboutWindow.loadFile('public/about.html');
+                    aboutWindow.setMenu(null);
+                }
+            }
+        ]
     }
 ];
 
