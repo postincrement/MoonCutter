@@ -650,11 +650,13 @@ function drawScaleIndicators(horizontalValue, verticalValue)
 
 // Add rotate button handlers
 document.getElementById('rotateLeftButton').addEventListener('click', () => {
-  rotateImage(-90);
+  g_rotateAngle -= 90;
+  renderImageToCanvas();
 });
 
 document.getElementById('rotateRightButton').addEventListener('click', () => {
-  rotateImage(90);
+  g_rotateAngle += 90;
+  renderImageToCanvas();
 });
 
 // Remove media-related event listeners and functions

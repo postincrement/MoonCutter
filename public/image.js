@@ -101,6 +101,7 @@ function loadImage(img)
 
 function newImage() 
 {
+  g_rotateAngle = 0;
   /*
   // Convert to grayscale and store in g_imageBuffer
   const imageData = tempCtx.getImageData(0, 0, g_imageBuffer.width, g_imageBuffer.height);
@@ -155,18 +156,11 @@ function renderImageToEngraveBuffer()
 
   logMessage('info', `renderImageToEngraveBuffer()`);
 
-  // load the raw image data into a new ImageData object
-  const loadedImageData = new ImageData(g_loadedImageBuffer.m_data, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height);
+  const scaleCanvas     = scaleImage();
+  logMessage('info', `scaleCanvas size: ${scaleCanvas.width}x${scaleCanvas.height}`);
+  const transformCanvas = rotateImage(scaleCanvas);
+  logMessage('info', `transformCanvas size: ${transformCanvas.width}x${transformCanvas.height}`);
 
-  // create a canvas the same size as the loaded image
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width  = g_loadedImageBuffer.m_width;
-  tempCanvas.height = g_loadedImageBuffer.m_height;
-  const tempCtx = tempCanvas.getContext('2d');
-
-  // put the image data into the temp canvas
-  tempCtx.putImageData(loadedImageData, 0, 0);
-  
   // Create a canvas the size of the engrave buffer
   const engraveCanvas = document.createElement('canvas');
   engraveCanvas.width  = g_engraveBuffer.m_width;
@@ -177,15 +171,11 @@ function renderImageToEngraveBuffer()
   engraveCtx.fillStyle = 'white';
   engraveCtx.fillRect(0, 0, engraveCanvas.width, engraveCanvas.height);
 
-  // Calculate scaled width of image 
-  const scaledWidth  = g_loadedImageBuffer.m_width * g_imageScale;
-  const scaledHeight = g_loadedImageBuffer.m_height * g_imageScale;
-
   // Draw the loaded image onto the engrave canvas, scaled and at the appropriate offset
   engraveCtx.drawImage(
-    tempCanvas,
-    0, 0, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height,
-    g_imageOffsetX, g_imageOffsetY, scaledWidth, scaledHeight
+    transformCanvas,
+    0, 0, transformCanvas.width, transformCanvas.height,
+    g_imageOffsetX, g_imageOffsetY, transformCanvas.width, transformCanvas.height
   );
 
   // Copy the result into g_engraveBuffer.m_data
@@ -197,6 +187,64 @@ function renderImageToEngraveBuffer()
   logMessage('info', `image bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
 
   return engraveCanvas;
+}
+
+function scaleImage()
+{
+  // load the raw image data into a new ImageData object
+  const loadedImageData = new ImageData(g_loadedImageBuffer.m_data, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height);
+
+  // create a canvas the same size as the loaded image
+  const sourceCanvas = document.createElement('canvas');
+  sourceCanvas.width  = g_loadedImageBuffer.m_width;
+  sourceCanvas.height = g_loadedImageBuffer.m_height;
+  const sourceCtx = sourceCanvas.getContext('2d');
+
+  // put the image data into the source canvas
+  sourceCtx.putImageData(loadedImageData, 0, 0);
+
+  // create a canvas the same size as the scaled image
+  const scaledCanvas = document.createElement('canvas');
+  scaledCanvas.width  = g_loadedImageBuffer.m_width * g_imageScale;
+  scaledCanvas.height = g_loadedImageBuffer.m_height * g_imageScale;
+  const scaledCtx = scaledCanvas.getContext('2d');
+
+  // scale image to the scaled canvas
+  scaledCtx.drawImage(sourceCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+
+  // get the transformed image data
+  return scaledCanvas;
+}
+
+function rotateImage(sourceCanvas) 
+{
+  const radians = degreesToRadians(g_rotateAngle);
+
+  logMessage('info', `xrotateImage() angle: ${g_rotateAngle} degrees, source canvas size: ${sourceCanvas.width}x${sourceCanvas.height}`);
+
+  // calculate size of rotated image
+  const rotatedWidth  = Math.round(Math.abs(sourceCanvas.width * Math.cos(radians)) + Math.abs(sourceCanvas.height * Math.sin(radians)));
+  const rotatedHeight = Math.round(Math.abs(sourceCanvas.width * Math.sin(radians)) + Math.abs(sourceCanvas.height * Math.cos(radians)));
+
+  logMessage('info', `rotated image size by ${g_rotateAngle} degrees: ${rotatedWidth}x${rotatedHeight}`);
+
+  // Create a temporary canvas for the destination image
+  const rotatedCanvas = document.createElement('canvas');
+  const rotatedCtx = rotatedCanvas.getContext('2d');
+  rotatedCanvas.width  = Math.max(sourceCanvas.width, rotatedWidth);
+  rotatedCanvas.height = Math.max(sourceCanvas.height, rotatedHeight);
+
+  // draw the source canvas onto the destination canvas
+  rotatedCtx.drawImage(sourceCanvas, 0, 0, rotatedCanvas.width, rotatedCanvas.height);
+
+  // Rotate the canvas
+  rotatedCtx.save();
+  rotatedCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+  rotatedCtx.rotate(radians);
+  rotatedCtx.drawImage(rotatedCanvas, -rotatedCanvas.width / 2, -rotatedCanvas.height / 2);
+  rotatedCtx.restore();
+
+  return rotatedCanvas;
 }
 
 // render the image buffer to the canvas
@@ -310,59 +358,4 @@ function degreesToRadians(degrees) {
   return degrees * (Math.PI / 180);
 }
 
-function rotateImage(degrees) {
-
-  if (!g_loadedImageBuffer) {
-    logMessage('error', 'No image loaded to rotate');
-    return;
-  }
-
-  const radians = degreesToRadians(degrees);
-
-  // calculate size of rotated image
-  const rotatedWidth  = Math.round(Math.abs(g_loadedImageBuffer.m_width * Math.cos(radians)) + Math.abs(g_loadedImageBuffer.m_height * Math.sin(radians)));
-  const rotatedHeight = Math.round(Math.abs(g_loadedImageBuffer.m_width * Math.sin(radians)) + Math.abs(g_loadedImageBuffer.m_height * Math.cos(radians)));
-
-  logMessage('info', `rotated image size by ${degrees} degrees: ${rotatedWidth}x${rotatedHeight}`);
-
-  // Create a temporary canvas to perform the rotation
-  const tempCanvas = document.createElement('canvas');
-  const tempCtx = tempCanvas.getContext('2d');
-  tempCanvas.width  = Math.max(g_loadedImageBuffer.m_width, rotatedWidth);
-  tempCanvas.height = Math.max(g_loadedImageBuffer.m_height, rotatedHeight);
-
-  // Create an ImageData object from the current buffer
-  const imageData = new ImageData(g_loadedImageBuffer.m_data, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height);
-
-  // Put the image data on the temporary canvas
-  tempCtx.putImageData(imageData, 0, 0);
-
-  // Rotate the canvas
-  tempCtx.save();
-  tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
-  tempCtx.rotate((degrees * Math.PI) / 180);
-  tempCtx.drawImage(tempCanvas, -tempCanvas.width / 2, -tempCanvas.height / 2);
-  tempCtx.restore();
-
-  // Get the rotated image data
-  const rotatedImageData = tempCtx.getImageData(
-    0,
-    0,
-    rotatedWidth,
-    rotatedHeight
-  );
-
-  // recreate the image buffer with the new size
-  g_loadedImageBuffer = new ImageBuffer(rotatedWidth, rotatedHeight);
-
-  // Clear the current buffer
-  g_loadedImageBuffer.clear();
-
-  // Copy the rotated data to the buffer
-  g_loadedImageBuffer.m_data.set(rotatedImageData.data);
-
-  // Update the display
-  newImage();
-  renderImageToCanvas();
-}
 
