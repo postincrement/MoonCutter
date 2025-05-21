@@ -651,11 +651,19 @@ function drawScaleIndicators(horizontalValue, verticalValue)
 // Add rotate button handlers
 document.getElementById('rotateLeftButton').addEventListener('click', () => {
   g_rotateAngle -= 90;
+  if (g_rotateAngle < 0) {
+    g_rotateAngle += 360;
+  }
+  adjustOffsetAfterRotation();
   renderImageToCanvas();
 });
 
 document.getElementById('rotateRightButton').addEventListener('click', () => {
   g_rotateAngle += 90;
+  if (g_rotateAngle >= 360) {
+    g_rotateAngle -= 360;
+  }
+  adjustOffsetAfterRotation();
   renderImageToCanvas();
 });
 

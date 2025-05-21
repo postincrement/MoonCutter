@@ -101,7 +101,6 @@ function loadImage(img)
 
 function newImage() 
 {
-  g_rotateAngle = 0;
   /*
   // Convert to grayscale and store in g_imageBuffer
   const imageData = tempCtx.getImageData(0, 0, g_imageBuffer.width, g_imageBuffer.height);
@@ -126,7 +125,8 @@ function newImage()
 
   logMessage('info', `newImage()`);
 
-  // Calculate scaling to fit image into engraving buffer while maintaining aspect ratio
+  // Calculate scaling to fit image into engraving buffer while maintaining aspect ratio and zero rotation
+  g_rotateAngle = 0;
   if (g_loadedImageBuffer.m_width > g_loadedImageBuffer.m_height) {
     g_maxImageScale = g_engraveBuffer.m_width / g_loadedImageBuffer.m_width;
     g_imageOffsetX = 0;
@@ -154,12 +154,11 @@ function renderImageToEngraveBuffer()
     return;
   }
 
-  logMessage('info', `renderImageToEngraveBuffer()`);
-
+  // scale the image
   const scaleCanvas     = scaleImage();
-  logMessage('info', `scaleCanvas size: ${scaleCanvas.width}x${scaleCanvas.height}`);
+
+  // rotate the image
   const transformCanvas = rotateImage(scaleCanvas);
-  logMessage('info', `transformCanvas size: ${transformCanvas.width}x${transformCanvas.height}`);
 
   // Create a canvas the size of the engrave buffer
   const engraveCanvas = document.createElement('canvas');
@@ -171,7 +170,7 @@ function renderImageToEngraveBuffer()
   engraveCtx.fillStyle = 'white';
   engraveCtx.fillRect(0, 0, engraveCanvas.width, engraveCanvas.height);
 
-  // Draw the loaded image onto the engrave canvas, scaled and at the appropriate offset
+  // Draw the image onto the engrave canvas
   engraveCtx.drawImage(
     transformCanvas,
     0, 0, transformCanvas.width, transformCanvas.height,
@@ -220,28 +219,25 @@ function rotateImage(sourceCanvas)
 {
   const radians = degreesToRadians(g_rotateAngle);
 
-  logMessage('info', `xrotateImage() angle: ${g_rotateAngle} degrees, source canvas size: ${sourceCanvas.width}x${sourceCanvas.height}`);
-
   // calculate size of rotated image
   const rotatedWidth  = Math.round(Math.abs(sourceCanvas.width * Math.cos(radians)) + Math.abs(sourceCanvas.height * Math.sin(radians)));
   const rotatedHeight = Math.round(Math.abs(sourceCanvas.width * Math.sin(radians)) + Math.abs(sourceCanvas.height * Math.cos(radians)));
 
-  logMessage('info', `rotated image size by ${g_rotateAngle} degrees: ${rotatedWidth}x${rotatedHeight}`);
+  logMessage('info', `rotated by ${g_rotateAngle} degrees: ${rotatedWidth}x${rotatedHeight}`);
 
   // Create a temporary canvas for the destination image
   const rotatedCanvas = document.createElement('canvas');
   const rotatedCtx = rotatedCanvas.getContext('2d');
-  rotatedCanvas.width  = Math.max(sourceCanvas.width, rotatedWidth);
-  rotatedCanvas.height = Math.max(sourceCanvas.height, rotatedHeight);
+  rotatedCanvas.width  = rotatedWidth;
+  rotatedCanvas.height = rotatedHeight;
 
-  // draw the source canvas onto the destination canvas
-  rotatedCtx.drawImage(sourceCanvas, 0, 0, rotatedCanvas.width, rotatedCanvas.height);
+  logMessage('info', `rotated canvas size: ${rotatedWidth}x${rotatedCanvas.height}`);
 
-  // Rotate the canvas
+  // draw the source canvas onto the destination canvas with rotation
   rotatedCtx.save();
   rotatedCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
   rotatedCtx.rotate(radians);
-  rotatedCtx.drawImage(rotatedCanvas, -rotatedCanvas.width / 2, -rotatedCanvas.height / 2);
+  rotatedCtx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
   rotatedCtx.restore();
 
   return rotatedCanvas;
@@ -250,20 +246,16 @@ function rotateImage(sourceCanvas)
 // render the image buffer to the canvas
 function renderImageToCanvas() 
 {
-  logMessage('info', `renderImageToCanvas()`);
-
   const engraveCanvas = renderImageToEngraveBuffer();
 
   // clear the bitmap portion of the canvas
   const canvas = document.getElementById('bitmapCanvas');
   const ctx = canvas.getContext('2d');
 
-  logMessage('info', `canvas size: ${canvas.width}x${canvas.height}`);
-
   ctx.save();
   ctx.translate(BORDER, BORDER);
 
-  // draw the engrave buffer image on the canvas with offset
+  // draw the engrave buffer image on the canvas
   ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
   ctx.drawImage(engraveCanvas, 0, 0, g_bitmapWidth, g_bitmapHeight);
 
@@ -358,4 +350,28 @@ function degreesToRadians(degrees) {
   return degrees * (Math.PI / 180);
 }
 
+function adjustOffsetAfterRotation()
+{
+  // calculate the scaled width and height
+  const scaledWidth  = Math.round(g_loadedImageBuffer.m_width * g_imageScale);
+  const scaledHeight = Math.round(g_loadedImageBuffer.m_height * g_imageScale);
+
+  logMessage('info', `--------------------------------`);
+
+  logMessage('info', `scaled width: ${scaledWidth}, scaled height: ${scaledHeight}`);
+
+  // calculate the rotated width
+  const rotatedWidth  = Math.round(Math.abs(scaledWidth * Math.cos(degreesToRadians(g_rotateAngle))) + Math.abs(scaledHeight * Math.sin(degreesToRadians(g_rotateAngle))));
+  const rotatedHeight = Math.round(Math.abs(scaledWidth * Math.sin(degreesToRadians(g_rotateAngle))) + Math.abs(scaledHeight * Math.cos(degreesToRadians(g_rotateAngle))));
+
+  logMessage('info', `angle: ${g_rotateAngle}, rotated width: ${rotatedWidth}, rotated height: ${rotatedHeight}`);
+
+  // calculate the offset to center the image on the engrave buffer
+  g_imageOffsetX = Math.round((g_engraveBuffer.m_width - rotatedWidth) / 2);
+  g_imageOffsetY = Math.round((g_engraveBuffer.m_height - rotatedHeight) / 2);
+
+  logMessage('info', `adjusted offset: ${g_imageOffsetX}, ${g_imageOffsetY}`);
+
+  logMessage('info', `--------------------------------`);
+}
 
