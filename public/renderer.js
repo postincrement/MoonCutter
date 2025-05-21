@@ -18,6 +18,25 @@ let g_isRunning = false;        // Track running state
 let g_bitmapWidth = 0;
 let g_bitmapHeight = 0;
 
+// Add scale slider handler
+const scaleSlider = document.getElementById('scaleSlider');
+const scaleValue = document.getElementById('scaleValue');
+
+scaleSlider.addEventListener('input', () => {
+    const scale = scaleSlider.value / 100;
+    g_imageScale = g_maxImageScale * scale;
+    scaleValue.textContent = `${scaleSlider.value}%`;
+    adjustOffsetAfterRotation();
+    renderImageToCanvas();
+});
+
+// Update scale slider when new image is loaded
+function updateScaleSlider() {
+    scaleSlider.value = 100;
+    scaleValue.textContent = '100%';
+    g_imageScale = g_maxImageScale;
+}
+
 function logMessage(type, ...items) {
   const formattedMessage = items.map(item => {
     if (typeof item === 'object') {
