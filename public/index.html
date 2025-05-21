@@ -28,6 +28,8 @@
                                 <select id="serialPortSelect">
                                     <option value="">Serial Port</option>
                                 </select>
+                            </div>
+                            <div class="refresh-wrapper">
                                 <button id="refreshButton">Refresh</button>
                             </div>
                             <div class="connect-wrapper">
@@ -70,6 +72,16 @@
                           <div class="start-stop-buttons">
                             <button id="startButton">Start</button>
                             <button id="stopButton" disabled>Stop</button>
+                          </div>
+                          <div class="engrave-controls">
+                            <div class="control-slider">
+                                <label for="speedSlider">Speed: <span id="speedValue">100</span>%</label>
+                                <input type="range" id="speedSlider" min="1" max="100" value="100" class="slider">
+                            </div>
+                            <div class="control-slider">
+                                <label for="powerSlider">Power: <span id="powerValue">100</span>%</label>
+                                <input type="range" id="powerSlider" min="1" max="100" value="100" class="slider">
+                            </div>
                           </div>
                             <div class="progress-container">
                                 <div class="progress-bar">

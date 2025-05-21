@@ -38,6 +38,20 @@ function updateScaleSlider() {
     updateOffsetDisplay();
 }
 
+// Add speed and power slider handlers
+const speedSlider = document.getElementById('speedSlider');
+const speedValue = document.getElementById('speedValue');
+const powerSlider = document.getElementById('powerSlider');
+const powerValue = document.getElementById('powerValue');
+
+speedSlider.addEventListener('input', () => {
+    speedValue.textContent = speedSlider.value;
+});
+
+powerSlider.addEventListener('input', () => {
+    powerValue.textContent = powerSlider.value;
+});
+
 function logMessage(type, ...items) {
   const formattedMessage = items.map(item => {
     if (typeof item === 'object') {
@@ -457,11 +471,17 @@ g_startButton.addEventListener('click', async () => {
   g_startButton.disabled = true;
   g_stopButton.disabled  = false;
 
+  // Get current speed and power values
+  const speed = parseInt(speedSlider.value);
+  const power = parseInt(powerSlider.value);
+
   // start engraving
-  logMessage('info', 'Starting engraving...'); 
+  logMessage('info', `Starting engraving with speed: ${speed}%, power: ${power}%`); 
   try {
     await window.api.startEngraving({
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      speed: speed,
+      power: power
     }).then((response) => {
       logMessage('info', `startEngraving response: ${response}`);
       if (response.status === 'error') {
