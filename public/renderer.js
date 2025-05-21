@@ -647,3 +647,35 @@ function drawScaleIndicators(horizontalValue, verticalValue)
 
   logMessage('info', `drawScaleIndicators end:`);
 }
+
+// Add rotate button handlers
+document.getElementById('rotateLeftButton').addEventListener('click', () => {
+  rotateImage(-90);
+});
+
+document.getElementById('rotateRightButton').addEventListener('click', () => {
+  rotateImage(90);
+});
+
+// Remove media-related event listeners and functions
+document.addEventListener('DOMContentLoaded', () => {
+    // Device tab functionality
+    const deviceTypeSelect = document.getElementById('deviceTypeSelect');
+    const serialPortSelect = document.getElementById('serialPortSelect');
+    const refreshButton = document.getElementById('refreshButton');
+    const connectButton = document.getElementById('connectButton');
+    const connectionIndicator = document.getElementById('connectionIndicator');
+
+    // Image tab functionality
+    const loadImageButton = document.getElementById('loadImageButton');
+    const gridTestButton = document.getElementById('gridTestButton');
+    const clearImageButton = document.getElementById('clearImageButton');
+
+    // Engrave tab functionality
+    const homeButton = document.getElementById('homeButton');
+    const engraveAreaButton = document.getElementById('engraveAreaButton');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+
+    // ... rest of the existing code ...
+});

@@ -22,7 +22,8 @@ let g_imageOffsetX = 0;
 let g_imageOffsetY = 0;
 let g_imageScale   = 1;
 let g_maxImageScale = 1;
-let g_boundingBox = null;
+let g_boundingBox  = null;
+let g_rotateAngle  = 0;
 
 // image buffer loaded from a file or created from text
 g_loadedImageBuffer = null;
@@ -304,3 +305,64 @@ function findBoundingBox()
 
   return { left: leftx, top: topy, right: rightx, bottom: bottomy }; 
 }
+
+function degreesToRadians(degrees) {
+  return degrees * (Math.PI / 180);
+}
+
+function rotateImage(degrees) {
+
+  if (!g_loadedImageBuffer) {
+    logMessage('error', 'No image loaded to rotate');
+    return;
+  }
+
+  const radians = degreesToRadians(degrees);
+
+  // calculate size of rotated image
+  const rotatedWidth  = Math.round(Math.abs(g_loadedImageBuffer.m_width * Math.cos(radians)) + Math.abs(g_loadedImageBuffer.m_height * Math.sin(radians)));
+  const rotatedHeight = Math.round(Math.abs(g_loadedImageBuffer.m_width * Math.sin(radians)) + Math.abs(g_loadedImageBuffer.m_height * Math.cos(radians)));
+
+  logMessage('info', `rotated image size by ${degrees} degrees: ${rotatedWidth}x${rotatedHeight}`);
+
+  // Create a temporary canvas to perform the rotation
+  const tempCanvas = document.createElement('canvas');
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCanvas.width  = Math.max(g_loadedImageBuffer.m_width, rotatedWidth);
+  tempCanvas.height = Math.max(g_loadedImageBuffer.m_height, rotatedHeight);
+
+  // Create an ImageData object from the current buffer
+  const imageData = new ImageData(g_loadedImageBuffer.m_data, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height);
+
+  // Put the image data on the temporary canvas
+  tempCtx.putImageData(imageData, 0, 0);
+
+  // Rotate the canvas
+  tempCtx.save();
+  tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+  tempCtx.rotate((degrees * Math.PI) / 180);
+  tempCtx.drawImage(tempCanvas, -tempCanvas.width / 2, -tempCanvas.height / 2);
+  tempCtx.restore();
+
+  // Get the rotated image data
+  const rotatedImageData = tempCtx.getImageData(
+    0,
+    0,
+    rotatedWidth,
+    rotatedHeight
+  );
+
+  // recreate the image buffer with the new size
+  g_loadedImageBuffer = new ImageBuffer(rotatedWidth, rotatedHeight);
+
+  // Clear the current buffer
+  g_loadedImageBuffer.clear();
+
+  // Copy the rotated data to the buffer
+  g_loadedImageBuffer.m_data.set(rotatedImageData.data);
+
+  // Update the display
+  newImage();
+  renderImageToCanvas();
+}
+
