@@ -15,6 +15,7 @@
                 <div class="tabs-header">
                     <button class="tab-button active" data-tab="device">Device</button>
                     <button class="tab-button" data-tab="image">Image</button>
+                    <button class="tab-button" data-tab="text">Text</button>
                     <button class="tab-button" data-tab="engrave">Engrave</button>
                 </div>
                 <div class="tabs-content">
@@ -76,6 +77,42 @@
                                 <div class="scale-input-group">
                                     <input type="range" id="scaleSlider" min="10" max="200" value="100" class="slider">
                                     <input type="number" id="scaleInput" min="10" max="200" value="100" class="scale-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="text-tab">
+                        <div class="text-content" style="display: flex; flex-direction: column; gap: 1em;">
+                            <div class="text-input-container">
+                                <textarea id="textInput" rows="4" placeholder="Enter up to 4 lines of text..." style="width: 100%; resize: vertical;"></textarea>
+                            </div>
+                            <div class="scale-control">
+                                <label for="fontSelect">Font:</label>
+                                <div class="scale-input-group">
+                                    <select id="fontSelect" class="scale-input">
+                                        <option value="Arial">Arial</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Courier New">Courier New</option>
+                                        <option value="Verdana">Verdana</option>
+                                        <option value="Helvetica">Helvetica</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="scale-control">
+                                <label>Style:</label>
+                                <div class="scale-input-group">
+                                    <div class="style-buttons" style="display: flex; gap: 0.5em;">
+                                        <button id="boldButton" class="style-button">B</button>
+                                        <button id="italicButton" class="style-button">I</button>
+                                        <button id="underlineButton" class="style-button">U</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="scale-control">
+                                <label for="fontSizeSelect">Size: <span id="fontSizeValue">16</span>pt</label>
+                                <div class="scale-input-group">
+                                    <input type="range" id="fontSizeSlider" min="12" max="32" value="16" class="slider">
+                                    <input type="number" id="fontSizeInput" min="12" max="32" value="16" class="scale-input">
                                 </div>
                             </div>
                         </div>
