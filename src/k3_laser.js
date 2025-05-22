@@ -9,6 +9,8 @@ let BED_HEIGHT_PIXELS = 1520;
 let BED_WIDTH_MM  = 80;  // size of the bed in mm
 let BED_HEIGHT_MM = 76;  
 
+let MAX_POWER = 1000;
+
 
 // if true, clamp movements to the bed size
 const g_clampMovements = false;
@@ -136,6 +138,9 @@ class K3Laser extends Protocol {
         this.buffer = Buffer.alloc(0);
 
         return new Promise((resolve) => {
+            // Record start time
+            const startTime = Date.now();
+
             // Set up response timeout if specified
             if (timeout !== null) {
                 this.responseTimeout = setTimeout(() => {
@@ -155,12 +160,15 @@ class K3Laser extends Protocol {
                     this.responseTimeout = null;
                 }
 
+                // Calculate elapsed time
+                const elapsedTime = Date.now() - startTime;
+
                 // Check for ACK
                 if (data[0] === ACK) {
-                    logMessage('info', 'Received ACK');
+                    logMessage('info', `Received ACK after ${elapsedTime}ms`);
                     resolve(true);
                 } else {
-                    logMessage('error', 'Received unexpected response:', data[0]);
+                    logMessage('error', `Received unexpected response after ${elapsedTime}ms:`, data[0]);
                     resolve(false);
                 }
             };
@@ -347,13 +355,13 @@ class K3Laser extends Protocol {
       commandBuffer[1] = commandLength >> 8;
       commandBuffer[2] = commandLength & 0xFF;
 
-      // engraving depth intensity = 30
-      var intensity = this.m_speed * 8;
-      commandBuffer[3] = intensity >> 8;
-      commandBuffer[4] = intensity & 0xFF;
+      // speed of laser
+      var speed = Math.round((10 - this.m_speed) * 50 / 9);
+      commandBuffer[3] = speed >> 8;
+      commandBuffer[4] = speed & 0xFF;
 
       // laser power
-      var power = 1000; //this.m_power * 65535 / 100;
+      var power = Math.min(this.m_power, MAX_POWER);
       commandBuffer[5] = power >> 8;
       commandBuffer[6] = power & 0xFF;
 
@@ -382,6 +390,8 @@ class K3Laser extends Protocol {
       }
       commandBuffer[pixelPtr] = byte;
 
+      const startTime = Date.now();
+
       // send the line data to the engraver
       const ack = await this.sendMessageAndWaitForAck("engrave line", commandBuffer, TIMEOUTS.ENGRAVE);
       if (!ack) {
@@ -389,9 +399,18 @@ class K3Laser extends Protocol {
         return false;
       }
 
-      // wait for 100ms
+      // find rightmost non-zero pixel
+      var rightmostNonZeroPixel = lineData.length;
+      while (rightmostNonZeroPixel > 1 && lineData[rightmostNonZeroPixel-1] >= 0x80) {
+        rightmostNonZeroPixel--;
+      }
+
+      const elapsedTime = Date.now() - startTime;
+      const pixelsPerSecond = (rightmostNonZeroPixel / elapsedTime) * 1000;
+      logMessage('info', `Engrave line ${lineNumber} took ${elapsedTime}ms = ${pixelsPerSecond} pixels/sec for ${rightmostNonZeroPixel} pixels`);
+
       // delaying
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      //await new Promise(resolve => setTimeout(resolve, 1000));
 
       return true;
     }
