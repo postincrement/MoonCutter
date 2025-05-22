@@ -756,10 +756,17 @@ const offsetXDisplay = document.getElementById('offsetX');
 const offsetYDisplay = document.getElementById('offsetY');
 
 function updateOffsetDisplay() {
-    // Convert pixels to millimeters (assuming 1mm = 10 pixels)
+    // Convert pixels to millimeters (1mm = 10 pixels)
     const mmPerPixel = 0.1;
-    offsetXDisplay.textContent = (g_imageOffsetX * mmPerPixel).toFixed(1);
-    offsetYDisplay.textContent = (g_imageOffsetY * mmPerPixel).toFixed(1);
+    const xMm = (g_imageOffsetX * mmPerPixel).toFixed(1);
+    const yMm = (g_imageOffsetY * mmPerPixel).toFixed(1);
+    
+    // Update input fields
+    const offsetXInput = document.getElementById('offsetXInput');
+    const offsetYInput = document.getElementById('offsetYInput');
+    
+    if (offsetXInput) offsetXInput.value = xMm;
+    if (offsetYInput) offsetYInput.value = yMm;
 }
 
 // Add event listeners for speed and power controls
@@ -809,6 +816,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     powerInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur();
+        }
+    });
+});
+
+// Add offset input handlers
+document.addEventListener('DOMContentLoaded', () => {
+    const offsetXInput = document.getElementById('offsetXInput');
+    const offsetYInput = document.getElementById('offsetYInput');
+
+    // Convert mm to pixels (1mm = 10 pixels)
+    const mmToPixels = (mm) => mm * 10;
+    const pixelsToMm = (pixels) => pixels / 10;
+
+    // X offset handlers
+    offsetXInput.addEventListener('input', (e) => {
+        const mmValue = parseFloat(e.target.value);
+        g_imageOffsetX = mmToPixels(mmValue);
+        updateOffsetDisplay();
+        renderImageToCanvas();
+    });
+
+    offsetXInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur();
+        }
+    });
+
+    // Y offset handlers
+    offsetYInput.addEventListener('input', (e) => {
+        const mmValue = parseFloat(e.target.value);
+        g_imageOffsetY = mmToPixels(mmValue);
+        updateOffsetDisplay();
+        renderImageToCanvas();
+    });
+
+    offsetYInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.target.blur();
         }
