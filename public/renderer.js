@@ -762,24 +762,55 @@ function updateOffsetDisplay() {
     offsetYDisplay.textContent = (g_imageOffsetY * mmPerPixel).toFixed(1);
 }
 
-// Remove media-related event listeners and functions
+// Add event listeners for speed and power controls
 document.addEventListener('DOMContentLoaded', () => {
-    // Device tab functionality
-    const deviceTypeSelect = document.getElementById('deviceTypeSelect');
-    const serialPortSelect = document.getElementById('serialPortSelect');
-    const refreshButton = document.getElementById('refreshButton');
-    const connectButton = document.getElementById('connectButton');
-    const connectionIndicator = document.getElementById('connectionIndicator');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedInput = document.getElementById('speedInput');
+    const speedValue = document.getElementById('speedValue');
 
-    // Image tab functionality
-    const loadImageButton = document.getElementById('loadImageButton');
-    const clearImageButton = document.getElementById('clearImageButton');
+    const powerSlider = document.getElementById('powerSlider');
+    const powerInput = document.getElementById('powerInput');
+    const powerValue = document.getElementById('powerValue');
 
-    // Engrave tab functionality
-    const homeButton = document.getElementById('homeButton');
-    const engraveAreaButton = document.getElementById('engraveAreaButton');
-    const startButton = document.getElementById('startButton');
-    const stopButton = document.getElementById('stopButton');
+    // Speed control handlers
+    speedSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        speedInput.value = value;
+        speedValue.textContent = value;
+    });
 
-    // ... rest of the existing code ...
+    speedInput.addEventListener('input', (e) => {
+        let value = parseInt(e.target.value);
+        // Clamp value between min and max
+        value = Math.max(1, Math.min(10, value));
+        speedSlider.value = value;
+        speedValue.textContent = value;
+    });
+
+    speedInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur();
+        }
+    });
+
+    // Power control handlers
+    powerSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        powerInput.value = value;
+        powerValue.textContent = value;
+    });
+
+    powerInput.addEventListener('input', (e) => {
+        let value = parseInt(e.target.value);
+        // Clamp value between min and max
+        value = Math.max(1, Math.min(100, value));
+        powerSlider.value = value;
+        powerValue.textContent = value;
+    });
+
+    powerInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur();
+        }
+    });
 });

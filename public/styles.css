@@ -802,4 +802,25 @@ p {
 
 .control-slider .slider::-moz-range-thumb:hover {
     background: #45a049;
+}
+
+.scale-input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.scale-input {
+    width: 60px;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.scale-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 } 

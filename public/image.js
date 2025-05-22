@@ -403,15 +403,71 @@ function applyThreshold(sourceCanvas) {
   return thresholdCanvas;
 }
 
-// Add event listener for threshold slider
+// Add event listeners for threshold controls
 document.addEventListener('DOMContentLoaded', () => {
-  const thresholdSlider = document.getElementById('thresholdSlider');
-  const thresholdValue = document.getElementById('thresholdValue');
+    const thresholdSlider = document.getElementById('thresholdSlider');
+    const thresholdInput = document.getElementById('thresholdInput');
+    const thresholdValue = document.getElementById('thresholdValue');
 
-  thresholdSlider.addEventListener('input', (e) => {
-    g_threshold = parseInt(e.target.value);
-    thresholdValue.textContent = g_threshold;
-    applyThreshold();
-  });
+    // Update both slider and input when slider changes
+    thresholdSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        thresholdInput.value = value;
+        thresholdValue.textContent = value;
+        g_threshold = value;
+        applyThreshold();
+    });
+
+    // Update both slider and display when input changes
+    thresholdInput.addEventListener('input', (e) => {
+        let value = parseInt(e.target.value);
+        // Clamp value between min and max
+        value = Math.max(0, Math.min(255, value));
+        thresholdSlider.value = value;
+        thresholdValue.textContent = value;
+        g_threshold = value;
+        applyThreshold();
+    });
+
+    // Handle enter key in input field
+    thresholdInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur(); // Remove focus from input
+        }
+    });
+});
+
+// Add event listeners for scale controls
+document.addEventListener('DOMContentLoaded', () => {
+    const scaleSlider = document.getElementById('scaleSlider');
+    const scaleInput = document.getElementById('scaleInput');
+    const scaleValue = document.getElementById('scaleValue');
+
+    // Update both slider and input when slider changes
+    scaleSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        scaleInput.value = value;
+        scaleValue.textContent = value;
+        g_imageScale = value / 100;
+        renderImageToCanvas();
+    });
+
+    // Update both slider and display when input changes
+    scaleInput.addEventListener('input', (e) => {
+        let value = parseInt(e.target.value);
+        // Clamp value between min and max
+        value = Math.max(10, Math.min(200, value));
+        scaleSlider.value = value;
+        scaleValue.textContent = value;
+        g_imageScale = value / 100;
+        renderImageToCanvas();
+    });
+
+    // Handle enter key in input field
+    scaleInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur(); // Remove focus from input
+        }
+    });
 });
 
