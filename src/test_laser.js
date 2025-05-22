@@ -70,6 +70,25 @@ class TestLaser extends K3Laser {
         // insert delay here
         const delay = 100;
         //logMessage('debug', 'Delaying for', delay, 'ms for line', lineNumber);
+
+        const pixelCount = (lineData.length + 7) / 8;
+        var pixelBuffer   = Buffer.alloc(pixelCount);
+        var pixelPtr      = 0;
+
+        var byte = 0;
+        for (let i = 0; i < lineData.length; i++) {
+          byte = byte << 1;
+          if (lineData[i] < 0x80) {
+            byte |= 1;
+          }
+          if (i % 8 == 7) {
+            pixelBuffer[pixelPtr] = byte;
+            pixelPtr++;
+            byte = 0;
+          }
+        }
+
+        logMessage('debug', 'Line data:', pixelBuffer);
         
         // Wait for the delay
         await new Promise(resolve => setTimeout(resolve, delay));

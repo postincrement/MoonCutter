@@ -479,7 +479,7 @@ g_startButton.addEventListener('click', async () => {
   logMessage('info', `Starting engraving with speed: ${speed}%, power: ${power}%`); 
   try {
     await window.api.startEngraving({
-      timestamp: new Date().toISOString(),
+      boundingBox: g_boundingBox,
       speed: speed,
       power: power
     }).then((response) => {
@@ -489,13 +489,20 @@ g_startButton.addEventListener('click', async () => {
       }
     });
 
-    logMessage('info', `Engraving started for ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
+    const engraveStartY = g_boundingBox.top;
+    const engraveEndY   = g_boundingBox.bottom;
+    const engraveStartX = g_boundingBox.left;
+    const engraveEndX   = g_boundingBox.right;
+    const engraveWidth  = engraveEndX - engraveStartX;
+    const engraveHeight = engraveEndY - engraveStartY;
+
+    logMessage('info', `Engraving started for ${engraveWidth}x${engraveHeight}`);
 
     updateProgressBar(0);
 
     // Process each line of the image buffer and send to serial port
     //var lineData = new Uint8ClampedArray(g_engraveBuffer.m_width);
-    for (y = 0; y < g_engraveBuffer.m_height; y++) {
+    for (y = 0; y < engraveHeight; y++) {
 
       logMessage('debug', 'Processing line ', y);
 
@@ -503,17 +510,15 @@ g_startButton.addEventListener('click', async () => {
         break;
       }
 
-      updateProgressBar((y / g_engraveBuffer.m_height) * 100);
+      updateProgressBar((y / engraveHeight) * 100);
 
-      var lineData = new Uint8ClampedArray(g_engraveBuffer.m_width);
+      var lineData = new Uint8ClampedArray(engraveWidth);
 
-      /*
-      for (let x = 0; x < g_engraveBuffer.m_width; x++) {
-        const index = (y * g_engraveBuffer.m_width + x) * 4;
+      for (let x = 0; x < engraveWidth; x++) {
+        const index = ((y + engraveStartY) * engraveWidth + x + engraveStartX) * 4;
         // data is already grayscale - return any color channel (in this case red)
         lineData[x] = g_engraveBuffer.m_data[index]; 
       }
-        */
       
       // Send line to the serial port and wait for response
       await window.api.sendLineToEngraver(lineData, y).then((result) => {

@@ -32,5 +32,9 @@ contextBridge.exposeInMainWorld('api', {
   onHomeResponse: (callback) => ipcRenderer.on('home-response', callback),
   onCenterResponse: (callback) => ipcRenderer.on('center-response', callback),
   onSetDeviceTypes: (callback) => ipcRenderer.on('set-device-types', callback),
-  onEngraveAreaResponse: (callback) => ipcRenderer.on('engrave-area-response', callback)
+  onEngraveAreaResponse: (callback) => ipcRenderer.on('engrave-area-response', callback),
+
+  // Preferences API
+  loadPreferences: () => ipcRenderer.invoke('load-preferences'),
+  savePreferences: (preferences) => ipcRenderer.invoke('save-preferences', preferences)
 }); 

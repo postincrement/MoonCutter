@@ -27,8 +27,8 @@ const COMMANDS = {
   MOVE:    [  1, 0, 7,      0,    0,    0,    0],
   START:   [ 20, 0, 7,      0,    0,    0,    0],
 
-              // lmsb llsb  
-  ENGRAVE: [ 9,   0,   4,   0, 0,   0, 0,   0, 0]
+              //  linelen  depth   power   Y offset
+  ENGRAVE: [ 9,   0, 0,    0, 0,   0, 0,   0, 0]
 };
 
 /*
@@ -274,54 +274,101 @@ class K3Laser extends Protocol {
       return this.sendRelativeMove(relativeCommand);
     }
 
-    async startEngraving() {
-      /*
-      const command = COMMANDS.START;
+    async startEngraving(info) {
+
+      // turn on the fan
+      await this.setFan(true);
+      // get the size of the image
+      const x = info.boundingBox.left;
+      const y = info.boundingBox.top;
+
+      var command = COMMANDS.START;
+      command[3] = (x >> 8) & 0xFF;
+      command[4] = x & 0xFF;
+      command[5] = (y >> 8) & 0xFF;
+      command[6] = y & 0xFF;
+
       const ack = await this.sendMessageAndWaitForAck("start", Buffer.from(command), TIMEOUTS.START);
       if (!ack) {
         logMessage('error', 'Failed to send start command');
-        return { success: false, message: 'Failed to send start command' };
+        return false;
       }
-        */
+
+      // sleep for 500ms
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       return true;
     }
 
     // Add function to send line data to the engraver
     async engraveLine(lineData, lineNumber) {
       
-      // Convert lineData to binary format expected by engraver
-      // This is a simplified example - adjust to match your engraver's protocol
-      const dataBuffer = Buffer.from(lineData);
+      // see if line is all white
+      const isAllWhite = lineData.every(value => value === 0xff);
 
-      // see if line is all 0s
-      const isAllZeros = lineData.every(value => value === 0);
+      // if line is all white, nothing to send
+      //if (isAllWhite) {
+      //  return true;
+      //}
 
-      // if line is all 0s, nothing to send
-      if (isAllZeros) {
-        return true;
+      // allocate buffer for command
+      const commandLength = COMMANDS.ENGRAVE.length + (lineData.length + 7) / 8;
+      var commandBuffer   = Buffer.alloc(commandLength);
+
+      commandBuffer[0] = COMMANDS.ENGRAVE[0];
+
+      // command length
+      commandBuffer[1] = commandLength >> 8;
+      commandBuffer[2] = commandLength & 0xFF;
+
+      // engraving depth intensity = 30
+      const intensity = 30;
+      commandBuffer[3] = intensity >> 8;
+      commandBuffer[4] = intensity & 0xFF;
+
+      // laser power
+      const power = 1000;
+      commandBuffer[5] = power >> 8;
+      commandBuffer[6] = power & 0xFF;
+
+      // current height progress
+      commandBuffer[7] = lineNumber >> 8;
+      commandBuffer[8] = lineNumber & 0xFF;
+
+      // each engrave line is packed into bytes
+      // each bit is a pixel
+      // the least significant bit is the pixel at the bottom left
+      // the most significant bit is the pixel at the top right
+      // the data is packed into bytes from left to right, bottom to top
+      var pixelPtr = COMMANDS.ENGRAVE.length;
+      var byte = 0;
+      for (let i = 0; i < lineData.length; i++) {
+        byte = byte << 1;
+        if (lineData[i] == 0xff) {
+          byte |= 1;
+        }
+        if (i % 8 == 7) {
+          commandBuffer[pixelPtr] = byte;
+          pixelPtr++;
+          byte = 0;
+        }
       }
 
       // send the line data to the engraver
-      /*
-      const ack = await this.sendMessageAndWaitForAck("engrave line", Buffer.from(dataBuffer), TIMEOUTS.ENGRAVE);
+      const ack = await this.sendMessageAndWaitForAck("engrave line", commandBuffer, TIMEOUTS.ENGRAVE);
       if (!ack) {
         logMessage('error', 'Failed to send engrave line command');
-        return { success: false, message: 'Failed to send engrave line command' };
+        return false;
       }
-        */
 
       return true;
     }
 
-    async stopEngraving() {
-      /*
-      const command = COMMANDS.STOP;
-      const ack = await this.sendMessageAndWaitForAck("stop", Buffer.from(command), TIMEOUTS.STOP);
-      if (!ack) {
-        logMessage('error', 'Failed to send stop command');
-        returnfalse;
-      }
-        */
+    async stopEngraving() 
+    {
+      // turn off the fan
+      await this.setFan(false);
+
       return true;
     }
 }

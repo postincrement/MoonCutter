@@ -34,6 +34,7 @@
       "public/index.html",
       "public/log.html",
       "public/about.html",
+      "public/preferences.html",
       "public/renderer.js",
       "public/logwindow.js",
       "public/image.js",

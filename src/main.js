@@ -2,6 +2,7 @@ require('source-map-support').install();
 const { app, BrowserWindow, ipcMain, Menu, dialog } = require('electron');
 const path = require('path');
 const { SerialPort } = require('serialport');
+const fs = require('fs');
 
 const K3Laser     = require('./k3_laser');
 const GCodeLaser  = require('./gcode_laser');
@@ -285,7 +286,45 @@ process.on('uncaughtException', (error) => {
     console.error('Uncaught exception:', error);
 });
 
-// Add menu item to open log window
+// Preferences handling
+const userDataPath = app.getPath('userData');
+const preferencesPath = path.join(userDataPath, 'preferences.json');
+
+function loadPreferences() {
+    try {
+        if (fs.existsSync(preferencesPath)) {
+            const data = fs.readFileSync(preferencesPath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (err) {
+        console.error('Error loading preferences:', err);
+    }
+    // Default preferences
+    return {
+        units: 'mm',
+        scaleMode: 'corner'
+    };
+}
+
+function savePreferences(preferences) {
+    try {
+        fs.writeFileSync(preferencesPath, JSON.stringify(preferences, null, 2));
+    } catch (err) {
+        console.error('Error saving preferences:', err);
+    }
+}
+
+// Add preferences IPC handlers
+ipcMain.handle('load-preferences', () => {
+    return loadPreferences();
+});
+
+ipcMain.handle('save-preferences', (event, preferences) => {
+    savePreferences(preferences);
+    return { success: true };
+});
+
+// Update menu template
 const template = [
     {
         label: 'File',
@@ -328,6 +367,31 @@ const template = [
                 label: 'Show Logs',
                 click: () => {
                     createLogWindow();
+                }
+            }
+        ]
+    },
+    {
+        label: 'Settings',
+        submenu: [
+            {
+                label: 'Preferences',
+                click: () => {
+                    const prefsWindow = new BrowserWindow({
+                        width: 400,
+                        height: 300,
+                        resizable: false,
+                        minimizable: false,
+                        maximizable: false,
+                        webPreferences: {
+                            nodeIntegration: false,
+                            contextIsolation: true,
+                            preload: path.join(__dirname, 'preload.js')
+                        }
+                    });
+
+                    prefsWindow.loadFile('public/preferences.html');
+                    prefsWindow.setMenu(null);
                 }
             }
         ]
@@ -394,7 +458,7 @@ ipcMain.handle('start-engraving', async (event, data) => {
     return connStatus;
   }
 
-  await g_currentDevice.startEngraving();
+  await g_currentDevice.startEngraving(data);
   return { status: 'success', message: "start engraving command sent successfully" };
 });
 
