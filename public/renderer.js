@@ -181,7 +181,12 @@ function updateSerialPortList(ports) {
     ports.forEach(port => {
         const option = document.createElement('option');
         option.value = port.path;
-        option.textContent = `${port.path} - ${port.manufacturer || 'Unknown'}`;
+        // Remove /dev/ prefix on macOS
+        const displayPath = port.path.replace('/dev/', '');
+        option.textContent = displayPath;
+        if (port.manufacturer) {
+          option.textContent += ` - ${port.manufacturer}`;
+        }
         g_serialPortSelect.appendChild(option);
     });
 
