@@ -281,23 +281,6 @@ g_loadImageButton.addEventListener('click', async () => {
   }
 });
 
-// Add this after the other image tab button handlers
-document.getElementById('clearImageButton').addEventListener('click', () => {
-  clearImage();
-  renderImageToCanvas();
-});
-
-function clearImage()
-{
-    // Clear the image buffer
-    g_loadedImageBuffer.clear();
-
-    // clear the engrave buffer
-    g_engraveBuffer.clear();
-
-    logMessage('info', 'Image buffer cleared');  
-}
-
 ////////////////////////////////////////////////////////////
 //
 //  device button handling
