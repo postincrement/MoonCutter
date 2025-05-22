@@ -41,7 +41,6 @@
                     <div class="tab-pane" id="image-tab">
                         <div class="image-content" style="display: flex; flex-direction: column; gap: 1em;">
                             <button id="loadImageButton">Load Image File</button>
-                            <button id="gridTestButton">Grid Test Pattern</button>
                             <button id="clearImageButton">Clear Image</button>
                             <div class="control-buttons">
                                 <button id="homeButton">
@@ -60,6 +59,10 @@
                             <div class="scale-control">
                                 <label for="scaleSlider">Scale: <span id="scaleValue">100%</span></label>
                                 <input type="range" id="scaleSlider" min="10" max="200" value="100" class="slider">
+                            </div>
+                            <div class="scale-control">
+                                <label for="thresholdSlider">Threshold: <span id="thresholdValue">128</span></label>
+                                <input type="range" id="thresholdSlider" min="0" max="255" value="128" class="slider">
                             </div>
                             <div class="offset-display">
                                 <div class="offset-value">X: <span id="offsetX">0</span> mm</div>

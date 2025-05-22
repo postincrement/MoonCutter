@@ -18,11 +18,16 @@ const g_nudgeSize = 100;
 
 // Command constants
 const COMMANDS = {
-  CONNECT: [10, 0, 4, 0],
-  HOME:    [23, 0, 4, 0],
-  CENTER:  [26, 0, 4, 0],
-  FAN_ON:  [ 4, 0, 4, 0],
-  FAN_OFF: [ 5, 0, 4, 0],
+  CONNECT:      [10, 0, 4, 0 ],
+  HOME:         [23, 0, 4, 0 ],
+  CENTER:       [26, 0, 4, 0 ],
+  FAN_ON:       [ 4, 0, 4, 0 ],
+  FAN_OFF:      [ 5, 0, 4, 0 ],
+  RESET:        [ 6, 0, 4, 0 ],
+  DISCRETE_ON:  [27, 0, 4, 0 ],
+  DISCRETE_OFF: [28, 0, 4, 0 ],
+  STOP:         [22, 0, 4, 0 ],
+
                          //xmsb  xlsb  ymsb  ylsb
   MOVE:    [  1, 0, 7,      0,    0,    0,    0],
   START:   [ 20, 0, 7,      0,    0,    0,    0],
@@ -276,8 +281,29 @@ class K3Laser extends Protocol {
 
     async startEngraving(info) {
 
+      // set discrete mode
+      const discreteCommand = COMMANDS.DISCRETE_ON;
+      const discreteAck = await this.sendMessageAndWaitForAck("discrete", Buffer.from(discreteCommand), TIMEOUTS.DISCRETE);
+      if (!discreteAck) {
+        logMessage('error', 'Failed to send discrete command');
+        return false;
+      }
+
+      // set reset command
+      const resetCommand = COMMANDS.RESET;
+      const resetAck = await this.sendMessageAndWaitForAck("reset", Buffer.from(resetCommand), TIMEOUTS.RESET);
+      if (!resetAck) {
+        logMessage('error', 'Failed to send reset command');
+        return false;
+      }
+
+      this.m_speed = info.speed;
+      this.m_power = info.power;
+
       // turn on the fan
       await this.setFan(true);
+
+
       // get the size of the image
       const x = info.boundingBox.left;
       const y = info.boundingBox.top;
@@ -295,7 +321,7 @@ class K3Laser extends Protocol {
       }
 
       // sleep for 500ms
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       return true;
     }
@@ -322,12 +348,12 @@ class K3Laser extends Protocol {
       commandBuffer[2] = commandLength & 0xFF;
 
       // engraving depth intensity = 30
-      const intensity = 30;
+      var intensity = this.m_speed * 8;
       commandBuffer[3] = intensity >> 8;
       commandBuffer[4] = intensity & 0xFF;
 
       // laser power
-      const power = 1000;
+      var power = 1000; //this.m_power * 65535 / 100;
       commandBuffer[5] = power >> 8;
       commandBuffer[6] = power & 0xFF;
 
@@ -341,10 +367,11 @@ class K3Laser extends Protocol {
       // the most significant bit is the pixel at the top right
       // the data is packed into bytes from left to right, bottom to top
       var pixelPtr = COMMANDS.ENGRAVE.length;
+
       var byte = 0;
       for (let i = 0; i < lineData.length; i++) {
         byte = byte << 1;
-        if (lineData[i] == 0xff) {
+        if (lineData[i] < 0x80) {
           byte |= 1;
         }
         if (i % 8 == 7) {
@@ -353,6 +380,7 @@ class K3Laser extends Protocol {
           byte = 0;
         }
       }
+      commandBuffer[pixelPtr] = byte;
 
       // send the line data to the engraver
       const ack = await this.sendMessageAndWaitForAck("engrave line", commandBuffer, TIMEOUTS.ENGRAVE);
@@ -361,11 +389,23 @@ class K3Laser extends Protocol {
         return false;
       }
 
+      // wait for 100ms
+      // delaying
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       return true;
     }
 
     async stopEngraving() 
     {
+      // send stop command
+      const stopCommand = COMMANDS.STOP;
+      const stopAck = await this.sendMessageAndWaitForAck("stop", Buffer.from(stopCommand), TIMEOUTS.STOP);
+      if (!stopAck) {
+        logMessage('error', 'Failed to send stop command');
+        return false;
+      }
+
       // turn off the fan
       await this.setFan(false);
 

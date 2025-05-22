@@ -30,6 +30,16 @@ scaleSlider.addEventListener('input', () => {
     renderImageToCanvas();
 });
 
+// Add threshold slider handler
+const thresholdSlider = document.getElementById('thresholdSlider');
+const thresholdValue = document.getElementById('thresholdValue');
+
+thresholdSlider.addEventListener('input', () => {
+    g_threshold = parseInt(thresholdSlider.value);
+    thresholdValue.textContent = thresholdSlider.value;
+    renderImageToCanvas();
+});
+
 // Update scale slider when new image is loaded
 function updateScaleSlider() {
     scaleSlider.value = 100;
@@ -244,41 +254,6 @@ function checkConnection() {
   }
   return true;
 }
-
-
-// Add event listener for grid test pattern button
-document.getElementById('gridTestButton').addEventListener('click', () => {
-
-  // Clear the buffer
-  g_loadedImageBuffer.clear();
-  
-  // Fill buffer with white
-  for (let i = 0; i < g_loadedImageBuffer.m_data.length; i += 4) {
-    g_loadedImageBuffer.m_data[i] = 255;     // Red
-    g_loadedImageBuffer.m_data[i + 1] = 255; // Green
-    g_loadedImageBuffer.m_data[i + 2] = 255; // Blue
-    g_loadedImageBuffer.m_data[i + 3] = 255; // Alpha
-  }
-  
-  const gridSize = 32; // 16x16 grid
-  
-  // Draw grid lines in the buffer
-  for (let y = 0; y < g_loadedImageBuffer.m_height; y++) {
-      for (let x = 0; x < g_loadedImageBuffer.m_width; x++) {
-          // Check if we're on a grid line
-          if (x % gridSize === 0 || y % gridSize === 0) {
-              const i = (y * g_loadedImageBuffer.m_width + x) * 4;
-              g_loadedImageBuffer.m_data[i] = 0;     // Red
-              g_loadedImageBuffer.m_data[i + 1] = 0; // Green
-              g_loadedImageBuffer.m_data[i + 2] = 0; // Blue
-              g_loadedImageBuffer.m_data[i + 3] = 255; // Alpha
-          }
-      }
-  }
-  
-  // Render the image to the canvas
-  renderImageToCanvas();
-});
 
 // Keep only this event listener for the load image button
 g_loadImageButton.addEventListener('click', async () => {
@@ -496,7 +471,7 @@ g_startButton.addEventListener('click', async () => {
     const engraveWidth  = engraveEndX - engraveStartX;
     const engraveHeight = engraveEndY - engraveStartY;
 
-    logMessage('info', `Engraving started for ${engraveWidth}x${engraveHeight}`);
+    logMessage('info', `Engraving started for ${engraveWidth}x${engraveHeight} at ${engraveStartX},${engraveStartY}`);
 
     updateProgressBar(0);
 
@@ -515,7 +490,7 @@ g_startButton.addEventListener('click', async () => {
       var lineData = new Uint8ClampedArray(engraveWidth);
 
       for (let x = 0; x < engraveWidth; x++) {
-        const index = ((y + engraveStartY) * engraveWidth + x + engraveStartX) * 4;
+        const index = (((y + engraveStartY) * g_engraveBuffer.m_width) + (engraveStartX + x)) * 4;
         // data is already grayscale - return any color channel (in this case red)
         lineData[x] = g_engraveBuffer.m_data[index]; 
       }
@@ -798,7 +773,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Image tab functionality
     const loadImageButton = document.getElementById('loadImageButton');
-    const gridTestButton = document.getElementById('gridTestButton');
     const clearImageButton = document.getElementById('clearImageButton');
 
     // Engrave tab functionality

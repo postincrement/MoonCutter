@@ -24,6 +24,7 @@ let g_imageScale   = 1;
 let g_maxImageScale = 1;
 let g_boundingBox  = null;
 let g_rotateAngle  = 0;
+let g_threshold    = 128;  // Default threshold value
 
 // image buffer loaded from a file or created from text
 g_loadedImageBuffer = null;
@@ -101,28 +102,6 @@ function loadImage(img)
 
 function newImage() 
 {
-  /*
-  // Convert to grayscale and store in g_imageBuffer
-  const imageData = tempCtx.getImageData(0, 0, g_imageBuffer.width, g_imageBuffer.height);
-  
-  // Process each pixel
-  const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    // Convert RGB to grayscale using luminance formula
-    const grayValue = Math.round(
-      0.299 * data[i] +      // Red
-      0.587 * data[i + 1] +  // Green
-      0.114 * data[i + 2]    // Blue
-    );
-
-    // Store grayscale value in all RGB channels of g_imageBuffer
-    g_imageBuffer.data[i] = grayValue;     // Red
-    g_imageBuffer.data[i + 1] = grayValue; // Green
-    g_imageBuffer.data[i + 2] = grayValue; // Blue
-    g_imageBuffer.data[i + 3] = 255;       // Alpha (fully opaque)
-  }
-*/
-
   logMessage('info', `newImage()`);
 
   // Calculate scaling to fit image into engraving buffer while maintaining aspect ratio and zero rotation
@@ -139,6 +118,12 @@ function newImage()
   }
   g_imageScale = g_maxImageScale;
 
+  // Update threshold slider to current value
+  const thresholdSlider = document.getElementById('thresholdSlider');
+  const thresholdValue = document.getElementById('thresholdValue');
+  thresholdSlider.value = g_threshold;
+  thresholdValue.textContent = g_threshold;
+
   // Log success
   logMessage('info', `new image ${g_loadedImageBuffer.m_width}x${g_loadedImageBuffer.m_height}`);
 
@@ -154,11 +139,26 @@ function renderImageToEngraveBuffer()
     return;
   }
 
+  // load the raw image data into a new ImageData object
+  const loadedImageData = new ImageData(g_loadedImageBuffer.m_data, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height);
+
+  // create a canvas the same size as the loaded image
+  const sourceCanvas = document.createElement('canvas');
+  sourceCanvas.width  = g_loadedImageBuffer.m_width;
+  sourceCanvas.height = g_loadedImageBuffer.m_height;
+  const sourceCtx = sourceCanvas.getContext('2d');
+
+  // put the image data into the source canvas
+  sourceCtx.putImageData(loadedImageData, 0, 0);
+
   // scale the image
-  const scaleCanvas     = scaleImage();
+  const scaleCanvas  = scaleImage(sourceCanvas);
 
   // rotate the image
-  const transformCanvas = rotateImage(scaleCanvas);
+  const rotateCanvas = rotateImage(scaleCanvas);
+
+  // Apply threshold to the image
+  const transformCanvas = applyThreshold(rotateCanvas);
 
   // Create a canvas the size of the engrave buffer
   const engraveCanvas = document.createElement('canvas');
@@ -188,20 +188,8 @@ function renderImageToEngraveBuffer()
   return engraveCanvas;
 }
 
-function scaleImage()
+function scaleImage(sourceCanvas)
 {
-  // load the raw image data into a new ImageData object
-  const loadedImageData = new ImageData(g_loadedImageBuffer.m_data, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height);
-
-  // create a canvas the same size as the loaded image
-  const sourceCanvas = document.createElement('canvas');
-  sourceCanvas.width  = g_loadedImageBuffer.m_width;
-  sourceCanvas.height = g_loadedImageBuffer.m_height;
-  const sourceCtx = sourceCanvas.getContext('2d');
-
-  // put the image data into the source canvas
-  sourceCtx.putImageData(loadedImageData, 0, 0);
-
   // create a canvas the same size as the scaled image
   const scaledCanvas = document.createElement('canvas');
   scaledCanvas.width  = g_loadedImageBuffer.m_width * g_imageScale;
@@ -374,4 +362,56 @@ function adjustOffsetAfterRotation()
 
   logMessage('info', `--------------------------------`);
 }
+
+// Add threshold processing function
+function applyThreshold(sourceCanvas) {
+
+  // create a canvas the same size as the source canvas
+  const thresholdCanvas = document.createElement('canvas');
+  thresholdCanvas.width  = sourceCanvas.width;
+  thresholdCanvas.height = sourceCanvas.height;
+  const thresholdCtx = thresholdCanvas.getContext('2d');
+
+  // get the image data from the source canvas
+  const imageData = sourceCanvas.getContext('2d').getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);  
+
+  // get the image data from the threshold canvas
+  const thresholdImageData = thresholdCtx.getImageData(0, 0, thresholdCanvas.width, thresholdCanvas.height);
+
+  // copy the image data to the threshold canvas
+  thresholdImageData.data.set(imageData.data);  
+
+  // apply the threshold to the threshold canvas
+  for (let i = 0; i < thresholdImageData.data.length; i += 4) {
+    const grayValue = Math.round(
+      0.299 * thresholdImageData.data[i] +      // Red
+      0.587 * thresholdImageData.data[i + 1] +  // Green
+      0.114 * thresholdImageData.data[i + 2]    // Blue
+    );  
+
+    const thresholdedValue = grayValue <= g_threshold ? 0 : 255;
+
+    thresholdImageData.data[i] = thresholdedValue;     // Red
+    thresholdImageData.data[i + 1] = thresholdedValue; // Green
+    thresholdImageData.data[i + 2] = thresholdedValue; // Blue  
+  }
+
+  // copy the thresholded image data to the threshold canvas
+  thresholdCtx.putImageData(thresholdImageData, 0, 0);
+
+  // return the thresholded canvas
+  return thresholdCanvas;
+}
+
+// Add event listener for threshold slider
+document.addEventListener('DOMContentLoaded', () => {
+  const thresholdSlider = document.getElementById('thresholdSlider');
+  const thresholdValue = document.getElementById('thresholdValue');
+
+  thresholdSlider.addEventListener('input', (e) => {
+    g_threshold = parseInt(e.target.value);
+    thresholdValue.textContent = g_threshold;
+    applyThreshold();
+  });
+});
 

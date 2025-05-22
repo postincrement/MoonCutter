@@ -71,7 +71,7 @@ class TestLaser extends K3Laser {
         const delay = 100;
         //logMessage('debug', 'Delaying for', delay, 'ms for line', lineNumber);
 
-        const pixelCount = (lineData.length + 7) / 8;
+        const pixelCount = Math.trunc((lineData.length + 7) / 8);
         var pixelBuffer   = Buffer.alloc(pixelCount);
         var pixelPtr      = 0;
 
