@@ -20,29 +20,37 @@
                 </div>
                 <div class="tabs-content">
                     <div class="tab-pane active" id="device-tab">
-                        <div class="controls">
-                            <div class="device-type-wrapper">
+                        <div class="controls" style="display: flex; flex-direction: column; gap: 1em;">
+                            <div class="scale-control">
                                 <label for="deviceTypeSelect">Type:</label>
-                                <select id="deviceTypeSelect"></select>
+                                <div class="scale-input-group">
+                                    <select id="deviceTypeSelect" class="scale-input"></select>
+                                </div>
                             </div>
-                            <div class="serial-port-wrapper">
-                                <select id="serialPortSelect">
-                                    <option value="">Serial Port</option>
-                                </select>
+                            <div class="scale-control">
+                                <label for="serialPortSelect">Serial Port:</label>
+                                <div class="scale-input-group">
+                                    <select id="serialPortSelect" class="scale-input">
+                                        <option value="">Select Port</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="refresh-wrapper">
-                                <button id="refreshButton">Refresh</button>
+                            <div class="scale-control">
+                                <div class="scale-input-group">
+                                    <button id="refreshButton" class="scale-input">Refresh</button>
+                                </div>
                             </div>
-                            <div class="connect-wrapper">
-                                <button id="connectButton">Connect</button>
-                                <span id="connectionIndicator" class="connection-indicator"></span>
+                            <div class="scale-control">
+                                <div class="scale-input-group">
+                                    <button id="connectButton" class="scale-input">Connect</button>
+                                    <span id="connectionIndicator" class="connection-indicator"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="tab-pane" id="image-tab">
                         <div class="image-content" style="display: flex; flex-direction: column; gap: 1em;">
                             <button id="loadImageButton">Load Image File</button>
-                            <button id="clearImageButton">Clear Image</button>
                             <div class="control-buttons">
                                 <button id="homeButton">
                                     <img src="images/home.png" alt="Home">
