@@ -356,7 +356,7 @@ class K3Laser extends Protocol {
       commandBuffer[2] = commandLength & 0xFF;
 
       // speed of laser
-      var speed = Math.round((10 - this.m_speed) * 50 / 9);
+      var speed = Math.round(1 + (20 - this.m_speed) * 49 / 9);
       logMessage('info', `Speed: ${this.m_speed} -> ${speed}`);
       commandBuffer[3] = speed >> 8;
       commandBuffer[4] = speed & 0xFF;
