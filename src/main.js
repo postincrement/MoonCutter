@@ -1,8 +1,13 @@
 require('source-map-support').install();
-const { app, BrowserWindow, ipcMain, Menu, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, systemPreferences } = require('electron');
 const path = require('path');
 const { SerialPort } = require('serialport');
 const fs = require('fs');
+const fontList = require('font-list');
+const os = require('os');
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
 
 const K3Laser     = require('./k3_laser');
 const GCodeLaser  = require('./gcode_laser');
@@ -97,6 +102,52 @@ function createWindow() {
 
 app.whenReady().then(() => {
     createWindow();
+
+    // System fonts handling
+    ipcMain.handle('get-system-fonts', async () => {
+        try {
+            console.log('Getting system fonts...');
+            const platform = os.platform();
+            let fonts = [];
+
+            if (platform === 'darwin') {
+                // macOS - use system_profiler with larger buffer
+                const { stdout } = await execPromise('system_profiler SPFontsDataType', {
+                    maxBuffer: 10 * 1024 * 1024 // 10MB buffer
+                });
+                
+                // Parse the output to extract font families
+                const fontFamilies = new Set();
+                const lines = stdout.split('\n');
+                let currentFamily = '';
+                
+                for (const line of lines) {
+                    if (line.includes('Family:')) {
+                        currentFamily = line.split('Family:')[1].trim();
+                        if (currentFamily && !currentFamily.includes('System Fonts')) {
+                            fontFamilies.add(currentFamily);
+                        }
+                    }
+                }
+                
+                fonts = Array.from(fontFamilies).sort();
+            } else if (platform === 'win32') {
+                // Windows
+                const { stdout } = await execPromise('powershell -command "[System.Reflection.Assembly]::LoadWithPartialName(\'System.Drawing\'); [System.Drawing.FontFamily]::Families | ForEach-Object { $_.Name }"');
+                fonts = stdout.split('\n').filter(Boolean);
+            } else {
+                // Linux
+                const { stdout } = await execPromise('fc-list : family');
+                fonts = stdout.split('\n').map(line => line.trim()).filter(Boolean);
+            }
+
+            console.log('Found fonts:', fonts.length);
+            return fonts;
+        } catch (error) {
+            console.error('Error getting system fonts:', error);
+            return [];
+        }
+    });
 
     // Device type handling
     ipcMain.handle('set-device-type', async (event, data) => {

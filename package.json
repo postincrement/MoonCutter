@@ -24,6 +24,8 @@
     "electron-builder": "^26.0.12"
   },
   "dependencies": {
+    "font-list": "^1.5.1",
+    "fontkit": "^2.0.4",
     "serialport": "^11.0.0",
     "source-map-support": "^0.5.21"
   },
