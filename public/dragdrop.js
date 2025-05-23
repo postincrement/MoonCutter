@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add paste event listener
     document.addEventListener('paste', handlePaste);
 
+    // Add copy and cut event listeners
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('cut', handleCut);
+
     // Highlight drop zone when item is dragged over it
     ['dragenter', 'dragover'].forEach(eventName => {
         bitmapContainer.addEventListener(eventName, highlight, false);
@@ -41,6 +45,58 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!e.currentTarget.contains(e.relatedTarget)) {
             dropZone.style.display = 'flex';
         }
+    }
+
+    async function handleCopy(e) {
+        if (!g_loadedImageBuffer) {
+            return; // Don't copy if no image is loaded
+        }
+
+        e.preventDefault();
+        
+        // Create a temporary canvas to get the image data
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = g_loadedImageBuffer.m_width;
+        tempCanvas.height = g_loadedImageBuffer.m_height;
+        const ctx = tempCanvas.getContext('2d');
+        
+        // Create ImageData from the buffer
+        const imageData = new ImageData(
+            new Uint8ClampedArray(g_loadedImageBuffer.m_data),
+            g_loadedImageBuffer.m_width,
+            g_loadedImageBuffer.m_height
+        );
+        
+        // Put the image data on the canvas
+        ctx.putImageData(imageData, 0, 0);
+        
+        try {
+            // Convert canvas to blob
+            const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, 'image/png'));
+            if (blob) {
+                // Use the modern Clipboard API
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'image/png': blob
+                    })
+                ]);
+                logMessage('info', 'Image copied to clipboard');
+            }
+        } catch (err) {
+            logMessage('error', `Failed to copy image: ${err.message}`);
+        }
+    }
+
+    async function handleCut(e) {
+        await handleCopy(e);
+        if (!g_loadedImageBuffer) {
+            return;
+        }
+        
+        // Clear the current image and show the drop zone
+        g_loadedImageBuffer = null;
+        setDefaultImage();
+        dropZone.style.display = 'flex';
     }
 
     function handlePaste(e) {
