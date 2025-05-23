@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('dropZone');
     const canvas = document.getElementById('bitmapCanvas');
 
+    // Show drop zone by default
+    dropZone.style.display = 'flex';
+
     // Prevent default drag behaviors
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         bitmapContainer.addEventListener(eventName, preventDefaults, false);
@@ -31,7 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function unhighlight(e) {
-        dropZone.style.display = 'none';
+        // Only hide if we're not dragging over the container
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+            dropZone.style.display = 'flex';
+        }
     }
 
     function handleDrop(e) {
@@ -41,15 +47,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (files.length > 0) {
             const file = files[0];
             if (file.type.startsWith('image/')) {
-
                 try {
                     // Load image into a temp img element
                     const img = new Image();
                     img.onload = () => {
-                    loadImage(img);
+                        loadImage(img);
+                        dropZone.style.display = 'none';  // Hide drop zone after image is loaded
                     }
                     img.onerror = () => {
-                    logMessage('error', `Failed to load image ${filePath}`);
+                        logMessage('error', `Failed to load image ${filePath}`);
                     };    
                     img.src = file.path;
                 } catch (err) {

@@ -77,6 +77,12 @@ function setDefaultImage()
 // load an image from a file
 function loadImage(img) 
 {
+  // Hide the drop zone
+  const dropZone = document.getElementById('dropZone');
+  if (dropZone) {
+    dropZone.style.display = 'none';
+  }
+
   // resize the image buffer to the image size
   g_loadedImageBuffer = new ImageBuffer(img.width, img.height);
 

@@ -854,11 +854,12 @@ p {
     left: 0;
     width: 100%;
     height: 100%;
-    background: transparent;
-    color: white;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     pointer-events: none;
     font-size: 1.2em;
+    color: #666;
+    z-index: 1;
+    mix-blend-mode: difference;
 } 
