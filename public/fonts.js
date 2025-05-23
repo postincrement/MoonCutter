@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log('Requesting system fonts...');
         // Get system fonts from main process
-        const fonts = await window.electron.getSystemFonts();
+        const fonts = await window.api.getSystemFonts();
         console.log('Received fonts:', fonts.length);
         
         // Clear loading message
@@ -26,10 +26,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             fontSelect.appendChild(option);
         });
         
-        // Set default font
-        if (fonts.length > 0) {
+        // Set Arial as default font if available, otherwise use first font
+        const arialIndex = fonts.findIndex(font => font.toLowerCase() === 'arial');
+        if (arialIndex !== -1) {
+            fontSelect.value = fonts[arialIndex];
+            console.log('Default font set to Arial');
+        } else if (fonts.length > 0) {
             fontSelect.value = fonts[0];
-            console.log('Default font set to:', fonts[0]);
+            console.log('Arial not found, default font set to:', fonts[0]);
         } else {
             console.warn('No fonts available');
         }

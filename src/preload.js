@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('electron', {
+contextBridge.exposeInMainWorld('api', {
   // System fonts
   getSystemFonts: () => ipcRenderer.invoke('get-system-fonts'),
   
