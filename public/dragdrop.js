@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.addEventListener(eventName, preventDefaults, false);
     });
 
+    // Add paste event listener
+    document.addEventListener('paste', handlePaste);
+
     // Highlight drop zone when item is dragged over it
     ['dragenter', 'dragover'].forEach(eventName => {
         bitmapContainer.addEventListener(eventName, highlight, false);
@@ -37,6 +40,32 @@ document.addEventListener('DOMContentLoaded', () => {
         // Only hide if we're not dragging over the container
         if (!e.currentTarget.contains(e.relatedTarget)) {
             dropZone.style.display = 'flex';
+        }
+    }
+
+    function handlePaste(e) {
+        const items = e.clipboardData.items;
+        
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = () => {
+                        loadImage(img);
+                        dropZone.style.display = 'none';  // Hide drop zone after image is loaded
+                    };
+                    img.onerror = () => {
+                        logMessage('error', 'Failed to load pasted image');
+                    };
+                    img.src = event.target.result;
+                };
+                
+                reader.readAsDataURL(blob);
+                break;
+            }
         }
     }
 
