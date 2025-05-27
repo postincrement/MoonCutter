@@ -2,69 +2,54 @@ const BORDER = 18;
 const BITMAP_SIZE = 512;
 const CANVAS_SIZE = BITMAP_SIZE + BORDER;  // width and height of the canvas
 
-// ImageBuffer class
+// image buffer loaded from a file 
+g_imageBuffer = null;
 
-class ImageBuffer {
-  constructor(width, height) {
-    this.m_default = false;
-    this.m_width   = width;
-    this.m_height  = height;
-    this.m_data    = new Uint8ClampedArray(width * height * 4);
-    this.clear();
-  }
+// text image buffer created from text
+g_textImageBuffer = null;
 
-  clear() {
-    this.m_data.fill(0); // Fill with transparent black
-  }
-}
-
-let g_imageOffsetX = 0;
-let g_imageOffsetY = 0;
-let g_imageScale   = 1;
-let g_maxImageScale = 1;
-let g_boundingBox  = null;
-let g_rotateAngle  = 0;
-let g_threshold    = 128;  // Default threshold value
-
-// image buffer loaded from a file or created from text
-g_loadedImageBuffer = null;
-
-// image buffer to be engraved
+// image at engraver resolution to be engraved
 g_engraveBuffer = null;
 
-// create a default image. Used on start
+// bounding box of the image to be engraved
+g_boundingBox  = null;
+
+// create a default image and remove any text. Used on start
 function setDefaultImage() 
 {
   logMessage('info', `setDefaultImage()`);
 
+  g_textImageBuffer = null;
+
   if (g_engraveBuffer) {
-    logMessage('info', `engrave buffer size is ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
-    g_loadedImageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    logMessage('info', `image buffer size is ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
+    g_imageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
   }
   else {
-    logMessage('error', 'engrave buffer not initialized');
-    g_loadedImageBuffer = new ImageBuffer(512, 512);
+    g_imageBuffer = new ImageBuffer(512, 512);
+    logMessage('error', 'engrave buffer not initialized using default size is 512x512');
   }
 
-  g_loadedImageBuffer.m_default = true;
+  g_imageBuffer.m_default = true;
 
-  logMessage('info', `default image size is ${g_loadedImageBuffer.m_width}x${g_loadedImageBuffer.m_height}`);
+  logMessage('info', `default image size is ${g_imageBuffer.m_width}x${g_imageBuffer.m_height}`);
 
-  const scale = Math.floor((g_loadedImageBuffer.m_height + g_loadedImageBuffer.m_width) / 256);
+  const scale = Math.floor((g_imageBuffer.m_height + g_imageBuffer.m_width) / 256);
   logMessage('info', `scale: ${scale}`);
-  // Create a grayscale gradient pattern directly in the buffer
-    for (let y = 0; y < g_loadedImageBuffer.m_height; y++) {
-      for (let x = 0; x < g_loadedImageBuffer.m_width; x++) {
-        const grayValue = (x + y) / scale;
-        const i = (y * g_loadedImageBuffer.m_width + x) * 4;
 
-        // Set RGBA values (all channels same for grayscale)
-        g_loadedImageBuffer.m_data[i] = grayValue;     // Red
-        g_loadedImageBuffer.m_data[i + 1] = grayValue; // Green
-        g_loadedImageBuffer.m_data[i + 2] = grayValue; // Blue
-        g_loadedImageBuffer.m_data[i + 3] = 255;       // Alpha (fully opaque)
-      }
+  // Create a grayscale gradient pattern directly in the buffer
+  for (let y = 0; y < g_imageBuffer.m_height; y++) {
+    for (let x = 0; x < g_imageBuffer.m_width; x++) {
+      const grayValue = (x + y) / scale;
+      const i = (y * g_imageBuffer.m_width + x) * 4;
+
+      // Set RGBA values (all channels same for grayscale)
+      g_imageBuffer.m_data[i] = grayValue;     // Red
+      g_imageBuffer.m_data[i + 1] = grayValue; // Green
+      g_imageBuffer.m_data[i + 2] = grayValue; // Blue
+      g_imageBuffer.m_data[i + 3] = 255;       // Alpha (fully opaque)
     }
+  }
 
   newImage();
 
@@ -74,7 +59,8 @@ function setDefaultImage()
   renderImageToCanvas();
 };
 
-// load an image from a file
+// Load an image from a file.
+// Does not affect the text buffer
 function loadImage(img) 
 {
   // Hide the drop zone
@@ -84,7 +70,7 @@ function loadImage(img)
   }
 
   // resize the image buffer to the image size
-  g_loadedImageBuffer = new ImageBuffer(img.width, img.height);
+  g_imageBuffer = new ImageBuffer(img.width, img.height);
 
   // create a canvas the same size as the image
   const imageCanvas = document.createElement('canvas');
@@ -99,72 +85,49 @@ function loadImage(img)
   const imageData = imageCtx.getImageData(0, 0, img.width, img.height);
 
   // copy the image data to the image buffer
-  g_loadedImageBuffer.m_data.set(imageData.data);
+  g_imageBuffer.m_data.set(imageData.data);
 
   logMessage('debug', `image loaded: ${img.width}x${img.height}`);
 
   newImage()
 }
 
-function newImage() 
-{
+// common code for default image and image loaded from a file
+function newImage() {
+
   logMessage('info', `newImage()`);
+    
+  g_imageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
 
-  // Calculate scaling to fit image into engraving buffer while maintaining aspect ratio and zero rotation
-  g_rotateAngle = 0;
-  if (g_loadedImageBuffer.m_width > g_loadedImageBuffer.m_height) {
-    g_maxImageScale = g_engraveBuffer.m_width / g_loadedImageBuffer.m_width;
-    g_imageOffsetX = 0;
-    g_imageOffsetY = (g_engraveBuffer.m_height - g_loadedImageBuffer.m_height * g_maxImageScale) / 2;
-  }
-  else {
-    g_maxImageScale = g_engraveBuffer.m_height / g_loadedImageBuffer.m_height;
-    g_imageOffsetX = (g_engraveBuffer.m_width - g_loadedImageBuffer.m_width * g_maxImageScale) / 2;
-    g_imageOffsetY = 0;
-  }
-  g_imageScale = g_maxImageScale;
-
+  logMessage('info', `image scale: ${g_imageBuffer.m_imageScale}`);
+  logMessage('info', `image offset: ${g_imageBuffer.m_imageOffsetX}, ${g_imageBuffer.m_imageOffsetY}`);
+  logMessage('info', `image rotate: ${g_imageBuffer.m_rotateAngle}`);
+  logMessage('info', `image threshold: ${g_imageBuffer.m_threshold}`);
+  
   // Update threshold slider to current value
   const thresholdSlider = document.getElementById('thresholdSlider');
   const thresholdValue = document.getElementById('thresholdValue');
-  thresholdSlider.value = g_threshold;
-  thresholdValue.textContent = g_threshold;
-
+  thresholdSlider.value = g_imageBuffer.m_threshold;
+  thresholdValue.textContent = g_imageBuffer.m_threshold;
+  
   // Log success
-  logMessage('info', `new image ${g_loadedImageBuffer.m_width}x${g_loadedImageBuffer.m_height}`);
-
+  logMessage('info', `new image ${g_imageBuffer.m_width}x${g_imageBuffer.m_height}`);
+  
   // render the image to the canvas
   renderImageToCanvas();
+
+  g_boundingBox = findBoundingBox();
+  logMessage('info', `default bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
 }
 
-// render the image buffer to the engrave buffer
+
+// render the image buffer and text buffer to the engrave buffer
 function renderImageToEngraveBuffer() 
 {
-  if (!g_loadedImageBuffer || !g_engraveBuffer) {
+  if (!g_engraveBuffer) {
     logMessage('error', 'Image buffers not initialized');
     return;
   }
-
-  // load the raw image data into a new ImageData object
-  const loadedImageData = new ImageData(g_loadedImageBuffer.m_data, g_loadedImageBuffer.m_width, g_loadedImageBuffer.m_height);
-
-  // create a canvas the same size as the loaded image
-  const sourceCanvas = document.createElement('canvas');
-  sourceCanvas.width  = g_loadedImageBuffer.m_width;
-  sourceCanvas.height = g_loadedImageBuffer.m_height;
-  const sourceCtx = sourceCanvas.getContext('2d');
-
-  // put the image data into the source canvas
-  sourceCtx.putImageData(loadedImageData, 0, 0);
-
-  // scale the image
-  const scaleCanvas  = scaleImage(sourceCanvas);
-
-  // rotate the image
-  const rotateCanvas = rotateImage(scaleCanvas);
-
-  // Apply threshold to the image
-  const transformCanvas = applyThreshold(rotateCanvas);
 
   // Create a canvas the size of the engrave buffer
   const engraveCanvas = document.createElement('canvas');
@@ -176,12 +139,13 @@ function renderImageToEngraveBuffer()
   engraveCtx.fillStyle = 'white';
   engraveCtx.fillRect(0, 0, engraveCanvas.width, engraveCanvas.height);
 
-  // Draw the image onto the engrave canvas
-  engraveCtx.drawImage(
-    transformCanvas,
-    0, 0, transformCanvas.width, transformCanvas.height,
-    g_imageOffsetX, g_imageOffsetY, transformCanvas.width, transformCanvas.height
-  );
+  if (g_imageBuffer) {
+    g_imageBuffer.renderToCanvas(engraveCtx);
+  }
+
+  if (g_textImageBuffer) {
+    g_textImageBuffer.renderToCanvas(engraveCtx);
+  }
 
   // Copy the result into g_engraveBuffer.m_data
   const resultImageData = engraveCtx.getImageData(0, 0, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
@@ -192,56 +156,6 @@ function renderImageToEngraveBuffer()
   logMessage('info', `image bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
 
   return engraveCanvas;
-}
-
-function scaleImage(sourceCanvas)
-{
-  // create a canvas the same size as the scaled image
-  const scaledCanvas = document.createElement('canvas');
-  scaledCanvas.width  = sourceCanvas.width * g_imageScale;
-  scaledCanvas.height = sourceCanvas.height * g_imageScale;
-  const scaledCtx = scaledCanvas.getContext('2d');
-
-  // scale image to the scaled canvas
-  scaledCtx.save();
-  scaledCtx.translate(scaledCanvas.width / 2, scaledCanvas.height / 2);
-  scaledCtx.scale(g_imageScale, g_imageScale);
-  scaledCtx.translate(-sourceCanvas.width / 2, -sourceCanvas.height / 2);
-  scaledCtx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height);
-  scaledCtx.restore();
-
-  logMessage('info', `scaled canvas size: ${scaledCanvas.width}x${scaledCanvas.height}`);
-
-  // get the transformed image data
-  return scaledCanvas;
-}
-
-function rotateImage(sourceCanvas) 
-{
-  const radians = degreesToRadians(g_rotateAngle);
-
-  // calculate size of rotated image
-  const rotatedWidth  = Math.round(Math.abs(sourceCanvas.width * Math.cos(radians)) + Math.abs(sourceCanvas.height * Math.sin(radians)));
-  const rotatedHeight = Math.round(Math.abs(sourceCanvas.width * Math.sin(radians)) + Math.abs(sourceCanvas.height * Math.cos(radians)));
-
-  logMessage('info', `rotated by ${g_rotateAngle} degrees: ${rotatedWidth}x${rotatedHeight}`);
-
-  // Create a temporary canvas for the destination image
-  const rotatedCanvas = document.createElement('canvas');
-  const rotatedCtx = rotatedCanvas.getContext('2d');
-  rotatedCanvas.width  = rotatedWidth;
-  rotatedCanvas.height = rotatedHeight;
-
-  logMessage('info', `rotated canvas size: ${rotatedWidth}x${rotatedCanvas.height}`);
-
-  // draw the source canvas onto the destination canvas with rotation
-  rotatedCtx.save();
-  rotatedCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
-  rotatedCtx.rotate(radians);
-  rotatedCtx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
-  rotatedCtx.restore();
-
-  return rotatedCanvas;
 }
 
 // render the image buffer to the canvas
@@ -347,74 +261,6 @@ function findBoundingBox()
   return { left: leftx, top: topy, right: rightx, bottom: bottomy }; 
 }
 
-function degreesToRadians(degrees) {
-  return degrees * (Math.PI / 180);
-}
-
-function adjustOffsetAfterRotation()
-{
-  // calculate the scaled width and height
-  const scaledWidth  = Math.round(g_loadedImageBuffer.m_width * g_imageScale);
-  const scaledHeight = Math.round(g_loadedImageBuffer.m_height * g_imageScale);
-
-  logMessage('info', `--------------------------------`);
-
-  logMessage('info', `scaled width: ${scaledWidth}, scaled height: ${scaledHeight}`);
-
-  // calculate the rotated width
-  const rotatedWidth  = Math.round(Math.abs(scaledWidth * Math.cos(degreesToRadians(g_rotateAngle))) + Math.abs(scaledHeight * Math.sin(degreesToRadians(g_rotateAngle))));
-  const rotatedHeight = Math.round(Math.abs(scaledWidth * Math.sin(degreesToRadians(g_rotateAngle))) + Math.abs(scaledHeight * Math.cos(degreesToRadians(g_rotateAngle))));
-
-  logMessage('info', `angle: ${g_rotateAngle}, rotated width: ${rotatedWidth}, rotated height: ${rotatedHeight}`);
-
-  // calculate the offset to center the image on the engrave buffer
-  g_imageOffsetX = Math.round((g_engraveBuffer.m_width - rotatedWidth) / 2);
-  g_imageOffsetY = Math.round((g_engraveBuffer.m_height - rotatedHeight) / 2);
-
-  logMessage('info', `adjusted offset: ${g_imageOffsetX}, ${g_imageOffsetY}`);
-
-  logMessage('info', `--------------------------------`);
-}
-
-// Add threshold processing function
-function applyThreshold(sourceCanvas) {
-
-  // create a canvas the same size as the source canvas
-  const thresholdCanvas = document.createElement('canvas');
-  thresholdCanvas.width  = sourceCanvas.width;
-  thresholdCanvas.height = sourceCanvas.height;
-  const thresholdCtx = thresholdCanvas.getContext('2d');
-
-  // get the image data from the source canvas
-  const imageData = sourceCanvas.getContext('2d').getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);  
-
-  // get the image data from the threshold canvas
-  const thresholdImageData = thresholdCtx.getImageData(0, 0, thresholdCanvas.width, thresholdCanvas.height);
-
-  // copy the image data to the threshold canvas
-  thresholdImageData.data.set(imageData.data);  
-
-  // apply the threshold to the threshold canvas
-  for (let i = 0; i < thresholdImageData.data.length; i += 4) {
-    const grayValue = Math.round(
-      0.299 * thresholdImageData.data[i] +      // Red
-      0.587 * thresholdImageData.data[i + 1] +  // Green
-      0.114 * thresholdImageData.data[i + 2]    // Blue
-    );  
-
-    const thresholdedValue = grayValue <= g_threshold ? 0 : 255;
-
-    thresholdImageData.data[i] = thresholdedValue;     // Red
-    thresholdImageData.data[i + 1] = thresholdedValue; // Green
-    thresholdImageData.data[i + 2] = thresholdedValue; // Blue  
-  }
-
-  // copy the thresholded image data to the threshold canvas
-  thresholdCtx.putImageData(thresholdImageData, 0, 0);
-
-  // return the thresholded canvas
-  return thresholdCanvas;
-}
 
 // Add event listeners for threshold controls
 document.addEventListener('DOMContentLoaded', () => {
@@ -424,11 +270,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update both slider and input when slider changes
     thresholdSlider.addEventListener('input', (e) => {
-        const value = parseInt(e.target.value);
+      if (g_imageBuffer) {
+        let value = parseInt(e.target.value); 
+        value = Math.max(0, Math.min(255, value));
         thresholdInput.value = value;
         thresholdValue.textContent = value;
-        g_threshold = value;
-        applyThreshold();
+        g_imageBuffer.m_threshold = value;
+        g_imageBuffer.applyThreshold();
+      }
     });
 
     // Update both slider and display when input changes
@@ -438,8 +287,8 @@ document.addEventListener('DOMContentLoaded', () => {
         value = Math.max(0, Math.min(255, value));
         thresholdSlider.value = value;
         thresholdValue.textContent = value;
-        g_threshold = value;
-        applyThreshold();
+        g_imageBuffer.m_threshold = value;
+        g_imageBuffer.applyThreshold();
     });
 
     // Handle enter key in input field
@@ -458,22 +307,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update both slider and input when slider changes
     scaleSlider.addEventListener('input', (e) => {
+      if (g_imageBuffer) {
         const value = parseInt(e.target.value);
         scaleInput.value = value;
         scaleValue.textContent = value;
-        g_imageScale = g_maxImageScale * value / 100;
+        g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
         renderImageToCanvas();
+      }
     });
 
     // Update both slider and display when input changes
     scaleInput.addEventListener('input', (e) => {
+      if (g_imageBuffer) {  
         let value = parseInt(e.target.value);
         // Clamp value between min and max
         value = Math.max(10, Math.min(200, value));
         scaleSlider.value = value;
         scaleValue.textContent = value;
-        g_imageScale = g_maxImageScale * value / 100;
+        g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
         renderImageToCanvas();
+      }
     });
 
     // Handle enter key in input field

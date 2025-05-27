@@ -23,11 +23,11 @@ const scaleSlider = document.getElementById('scaleSlider');
 const scaleValue = document.getElementById('scaleValue');
 
 scaleSlider.addEventListener('input', () => {
-    const scale = scaleSlider.value / 100;
-    g_imageScale = g_maxImageScale * scale;
+  if (g_imageBuffer) {
+    g_imageBuffer.onScaleChange(scaleSlider.value);
     scaleValue.textContent = `${scaleSlider.value}%`;
-    adjustOffsetAfterRotation();
     renderImageToCanvas();
+  }
 });
 
 // Add threshold slider handler
@@ -35,17 +35,21 @@ const thresholdSlider = document.getElementById('thresholdSlider');
 const thresholdValue = document.getElementById('thresholdValue');
 
 thresholdSlider.addEventListener('input', () => {
-    g_threshold = parseInt(thresholdSlider.value);
+  if (g_imageBuffer) {
+    g_imageBuffer.m_threshold = parseInt(thresholdSlider.value);
     thresholdValue.textContent = thresholdSlider.value;
     renderImageToCanvas();
+  }
 });
 
 // Update scale slider when new image is loaded
 function updateScaleSlider() {
+  if (g_imageBuffer) {
     scaleSlider.value = 100;
     scaleValue.textContent = '100%';
-    g_imageScale = g_maxImageScale;
+    g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale;
     updateOffsetDisplay();
+  }
 }
 
 // Add speed and power slider handlers
@@ -103,11 +107,11 @@ window.api.onSetDeviceTypes(async (event, data) => {
 g_deviceTypeSelect.addEventListener('change', async (event) => {
   await setDeviceType(event.target.value)
   .then(() => {
-    if (g_loadedImageBuffer.m_default) {
+    if (g_imageBuffer.m_default) {
       setDefaultImage();
     }
     else {
-      loadImage(g_loadedImageBuffer.m_image);
+      loadImage(g_imageBuffer.m_image);
     }
     renderImageToCanvas();
   });
@@ -664,20 +668,24 @@ function drawScaleIndicators(horizontalValue, verticalValue)
 
 // Add rotate button handlers
 document.getElementById('rotateLeftButton').addEventListener('click', () => {
-  g_rotateAngle -= 90;
-  if (g_rotateAngle < 0) {
-    g_rotateAngle += 360;
+  if (g_imageBuffer) {
+    g_imageBuffer.m_rotateAngle -= 90;
+    if (g_imageBuffer.m_rotateAngle < 0) {
+      g_imageBuffer.m_rotateAngle += 360;
+    }
+    g_imageBuffer.adjustOffsetAfterRotation(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
   }
-  adjustOffsetAfterRotation();
   renderImageToCanvas();
 });
 
 document.getElementById('rotateRightButton').addEventListener('click', () => {
-  g_rotateAngle += 90;
-  if (g_rotateAngle >= 360) {
-    g_rotateAngle -= 360;
+  if (g_imageBuffer) {
+    g_imageBuffer.m_rotateAngle += 90;
+    if (g_imageBuffer.m_rotateAngle >= 360) {
+      g_imageBuffer.m_rotateAngle -= 360;
+    }
+    g_imageBuffer.adjustOffsetAfterRotation(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
   }
-  adjustOffsetAfterRotation();
   renderImageToCanvas();
 });
 
@@ -695,30 +703,34 @@ bitmapCanvas.addEventListener('mousedown', (event) => {
 });
 
 bitmapCanvas.addEventListener('mousemove', (event) => {
-    if (!isDragging) return;
+  if (!isDragging) return;
+
+  if (!g_imageBuffer) {
+    return;
+  }
     
-    const rect = bitmapCanvas.getBoundingClientRect();
-    const currentX = event.clientX - rect.left - BORDER;
-    const currentY = event.clientY - rect.top - BORDER;
+  const rect = bitmapCanvas.getBoundingClientRect();
+  const currentX = event.clientX - rect.left - BORDER;
+  const currentY = event.clientY - rect.top - BORDER;
     
-    // Calculate the change in position
-    const deltaX = currentX - lastX;
-    const deltaY = currentY - lastY;
+  // Calculate the change in position
+  const deltaX = currentX - lastX;
+  const deltaY = currentY - lastY;
     
-    // Convert canvas coordinates to engrave buffer coordinates
-    const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
-    g_imageOffsetX += deltaX / canvasScale;
-    g_imageOffsetY += deltaY / canvasScale;
+  // Convert canvas coordinates to engrave buffer coordinates
+  const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
+  g_imageBuffer.m_imageOffsetX += deltaX / canvasScale;
+  g_imageBuffer.m_imageOffsetY += deltaY / canvasScale;
     
-    // Update last position
-    lastX = currentX;
-    lastY = currentY;
+  // Update last position
+  lastX = currentX;
+  lastY = currentY;
     
-    // Update offset display
-    updateOffsetDisplay();
+  // Update offset display
+  updateOffsetDisplay();
     
-    // Re-render the canvas
-    renderImageToCanvas();
+  // Re-render the canvas
+  renderImageToCanvas();
 });
 
 // Add mouseup and mouseleave handlers to stop dragging
@@ -744,10 +756,11 @@ const offsetXDisplay = document.getElementById('offsetX');
 const offsetYDisplay = document.getElementById('offsetY');
 
 function updateOffsetDisplay() {
+
     // Convert pixels to millimeters (1mm = 10 pixels)
     const mmPerPixel = 0.1;
-    const xMm = (g_imageOffsetX * mmPerPixel).toFixed(1);
-    const yMm = (g_imageOffsetY * mmPerPixel).toFixed(1);
+    const xMm = (g_imageBuffer.m_imageOffsetX * mmPerPixel).toFixed(1);
+    const yMm = (g_imageBuffer.m_imageOffsetY * mmPerPixel).toFixed(1);
     
     // Update input fields
     const offsetXInput = document.getElementById('offsetXInput');

@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleCopy(e) {
-        if (!g_loadedImageBuffer) {
+        if (!g_imageBuffer) {
             return; // Don't copy if no image is loaded
         }
 
@@ -56,15 +56,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Create a temporary canvas to get the image data
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = g_loadedImageBuffer.m_width;
-        tempCanvas.height = g_loadedImageBuffer.m_height;
+        tempCanvas.width = g_imageBuffer.m_width;
+        tempCanvas.height = g_imageBuffer.m_height;
         const ctx = tempCanvas.getContext('2d');
         
         // Create ImageData from the buffer
         const imageData = new ImageData(
-            new Uint8ClampedArray(g_loadedImageBuffer.m_data),
-            g_loadedImageBuffer.m_width,
-            g_loadedImageBuffer.m_height
+            new Uint8ClampedArray(g_imageBuffer.m_data),
+            g_imageBuffer.m_width,
+            g_imageBuffer.m_height
         );
         
         // Put the image data on the canvas
@@ -89,12 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleCut(e) {
         await handleCopy(e);
-        if (!g_loadedImageBuffer) {
+        if (!g_imageBuffer) {
             return;
         }
         
         // Clear the current image and show the drop zone
-        g_loadedImageBuffer = null;
+        g_imageBuffer = null;
         setDefaultImage();
         dropZone.style.display = 'flex';
     }
