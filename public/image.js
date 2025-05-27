@@ -198,12 +198,19 @@ function scaleImage(sourceCanvas)
 {
   // create a canvas the same size as the scaled image
   const scaledCanvas = document.createElement('canvas');
-  scaledCanvas.width  = g_loadedImageBuffer.m_width * g_imageScale;
-  scaledCanvas.height = g_loadedImageBuffer.m_height * g_imageScale;
+  scaledCanvas.width  = sourceCanvas.width * g_imageScale;
+  scaledCanvas.height = sourceCanvas.height * g_imageScale;
   const scaledCtx = scaledCanvas.getContext('2d');
 
   // scale image to the scaled canvas
-  scaledCtx.drawImage(sourceCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+  scaledCtx.save();
+  scaledCtx.translate(scaledCanvas.width / 2, scaledCanvas.height / 2);
+  scaledCtx.scale(g_imageScale, g_imageScale);
+  scaledCtx.translate(-sourceCanvas.width / 2, -sourceCanvas.height / 2);
+  scaledCtx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height);
+  scaledCtx.restore();
+
+  logMessage('info', `scaled canvas size: ${scaledCanvas.width}x${scaledCanvas.height}`);
 
   // get the transformed image data
   return scaledCanvas;
@@ -454,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const value = parseInt(e.target.value);
         scaleInput.value = value;
         scaleValue.textContent = value;
-        g_imageScale = value / 100;
+        g_imageScale = g_maxImageScale * value / 100;
         renderImageToCanvas();
     });
 
@@ -465,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
         value = Math.max(10, Math.min(200, value));
         scaleSlider.value = value;
         scaleValue.textContent = value;
-        g_imageScale = value / 100;
+        g_imageScale = g_maxImageScale * value / 100;
         renderImageToCanvas();
     });
 
