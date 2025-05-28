@@ -703,6 +703,12 @@ let isDragging = false;
 let lastX = 0;
 let lastY = 0;
 
+// Function to get the active tab
+function getActiveTab() {
+    const activeTabButton = document.querySelector('.tab-button.active');
+    return activeTabButton ? activeTabButton.getAttribute('data-tab') : null;
+}
+
 bitmapCanvas.addEventListener('mousedown', (event) => {
     isDragging = true;
     const rect = bitmapCanvas.getBoundingClientRect();
@@ -711,34 +717,39 @@ bitmapCanvas.addEventListener('mousedown', (event) => {
 });
 
 bitmapCanvas.addEventListener('mousemove', (event) => {
-  if (!isDragging) return;
+    if (!isDragging) return;
 
-  if (!g_imageBuffer) {
-    return;
-  }
+    const activeTab = getActiveTab();
+    const rect = bitmapCanvas.getBoundingClientRect();
+    const currentX = event.clientX - rect.left - BORDER;
+    const currentY = event.clientY - rect.top - BORDER;
     
-  const rect = bitmapCanvas.getBoundingClientRect();
-  const currentX = event.clientX - rect.left - BORDER;
-  const currentY = event.clientY - rect.top - BORDER;
+    // Calculate the change in position
+    const deltaX = currentX - lastX;
+    const deltaY = currentY - lastY;
     
-  // Calculate the change in position
-  const deltaX = currentX - lastX;
-  const deltaY = currentY - lastY;
+    // Convert canvas coordinates to engrave buffer coordinates
+    const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
     
-  // Convert canvas coordinates to engrave buffer coordinates
-  const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
-  g_imageBuffer.m_imageOffsetX += deltaX / canvasScale;
-  g_imageBuffer.m_imageOffsetY += deltaY / canvasScale;
+    if (activeTab === 'image' && g_imageBuffer) {
+        // Move the image
+        g_imageBuffer.m_imageOffsetX += deltaX / canvasScale;
+        g_imageBuffer.m_imageOffsetY += deltaY / canvasScale;
+    } else if (activeTab === 'text' && g_textImageBuffer) {
+        // Move the text
+        g_textImageBuffer.m_imageOffsetX += deltaX / canvasScale;
+        g_textImageBuffer.m_imageOffsetY += deltaY / canvasScale;
+    }
     
-  // Update last position
-  lastX = currentX;
-  lastY = currentY;
+    // Update last position
+    lastX = currentX;
+    lastY = currentY;
     
-  // Update offset display
-  updateOffsetDisplay();
+    // Update offset display
+    updateOffsetDisplay();
     
-  // Re-render the canvas
-  renderImageToCanvas();
+    // Re-render the canvas
+    renderImageToCanvas();
 });
 
 // Add mouseup and mouseleave handlers to stop dragging
@@ -752,7 +763,12 @@ bitmapCanvas.addEventListener('mouseleave', () => {
 
 // Update cursor style when hovering over the canvas
 bitmapCanvas.addEventListener('mouseenter', () => {
-    bitmapCanvas.style.cursor = 'move';
+    const activeTab = getActiveTab();
+    if ((activeTab === 'image' && g_imageBuffer) || (activeTab === 'text' && g_textImageBuffer)) {
+        bitmapCanvas.style.cursor = 'move';
+    } else {
+        bitmapCanvas.style.cursor = 'default';
+    }
 });
 
 bitmapCanvas.addEventListener('mouseleave', () => {
