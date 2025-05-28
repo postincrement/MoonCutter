@@ -11,6 +11,25 @@ let g_textSettings = {
     justify: 'left'  // 'left', 'center', or 'right'
 };
 
+// Function to update sample text display
+function updateSampleText() {
+    const sampleText = document.getElementById('sampleText');
+    if (!sampleText) return;
+
+    // Build font style string
+    let fontStyle = '';
+    if (g_textSettings.bold) fontStyle += 'bold ';
+    if (g_textSettings.italic) fontStyle += 'italic ';
+    fontStyle += `${g_textSettings.fontSize}px ${g_textSettings.font}`;
+
+    // Apply styles to sample text
+    sampleText.style.fontFamily = g_textSettings.font;
+    sampleText.style.fontSize = `${g_textSettings.fontSize}px`;
+    sampleText.style.fontWeight = g_textSettings.bold ? 'bold' : 'normal';
+    sampleText.style.fontStyle = g_textSettings.italic ? 'italic' : 'normal';
+    sampleText.style.textDecoration = g_textSettings.underline ? 'underline' : 'none';
+}
+
 // Initialize text controls
 document.addEventListener('DOMContentLoaded', () => {
     const textInput = document.getElementById('textInput');
@@ -34,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Font selection event
     fontSelect.addEventListener('change', (e) => {
         g_textSettings.font = e.target.value;
+        updateSampleText();
         renderTextToBuffer();
     });
 
@@ -43,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fontSizeInput.value = value;
         fontSizeValue.textContent = value;
         g_textSettings.fontSize = value;
+        updateSampleText();
         renderTextToBuffer();
     });
 
@@ -54,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fontSizeSlider.value = value;
         fontSizeValue.textContent = value;
         g_textSettings.fontSize = value;
+        updateSampleText();
         renderTextToBuffer();
     });
 
@@ -61,18 +83,21 @@ document.addEventListener('DOMContentLoaded', () => {
     boldButton.addEventListener('click', () => {
         g_textSettings.bold = !g_textSettings.bold;
         boldButton.classList.toggle('active');
+        updateSampleText();
         renderTextToBuffer();
     });
 
     italicButton.addEventListener('click', () => {
         g_textSettings.italic = !g_textSettings.italic;
         italicButton.classList.toggle('active');
+        updateSampleText();
         renderTextToBuffer();
     });
 
     underlineButton.addEventListener('click', () => {
         g_textSettings.underline = !g_textSettings.underline;
         underlineButton.classList.toggle('active');
+        updateSampleText();
         renderTextToBuffer();
     });
 
@@ -100,6 +125,9 @@ document.addEventListener('DOMContentLoaded', () => {
         justifyRightButton.classList.add('active');
         renderTextToBuffer();
     });
+
+    // Initial sample text update
+    updateSampleText();
 });
 
 // Render text to the text image buffer

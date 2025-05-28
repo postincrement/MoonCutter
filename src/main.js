@@ -124,7 +124,7 @@ app.whenReady().then(() => {
                 for (const line of lines) {
                     if (line.includes('Family:')) {
                         currentFamily = line.split('Family:')[1].trim();
-                        if (currentFamily && !currentFamily.includes('System Fonts')) {
+                        if (currentFamily && !currentFamily.includes('System Fonts') && !currentFamily.startsWith('.')) {
                             fontFamilies.add(currentFamily);
                         }
                     }

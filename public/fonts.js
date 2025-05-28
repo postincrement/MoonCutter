@@ -41,4 +41,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Error loading fonts:', error);
         fontSelect.innerHTML = '<option value="">Error loading fonts</option>';
     }
-}); 
+});
+
+// Font handling for MoonCutter
+
+// Function to load fonts
+async function loadFonts() {
+    try {
+        const fonts = await window.api.getFonts();
+        const fontSelect = document.getElementById('fontSelect');
+        
+        // Clear existing options
+        fontSelect.innerHTML = '';
+        
+        // Add fonts to select
+        fonts.forEach(font => {
+            const option = document.createElement('option');
+            option.value = font;
+            option.textContent = font;
+            fontSelect.appendChild(option);
+        });
+
+        // Set default font if available
+        if (filteredFonts.length > 0) {
+            fontSelect.value = fonts[0];
+            g_textSettings.font = fonts[0];
+            updateSampleText();
+        }
+    } catch (error) {
+        console.error('Error loading fonts:', error);
+    }
+}
+
+// Load fonts when the page loads
+document.addEventListener('DOMContentLoaded', loadFonts); 
