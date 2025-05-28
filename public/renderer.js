@@ -140,6 +140,14 @@ async function setDeviceType(deviceType) {
   logMessage('info', `setDeviceType end`);
 }
 
+function xPixelsToMm(pixels) {
+  return g_engraverDimensions.widthMm * pixels / g_engraverDimensions.width;
+}
+
+function yPixelsToMm(pixels) {
+  return g_engraverDimensions.heightMm * pixels / g_engraverDimensions.height;
+}
+
 ////////////////////////////////////////////////////////////
 //
 //  serial port handling
@@ -757,10 +765,8 @@ const offsetYDisplay = document.getElementById('offsetY');
 
 function updateOffsetDisplay() {
 
-    // Convert pixels to millimeters (1mm = 10 pixels)
-    const mmPerPixel = 0.1;
-    const xMm = (g_imageBuffer.m_imageOffsetX * mmPerPixel).toFixed(1);
-    const yMm = (g_imageBuffer.m_imageOffsetY * mmPerPixel).toFixed(1);
+    const xMm = xPixelsToMm(g_imageBuffer.m_imageOffsetX);
+    const yMm = yPixelsToMm(g_imageBuffer.m_imageOffsetY);
     
     // Update input fields
     const offsetXInput = document.getElementById('offsetXInput');
