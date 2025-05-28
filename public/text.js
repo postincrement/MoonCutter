@@ -7,7 +7,8 @@ let g_textSettings = {
     fontSize: 16,
     bold: false,
     italic: false,
-    underline: false
+    underline: false,
+    justify: 'left'  // 'left', 'center', or 'right'
 };
 
 // Initialize text controls
@@ -20,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const boldButton = document.getElementById('boldButton');
     const italicButton = document.getElementById('italicButton');
     const underlineButton = document.getElementById('underlineButton');
+    const justifyLeftButton = document.getElementById('justifyLeftButton');
+    const justifyCenterButton = document.getElementById('justifyCenterButton');
+    const justifyRightButton = document.getElementById('justifyRightButton');
 
     // Text input event
     textInput.addEventListener('input', (e) => {
@@ -38,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const value = parseInt(e.target.value);
         fontSizeInput.value = value;
         fontSizeValue.textContent = value;
-        g_textSettings.fontSize = value * 10;
+        g_textSettings.fontSize = value;
         renderTextToBuffer();
     });
 
@@ -49,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         value = Math.max(12, Math.min(32, value));
         fontSizeSlider.value = value;
         fontSizeValue.textContent = value;
-        g_textSettings.fontSize = value * 10;
+        g_textSettings.fontSize = value;
         renderTextToBuffer();
     });
 
@@ -69,6 +73,31 @@ document.addEventListener('DOMContentLoaded', () => {
     underlineButton.addEventListener('click', () => {
         g_textSettings.underline = !g_textSettings.underline;
         underlineButton.classList.toggle('active');
+        renderTextToBuffer();
+    });
+
+    // Justification button events
+    justifyLeftButton.addEventListener('click', () => {
+        g_textSettings.justify = 'left';
+        justifyLeftButton.classList.add('active');
+        justifyCenterButton.classList.remove('active');
+        justifyRightButton.classList.remove('active');
+        renderTextToBuffer();
+    });
+
+    justifyCenterButton.addEventListener('click', () => {
+        g_textSettings.justify = 'center';
+        justifyLeftButton.classList.remove('active');
+        justifyCenterButton.classList.add('active');
+        justifyRightButton.classList.remove('active');
+        renderTextToBuffer();
+    });
+
+    justifyRightButton.addEventListener('click', () => {
+        g_textSettings.justify = 'right';
+        justifyLeftButton.classList.remove('active');
+        justifyCenterButton.classList.remove('active');
+        justifyRightButton.classList.add('active');
         renderTextToBuffer();
     });
 });
@@ -124,18 +153,32 @@ function renderTextToBuffer() {
     ctx.font = fontStyle;
     ctx.textBaseline = 'top';
 
-    // Draw text
+    // Draw text with justification
     let y = padding;
     for (const line of lines) {
-        ctx.fillText(line, padding, y);
+        let x = padding;
+        const metrics = ctx.measureText(line);
+        
+        // Apply justification
+        switch (g_textSettings.justify) {
+            case 'center':
+                x = (width - metrics.width) / 2;
+                break;
+            case 'right':
+                x = width - metrics.width - padding;
+                break;
+            default: // 'left'
+                x = padding;
+        }
+
+        ctx.fillText(line, x, y);
         
         // Draw underline if enabled
         if (g_textSettings.underline) {
-            const metrics = ctx.measureText(line);
             const baseline = y + g_textSettings.fontSize;
             ctx.beginPath();
-            ctx.moveTo(padding, baseline);
-            ctx.lineTo(padding + metrics.width, baseline);
+            ctx.moveTo(x, baseline);
+            ctx.lineTo(x + metrics.width, baseline);
             ctx.stroke();
         }
         
@@ -154,7 +197,7 @@ function renderTextToBuffer() {
     g_textImageBuffer.m_data.set(imageData.data);
 
     // Set default scale for the text buffer
-    //g_textImageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    g_textImageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
 
     // Render the updated image to the canvas
     renderImageToCanvas();

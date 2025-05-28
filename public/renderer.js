@@ -4,6 +4,7 @@ const g_refreshButton       = document.getElementById('refreshButton');
 const g_connectButton       = document.getElementById('connectButton');
 const g_connectionIndicator = document.getElementById('connectionIndicator');
 const g_loadImageButton     = document.getElementById('loadImageButton');
+const g_clearImageButton    = document.getElementById('clearImageButton');
 
 const g_startButton         = document.getElementById('startButton');
 const g_stopButton          = document.getElementById('stopButton');
@@ -780,9 +781,19 @@ const offsetXDisplay = document.getElementById('offsetX');
 const offsetYDisplay = document.getElementById('offsetY');
 
 function updateOffsetDisplay() {
+    const activeTab = getActiveTab();
+    let xMm, yMm;
 
-    const xMm = xPixelsToMm(g_imageBuffer.m_imageOffsetX);
-    const yMm = yPixelsToMm(g_imageBuffer.m_imageOffsetY);
+    if (activeTab === 'image' && g_imageBuffer) {
+        xMm = xPixelsToMm(g_imageBuffer.m_imageOffsetX);
+        yMm = yPixelsToMm(g_imageBuffer.m_imageOffsetY);
+    } else if (activeTab === 'text' && g_textImageBuffer) {
+        xMm = xPixelsToMm(g_textImageBuffer.m_imageOffsetX);
+        yMm = yPixelsToMm(g_textImageBuffer.m_imageOffsetY);
+    } else {
+        xMm = 0;
+        yMm = 0;
+    }
     
     // Update input fields
     const offsetXInput = document.getElementById('offsetXInput');
@@ -881,4 +892,12 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.blur();
         }
     });
+});
+
+// Add clear image button handler
+g_clearImageButton.addEventListener('click', () => {
+    g_imageBuffer = null;
+    renderImageToCanvas();
+    updateScaleSlider();
+    updateOffsetDisplay();
 });

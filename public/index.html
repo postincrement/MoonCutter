@@ -49,7 +49,10 @@
                     </div>
                     <div class="tab-pane" id="image-tab">
                         <div class="image-content" style="display: flex; flex-direction: column; gap: 1em;">
-                            <button id="loadImageButton">Load Image File</button>
+                            <div class="control-buttons" style="display: flex; gap: 1em;">
+                                <button id="loadImageButton">Load Image File</button>
+                                <button id="clearImageButton">Clear Image</button>
+                            </div>
                             <div class="control-buttons">
                                 <button id="rotateLeftButton">
                                     <img src="images/rotate-left.png" alt="Rotate Left">
@@ -102,6 +105,16 @@
                                         <button id="boldButton" class="style-button">B</button>
                                         <button id="italicButton" class="style-button">I</button>
                                         <button id="underlineButton" class="style-button">U</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="scale-control">
+                                <label>Justify:</label>
+                                <div class="scale-input-group">
+                                    <div class="style-buttons" style="display: flex; gap: 0.5em;">
+                                        <button id="justifyLeftButton" class="style-button active">Left</button>
+                                        <button id="justifyCenterButton" class="style-button">Center</button>
+                                        <button id="justifyRightButton" class="style-button">Right</button>
                                     </div>
                                 </div>
                             </div>
