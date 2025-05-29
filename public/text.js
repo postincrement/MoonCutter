@@ -1,10 +1,13 @@
 // Text handling for MoonCutter
 
+const FONT_SIZE_SCALE = 10;
+
 // Global variables for text settings
 let g_textSettings = {
     text: '',
     font: 'Arial',
-    fontSize: 16,
+    sampleFontSize: 16,
+    fontSize: 16 * FONT_SIZE_SCALE,
     bold: false,
     italic: false,
     underline: false,
@@ -20,11 +23,11 @@ function updateSampleText() {
     let fontStyle = '';
     if (g_textSettings.bold) fontStyle += 'bold ';
     if (g_textSettings.italic) fontStyle += 'italic ';
-    fontStyle += `${g_textSettings.fontSize}px ${g_textSettings.font}`;
+    fontStyle += `${g_textSettings.sampleFontSize}px ${g_textSettings.font}`;
 
     // Apply styles to sample text
     sampleText.style.fontFamily = g_textSettings.font;
-    sampleText.style.fontSize = `${g_textSettings.fontSize}px`;
+    sampleText.style.fontSize = `${g_textSettings.sampleFontSize}px`;
     sampleText.style.fontWeight = g_textSettings.bold ? 'bold' : 'normal';
     sampleText.style.fontStyle = g_textSettings.italic ? 'italic' : 'normal';
     sampleText.style.textDecoration = g_textSettings.underline ? 'underline' : 'none';
@@ -62,7 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const value = parseInt(e.target.value);
         fontSizeInput.value = value;
         fontSizeValue.textContent = value;
-        g_textSettings.fontSize = value;
+        g_textSettings.sampleFontSize = value;
+        g_textSettings.fontSize = value * FONT_SIZE_SCALE;
         updateSampleText();
         renderTextToBuffer();
     });
@@ -74,7 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
         value = Math.max(12, Math.min(32, value));
         fontSizeSlider.value = value;
         fontSizeValue.textContent = value;
-        g_textSettings.fontSize = value;
+        g_textSettings.sampleFontSize = value;
+        g_textSettings.fontSize = value * FONT_SIZE_SCALE;
         updateSampleText();
         renderTextToBuffer();
     });
@@ -214,18 +219,18 @@ function renderTextToBuffer() {
     }
 
     // Create or update the text image buffer
-    if (!g_textImageBuffer || g_textImageBuffer.m_width !== width || g_textImageBuffer.m_height !== height) {
-        g_textImageBuffer = new ImageBuffer(width, height);
+    if (!g_textImageBuffer) {
+        g_textImageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
     }
 
     // Get the image data from the canvas
-    const imageData = ctx.getImageData(0, 0, width, height);
+    const imageData = ctx.getImageData(0, 0, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
     
     // Copy the image data to the text buffer
     g_textImageBuffer.m_data.set(imageData.data);
 
     // Set default scale for the text buffer
-    g_textImageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    //g_textImageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
 
     // Render the updated image to the canvas
     renderImageToCanvas();
