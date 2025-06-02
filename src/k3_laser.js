@@ -290,7 +290,7 @@ class K3Laser extends Protocol {
     async startEngraving(info) {
 
       // set discrete mode
-      const discreteCommand = COMMANDS.DISCRETE_ON;
+      const discreteCommand = COMMANDS.DISCRETE_OFF;
       const discreteAck = await this.sendMessageAndWaitForAck("discrete", Buffer.from(discreteCommand), TIMEOUTS.DISCRETE);
       if (!discreteAck) {
         logMessage('error', 'Failed to send discrete command');
@@ -357,11 +357,11 @@ class K3Laser extends Protocol {
 
       // speed of laser
       var speed = 1;
-      if (this.m_speed >= 10) {
-        speed = Math.round(21 - this.m_speed);  // 21 -> 1, 10 -> 11
+      if (this.m_speed >= 25) {
+        speed = Math.round(51 - this.m_speed);  
       }
       else {
-        speed = Math.round(11 + ((10 - this.m_speed) * 5))  // 9 -> 16, 8 -> 21
+        speed = Math.round(29 + ((24 - this.m_speed) * 3))  
       }
       logMessage('info', `Speed: ${this.m_speed} -> ${speed}`);
       commandBuffer[3] = speed >> 8;

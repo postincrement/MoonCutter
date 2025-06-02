@@ -19,6 +19,9 @@ let g_isRunning = false;        // Track running state
 let g_bitmapWidth = 0;
 let g_bitmapHeight = 0;
 
+let DEFAULT_SPEED = 45;
+let DEFAULT_POWER = 100;
+
 // Add scale slider handler
 const scaleSlider = document.getElementById('scaleSlider');
 const scaleValue = document.getElementById('scaleValue');
@@ -805,15 +808,23 @@ function updateOffsetDisplay() {
 
 // Add event listeners for speed and power controls
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize speed and power controls
     const speedSlider = document.getElementById('speedSlider');
     const speedInput = document.getElementById('speedInput');
     const speedValue = document.getElementById('speedValue');
-
     const powerSlider = document.getElementById('powerSlider');
     const powerInput = document.getElementById('powerInput');
     const powerValue = document.getElementById('powerValue');
 
-    // Speed control handlers
+    // Set initial values from defaults
+    speedSlider.value = DEFAULT_SPEED;
+    speedInput.value = DEFAULT_SPEED;
+    speedValue.textContent = DEFAULT_SPEED;
+    powerSlider.value = DEFAULT_POWER;
+    powerInput.value = DEFAULT_POWER;
+    powerValue.textContent = DEFAULT_POWER;
+
+    // Speed slider event
     speedSlider.addEventListener('input', (e) => {
         const value = parseInt(e.target.value);
         speedInput.value = value;

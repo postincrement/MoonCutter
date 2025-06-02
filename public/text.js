@@ -1,6 +1,6 @@
 // Text handling for MoonCutter
 
-const FONT_SIZE_SCALE = 10;
+const FONT_SIZE_SCALE = 5;
 
 // Global variables for text settings
 let g_textSettings = {
@@ -17,20 +17,16 @@ let g_textSettings = {
 // Function to update sample text display
 function updateSampleText() {
     const sampleText = document.getElementById('sampleText');
-    if (!sampleText) return;
-
-    // Build font style string
-    let fontStyle = '';
-    if (g_textSettings.bold) fontStyle += 'bold ';
-    if (g_textSettings.italic) fontStyle += 'italic ';
-    fontStyle += `${g_textSettings.sampleFontSize}px ${g_textSettings.font}`;
-
-    // Apply styles to sample text
-    sampleText.style.fontFamily = g_textSettings.font;
-    sampleText.style.fontSize = `${g_textSettings.sampleFontSize}px`;
+    const fontFamily = g_textSettings.fontFamily || 'Arial';
+    const fontSize = 16; // Always use 16pt for preview
+    const fontStyle = `${g_textSettings.bold ? 'bold ' : ''}${g_textSettings.italic ? 'italic ' : ''}${fontSize}px ${fontFamily}`;
+    
+    sampleText.style.fontFamily = fontFamily;
+    sampleText.style.fontSize = `${fontSize}px`;
     sampleText.style.fontWeight = g_textSettings.bold ? 'bold' : 'normal';
     sampleText.style.fontStyle = g_textSettings.italic ? 'italic' : 'normal';
     sampleText.style.textDecoration = g_textSettings.underline ? 'underline' : 'none';
+    sampleText.style.textAlign = g_textSettings.justify;
 }
 
 // Initialize text controls
@@ -50,6 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Text input event
     textInput.addEventListener('input', (e) => {
         g_textSettings.text = e.target.value;
+        // Hide drop zone if text is entered
+        const dropZone = document.getElementById('dropZone');
+        if (dropZone) {
+            dropZone.style.display = g_textSettings.text.trim() ? 'none' : 'flex';
+        }
         renderTextToBuffer();
     });
 
@@ -75,11 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
     fontSizeInput.addEventListener('input', (e) => {
         let value = parseInt(e.target.value);
         // Clamp value between min and max
-        value = Math.max(12, Math.min(32, value));
+        value = Math.max(12, Math.min(144, value));
         fontSizeSlider.value = value;
         fontSizeValue.textContent = value;
-        g_textSettings.sampleFontSize = value;
-        g_textSettings.fontSize = value * FONT_SIZE_SCALE;
+        g_textSettings.fontSize = value;
         updateSampleText();
         renderTextToBuffer();
     });
@@ -177,9 +177,8 @@ function renderTextToBuffer() {
     tempCanvas.width = width;
     tempCanvas.height = height;
 
-    // Clear canvas
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, width, height);
+    // Clear canvas with transparency
+    ctx.clearRect(0, 0, width, height);
 
     // Set up text rendering
     ctx.fillStyle = 'black';
@@ -219,12 +218,12 @@ function renderTextToBuffer() {
     }
 
     // Create or update the text image buffer
-    if (!g_textImageBuffer) {
-        g_textImageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    if (!g_textImageBuffer || g_textImageBuffer.m_width !== width || g_textImageBuffer.m_height !== height) {
+        g_textImageBuffer = new ImageBuffer(width, height);
     }
 
     // Get the image data from the canvas
-    const imageData = ctx.getImageData(0, 0, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    const imageData = ctx.getImageData(0, 0, width, height);
     
     // Copy the image data to the text buffer
     g_textImageBuffer.m_data.set(imageData.data);
