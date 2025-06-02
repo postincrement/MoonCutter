@@ -144,6 +144,14 @@ function renderTextToBuffer() {
         return;
     }
 
+    // Store current center position if text buffer exists
+    let centerX = 0;
+    let centerY = 0;
+    if (g_textImageBuffer) {
+        centerX = g_textImageBuffer.m_imageOffsetX + (g_textImageBuffer.m_width / 2);
+        centerY = g_textImageBuffer.m_imageOffsetY + (g_textImageBuffer.m_height / 2);
+    }
+
     // Create a temporary canvas to render the text
     const tempCanvas = document.createElement('canvas');
     const ctx = tempCanvas.getContext('2d');
@@ -220,6 +228,12 @@ function renderTextToBuffer() {
     // Create or update the text image buffer
     if (!g_textImageBuffer || g_textImageBuffer.m_width !== width || g_textImageBuffer.m_height !== height) {
         g_textImageBuffer = new ImageBuffer(width, height);
+        
+        // Center text on screen for new text
+        if (!centerX && !centerY) {
+            centerX = g_engraveBuffer.m_width / 2;
+            centerY = g_engraveBuffer.m_height / 2;
+        }
     }
 
     // Get the image data from the canvas
@@ -228,8 +242,11 @@ function renderTextToBuffer() {
     // Copy the image data to the text buffer
     g_textImageBuffer.m_data.set(imageData.data);
 
-    // Set default scale for the text buffer
-    //g_textImageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    // Adjust position to maintain center point
+    if (centerX !== 0 || centerY !== 0) {
+        g_textImageBuffer.m_imageOffsetX = centerX - (width / 2);
+        g_textImageBuffer.m_imageOffsetY = centerY - (height / 2);
+    }
 
     // Render the updated image to the canvas
     renderImageToCanvas();

@@ -337,3 +337,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Rotate the image
+rotate(angle) {
+    // Store current center position
+    const centerX = this.m_imageOffsetX + (this.m_width / 2);
+    const centerY = this.m_imageOffsetY + (this.m_height / 2);
+
+    // Update rotation angle
+    this.m_rotateAngle = (this.m_rotateAngle + angle) % 360;
+    if (this.m_rotateAngle < 0) {
+        this.m_rotateAngle += 360;
+    }
+
+    // Swap width and height if rotating 90 or 270 degrees
+    if (angle === 90 || angle === -90 || angle === 270 || angle === -270) {
+        const temp = this.m_width;
+        this.m_width = this.m_height;
+        this.m_height = temp;
+    }
+
+    // Adjust position to maintain center point
+    this.m_imageOffsetX = centerX - (this.m_width / 2);
+    this.m_imageOffsetY = centerY - (this.m_height / 2);
+};
+
