@@ -368,38 +368,6 @@ function sendLogMessage(message, type = 'info') {
 
 ////////////////////////////////////////////////////////////
 //
-//  status bar handling
-//
-
-// Function to update the status bar
-function updateStatusBar(message, showProgress = false, progress = 0) {
-    const statusText = document.querySelector('.status-text');
-    const statusProgress = document.querySelector('.status-progress');
-    const progressFill = statusProgress.querySelector('.progress-fill');
-    const progressText = statusProgress.querySelector('.progress-text');
-    
-    // Update text
-    statusText.textContent = message;
-    
-    // Update progress
-    if (showProgress) {
-        statusProgress.style.display = 'flex';
-        progressFill.style.width = `${progress}%`;
-        progressText.textContent = `${Math.round(progress)}%`;
-    } else {
-        statusProgress.style.display = 'none';
-    }
-}
-
-// Export the function for use in other parts of the code
-window.updateStatusBar = updateStatusBar;
-
-// Initialize status bar
-updateStatusBar('Ready'); 
-
-
-////////////////////////////////////////////////////////////
-//
 //  engrave area button handling
 //
 
@@ -912,3 +880,12 @@ g_clearImageButton.addEventListener('click', () => {
     updateScaleSlider();
     updateOffsetDisplay();
 });
+
+function updateProgress(progress) {
+    const progressFill = document.querySelector('.progress-fill');
+    const progressText = document.querySelector('.progress-text');
+    if (progressFill && progressText) {
+        progressFill.style.width = `${progress}%`;
+        progressText.textContent = `${progress}%`;
+    }
+}

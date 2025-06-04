@@ -1,6 +1,3 @@
-const BORDER = 18;
-const BITMAP_SIZE = 512;
-const CANVAS_SIZE = BITMAP_SIZE + BORDER;  // width and height of the canvas
 
 // image buffer loaded from a file 
 g_imageBuffer = null;
@@ -15,7 +12,7 @@ g_engraveBuffer = null;
 g_boundingBox  = null;
 
 // create a default image and remove any text. Used on start
-function setDefaultImage() 
+function setDefaultImage()
 {
   logMessage('info', `setDefaultImage()`);
 
@@ -338,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Rotate the image
-rotate(angle) {
+function rotate(angle) {
     // Store current center position
     const centerX = this.m_imageOffsetX + (this.m_width / 2);
     const centerY = this.m_imageOffsetY + (this.m_height / 2);

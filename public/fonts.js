@@ -47,31 +47,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Function to load fonts
 async function loadFonts() {
+    console.log('Requesting system fonts...');
+    
     try {
-        const fonts = await window.api.getFonts();
-        const fontSelect = document.getElementById('fontSelect');
-        
-        // Clear existing options
-        fontSelect.innerHTML = '';
-        
-        // Add fonts to select
-        fonts.forEach(font => {
-            const option = document.createElement('option');
-            option.value = font;
-            option.textContent = font;
-            fontSelect.appendChild(option);
-        });
-
-        // Set default font if available
-        if (filteredFonts.length > 0) {
-            fontSelect.value = fonts[0];
-            g_textSettings.font = fonts[0];
-            updateSampleText();
+        // Check if the API is available
+        if (window.api && typeof window.api.getFonts === 'function') {
+            const fonts = await window.api.getFonts();
+            const fontSelect = document.getElementById('fontSelect');
+            
+            // Clear loading message
+            fontSelect.innerHTML = '';
+            
+            // Add fonts to select
+            fonts.forEach(font => {
+                const option = document.createElement('option');
+                option.value = font;
+                option.textContent = font;
+                option.style.fontFamily = font;
+                fontSelect.appendChild(option);
+            });
+            
+            console.log(`Loaded ${fonts.length} fonts`);
+        } else {
+            console.log('API not available, using fallback fonts');
+            // Add some common fallback fonts
+            const fallbackFonts = [
+                'Arial',
+                'Helvetica',
+                'Times New Roman',
+                'Courier New',
+                'Georgia',
+                'Verdana'
+            ];
+            
+            const fontSelect = document.getElementById('fontSelect');
+            fontSelect.innerHTML = '';
+            
+            fallbackFonts.forEach(font => {
+                const option = document.createElement('option');
+                option.value = font;
+                option.textContent = font;
+                option.style.fontFamily = font;
+                fontSelect.appendChild(option);
+            });
         }
     } catch (error) {
         console.error('Error loading fonts:', error);
     }
 }
 
-// Load fonts when the page loads
+// Load fonts when the document is ready
 document.addEventListener('DOMContentLoaded', loadFonts); 
