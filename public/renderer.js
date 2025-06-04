@@ -532,30 +532,56 @@ function getMediaSettings() {
   };
 }
 
+// Add window resize handler with debounce
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        resizeBitmapCanvas();
+        if (g_engraverDimensions) {
+            drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
+        }
+    }, 100);
+});
+
 // calculate the scale between the bitmap window and the engraver dimensions
 function resizeBitmapCanvas() 
 {
-  scale = 1;
-  yOffset = 0;
-  xOffset = 0;
+    if (!g_engraveBuffer) {
+        return;
+    }
 
-  // work out if the width or height is the limiting factor
-  if (g_engraveBuffer.m_width < g_engraveBuffer.m_height) {
-      g_bitmapHeight = BITMAP_SIZE;
-      g_bitmapWidth = g_engraveBuffer.m_width / g_engraveBuffer.m_height * BITMAP_SIZE;
-      xOffset = (BITMAP_SIZE - g_bitmapWidth) / 2;
-  } else {
-    g_bitmapWidth = BITMAP_SIZE;
-    g_bitmapHeight = Math.floor(g_engraveBuffer.m_height / g_engraveBuffer.m_width * BITMAP_SIZE);
-    yOffset = (BITMAP_SIZE - g_bitmapHeight) / 2;
-  }
+    const bitmapContainer = document.querySelector('.bitmap-container');
+    const containerWidth = bitmapContainer.clientWidth;
+    const containerHeight = bitmapContainer.clientHeight;
 
-  canvas = document.getElementById('bitmapCanvas');
-  canvas.height = BORDER + g_bitmapHeight;
-  canvas.width  = BORDER + g_bitmapWidth;
-  logMessage('info', `bitmap size: ${g_bitmapWidth}x${g_bitmapHeight}`);
-  logMessage('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
+    logMessage('info', `container size: ${containerWidth}x${containerHeight}`);
+
+    // Calculate scale to fit the container while maintaining aspect ratio
+    const scaleX = (containerWidth - BORDER) / g_engraveBuffer.m_width;
+    const scaleY = (containerHeight - BORDER) / g_engraveBuffer.m_height;
+    const scale = Math.min(scaleX, scaleY);
+
+    // Calculate new dimensions
+    g_bitmapWidth = Math.floor(g_engraveBuffer.m_width * scale);
+    g_bitmapHeight = Math.floor(g_engraveBuffer.m_height * scale);
+
+    // Update canvas size
+    const canvas = document.getElementById('bitmapCanvas');
+    canvas.width = BORDER + g_bitmapWidth;
+    canvas.height = BORDER + g_bitmapHeight;
+
+    logMessage('info', `bitmap size: ${g_bitmapWidth}x${g_bitmapHeight}`);
+    logMessage('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
+
+    // Force a re-render
+    renderImageToCanvas();
 }
+
+// Initial resize
+document.addEventListener('DOMContentLoaded', () => {
+    resizeBitmapCanvas();
+});
 
 function drawScaleIndicators(horizontalValue, verticalValue) 
 {

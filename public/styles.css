@@ -4,6 +4,7 @@ body {
     padding: 0;
     background-color: #f5f5f5;
     overflow: hidden;
+    height: 100vh;
 }
 
 .container {
@@ -11,8 +12,10 @@ body {
     height: 100vh;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 20px 0 10px 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 h1 {
@@ -62,14 +65,15 @@ p {
 
 .content-wrapper {
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 20px;
-    height: 100%;
-    margin: auto;
-    margin-left: 40px;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    gap: 1em;
+    height: calc(100vh - 40px);
+    align-items: stretch;
+    min-width: 850px;
+    width: 100%;
+    margin: 0;
+    padding: 0 20px;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .controls {
@@ -138,15 +142,26 @@ p {
 
 .bitmap-container {
     position: relative;
+    flex: 1;
+    min-width: 530px;
+    height: 100%;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 #bitmapCanvas {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
     border: 1px solid #ddd;
     background-color: transparent;
     image-rendering: pixelated;
+    object-fit: contain;
+    box-sizing: border-box;
 }
 
 #horizontalScaleCanvas {
@@ -376,13 +391,14 @@ p {
 
 .tabs-container {
     width: 300px;
-    height: 512px;
+    height: 100%;
+    flex-shrink: 0;
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
-    margin-top: 0;
+    box-sizing: border-box;
 }
 
 .tabs-header {
@@ -414,6 +430,7 @@ p {
     padding: 15px;
     margin: 0;
     overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .tab-pane {
