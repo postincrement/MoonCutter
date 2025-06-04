@@ -695,6 +695,29 @@ document.getElementById('rotateRightButton').addEventListener('click', () => {
   renderImageToCanvas();
 });
 
+// Add text rotation button handlers
+document.getElementById('rotateTextLeftButton').addEventListener('click', () => {
+    if (g_textImageBuffer) {
+        g_textImageBuffer.m_rotateAngle -= 90;
+        if (g_textImageBuffer.m_rotateAngle < 0) {
+            g_textImageBuffer.m_rotateAngle += 360;
+        }
+        g_textImageBuffer.adjustOffsetAfterRotation(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+        renderImageToCanvas();
+    }
+});
+
+document.getElementById('rotateTextRightButton').addEventListener('click', () => {
+    if (g_textImageBuffer) {
+        g_textImageBuffer.m_rotateAngle += 90;
+        if (g_textImageBuffer.m_rotateAngle >= 360) {
+            g_textImageBuffer.m_rotateAngle -= 360;
+        }
+        g_textImageBuffer.adjustOffsetAfterRotation(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+        renderImageToCanvas();
+    }
+});
+
 // Add click handler for bitmap canvas
 const bitmapCanvas = document.getElementById('bitmapCanvas');
 let isDragging = false;

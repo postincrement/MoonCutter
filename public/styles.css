@@ -595,20 +595,20 @@ p {
 .control-buttons {
     display: flex;
     justify-content: center;
-    gap: 1em;
+    gap: 0.5em;
     margin-top: 1em;
 }
 
 #homeButton, #engraveAreaButton, #rotateLeftButton, #rotateRightButton {
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: #f0f0f0;
     border: 1px solid #ddd;
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
@@ -618,8 +618,8 @@ p {
 }
 
 #homeButton img, #engraveAreaButton img, #rotateLeftButton img, #rotateRightButton img {
-    width: 32px;
-    height: 32px;
+    width: 16px;
+    height: 16px;
     object-fit: contain;
 }
 
@@ -831,4 +831,43 @@ p {
     color: #666;
     z-index: 1;
     mix-blend-mode: difference;
+}
+
+.style-button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.style-button img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}
+
+.style-button:hover {
+    background-color: #e0e0e0;
+}
+
+.style-button.active {
+    background-color: #4CAF50;
+    border-color: #45a049;
+}
+
+.style-button.active img {
+    filter: brightness(0) invert(1);
+}
+
+.style-buttons {
+    display: flex;
+    gap: 0.5em;
+    justify-content: flex-start;
 } 
