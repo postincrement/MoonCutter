@@ -171,12 +171,12 @@ function renderImageToCanvas()
   ctx.save();
   ctx.translate(BORDER, BORDER);
 
-  // draw the engrave buffer image on the canvas
-  ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
+  // clear the bitmap canvas
+  //ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
 
   // fill the canvas with white
-  //ctx.fillStyle = 'white';
-  //ctx.fillRect(0, 0, g_bitmapWidth, g_bitmapHeight);
+  ctx.fillStyle = '#e0e0e0';
+  ctx.fillRect(0, 0, g_bitmapWidth, g_bitmapHeight);
 
   ctx.drawImage(engraveCanvas, 
 

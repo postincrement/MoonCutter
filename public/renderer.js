@@ -562,6 +562,13 @@ function resizeBitmapCanvas()
     canvas.width = BORDER + g_bitmapWidth;
     canvas.height = BORDER + g_bitmapHeight;
 
+    if (canvas.height < canvas.width) {
+      canvas.height += BORDER/2;
+    }
+    else {
+      canvas.width += BORDER/2;
+    }
+
     logMessage('info', `bitmap size: ${g_bitmapWidth}x${g_bitmapHeight}`);
     logMessage('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
 
@@ -586,8 +593,8 @@ function drawScaleIndicators()
   const units = window.preferencesManager.getPreference('units');
   logMessage('info', `drawScaleIndicators: ${horizontalValue}x${verticalValue} units: ${units}`);
     
-  canvas = document.getElementById('bitmapCanvas');
-  ctx = canvas.getContext('2d');
+  const canvas = document.getElementById('bitmapCanvas');
+  const ctx = canvas.getContext('2d');
 
   // Get current units from preferences
   
