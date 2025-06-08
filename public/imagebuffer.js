@@ -99,6 +99,10 @@ class ImageBuffer
 
   // Add threshold processing function
   applyThreshold(sourceCanvas) {
+    if (!sourceCanvas) {
+      logMessage('warn', 'No source canvas provided to applyThreshold');
+      return null;
+    }
 
     // create a canvas the same size as the source canvas
     const thresholdCanvas = document.createElement('canvas');
@@ -159,6 +163,10 @@ class ImageBuffer
 
     // Apply threshold to the image
     const transformCanvas = this.applyThreshold(rotateCanvas);
+    if (!transformCanvas) {
+      logMessage('warn', 'Threshold application failed, using rotated canvas');
+      transformCanvas = rotateCanvas;
+    }
 
     // Draw the image onto the engrave canvas
     engraveCtx.drawImage(

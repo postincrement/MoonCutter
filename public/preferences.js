@@ -5,6 +5,7 @@ class PreferencesManager {
         };
         this.preferences = { ...this.defaultPreferences };
         this.initialized = false;
+        this.preferenceChangeCallbacks = [];
         this.init();
         this.setupListeners();
     }
@@ -14,7 +15,13 @@ class PreferencesManager {
         window.api.onPreferencesChanged((event, preferences) => {
             this.preferences = { ...this.defaultPreferences, ...preferences };
             this.applyPreferences();
+            // Notify all registered callbacks
+            this.preferenceChangeCallbacks.forEach(callback => callback(preferences));
         });
+    }
+
+    onPreferenceChange(callback) {
+        this.preferenceChangeCallbacks.push(callback);
     }
 
     async init() {

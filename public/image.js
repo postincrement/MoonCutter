@@ -1,4 +1,3 @@
-
 // image buffer loaded from a file 
 g_imageBuffer = null;
 
@@ -172,20 +171,18 @@ function renderImageToCanvas()
   ctx.drawImage(engraveCanvas, 0, 0, g_bitmapWidth, g_bitmapHeight);
 
   // Draw center lines
-  ctx.strokeStyle = 'red';
-  ctx.lineWidth = 1;
+  ctx.save();  // Save the current context state
+  
+  // Set fill style for both lines
+  ctx.fillStyle = '#FF0000';
 
-  // Vertical center line
-  ctx.beginPath();
-  ctx.moveTo(g_bitmapWidth/2, 0);
-  ctx.lineTo(g_bitmapWidth/2, g_bitmapHeight);
-  ctx.stroke();
+  // Vertical center line - draw as a filled rectangle
+  ctx.fillRect(g_bitmapWidth/2 - 0.5, 0, 1, g_bitmapHeight);
 
-  // Horizontal center line
-  ctx.beginPath();
-  ctx.moveTo(0,             g_bitmapHeight/2);
-  ctx.lineTo(g_bitmapWidth, g_bitmapHeight/2);
-  ctx.stroke();
+  // Horizontal center line - draw as a filled rectangle
+  ctx.fillRect(0, g_bitmapHeight/2 - 0.5, g_bitmapWidth, 1);
+
+  ctx.restore();  // Restore the previous context state
 
   // convert bounding box to canvas coordinates
   const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
@@ -204,6 +201,12 @@ function renderImageToCanvas()
                  bitmapBoundingBox.bottom - bitmapBoundingBox.top);
 
   ctx.restore();
+
+  // Redraw scale indicators
+  if (g_engraverDimensions) {
+    drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
+  }
+
 }
 
 // find the bounding box of the engraver image

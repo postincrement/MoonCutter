@@ -937,10 +937,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Add clear image button handler
 g_clearImageButton.addEventListener('click', () => {
+    // Clear the image buffer
     g_imageBuffer = null;
-    renderImageToCanvas();
+    
+    // Create a new empty image buffer
+    g_imageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    g_imageBuffer.clear();
+    g_imageBuffer.m_default = false;  // Ensure default flag is cleared
+    
+    // Set default scale for the empty image
+    g_imageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    
+    // Update UI
     updateScaleSlider();
     updateOffsetDisplay();
+    
+    // Force a re-render
+    renderImageToCanvas();
 });
 
 function updateProgress(progress) {
@@ -952,58 +965,3 @@ function updateProgress(progress) {
     }
 }
 
-// render the image buffer to the canvas
-function renderImageToCanvas() 
-{
-  const engraveCanvas = renderImageToEngraveBuffer();
-
-  // clear the bitmap portion of the canvas
-  const canvas = document.getElementById('bitmapCanvas');
-  const ctx = canvas.getContext('2d');
-
-  ctx.save();
-  ctx.translate(BORDER, BORDER);
-
-  // draw the engrave buffer image on the canvas
-  ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
-  ctx.drawImage(engraveCanvas, 0, 0, g_bitmapWidth, g_bitmapHeight);
-
-  // Draw center lines
-  ctx.strokeStyle = 'red';
-  ctx.lineWidth = 1;
-
-  // Vertical center line
-  ctx.beginPath();
-  ctx.moveTo(g_bitmapWidth/2, 0);
-  ctx.lineTo(g_bitmapWidth/2, g_bitmapHeight);
-  ctx.stroke();
-
-  // Horizontal center line
-  ctx.beginPath();
-  ctx.moveTo(0,             g_bitmapHeight/2);
-  ctx.lineTo(g_bitmapWidth, g_bitmapHeight/2);
-  ctx.stroke();
-
-  // convert bounding box to canvas coordinates
-  const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
-  const bitmapBoundingBox = {
-    left:   Math.floor(g_boundingBox.left * canvasScale),
-    top:    Math.floor(g_boundingBox.top * canvasScale),
-    right:  Math.floor(g_boundingBox.right * canvasScale),
-    bottom: Math.floor(g_boundingBox.bottom * canvasScale)
-  };
-
-  // draw the outline of the bounding box
-  ctx.strokeStyle = 'green';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(bitmapBoundingBox.left, bitmapBoundingBox.top, 
-                 bitmapBoundingBox.right - bitmapBoundingBox.left, 
-                 bitmapBoundingBox.bottom - bitmapBoundingBox.top);
-
-  ctx.restore();
-
-  // Redraw scale indicators
-  if (g_engraverDimensions) {
-    drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
-  }
-}
