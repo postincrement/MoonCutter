@@ -618,10 +618,6 @@ function drawScaleIndicators()
   // clear indicator regions
   ctx.save();
 
-  //ctx.fillStyle = 'green';
-  //ctx.fillRect(0, 0, g_bitmapWidth + BORDER, BORDER);
-  //ctx.fillRect(0, BORDER, BORDER, g_bitmapHeight);
-
   // Set text properties
   ctx.font = '12px monospace';
   ctx.fillStyle = '#666';
@@ -648,7 +644,6 @@ function drawHorizontalScale(ctx, xoffset, yoffset, length, value)
 {
   // Draw horizontal scale
   ctx.save();
-  
   ctx.translate(BORDER, yoffset);
 
   drawScale(ctx, xoffset, length, value);
@@ -845,33 +840,6 @@ bitmapCanvas.addEventListener('mouseleave', () => {
     bitmapCanvas.style.cursor = 'default';
 });
 
-// Add offset display elements
-const offsetXDisplay = document.getElementById('offsetX');
-const offsetYDisplay = document.getElementById('offsetY');
-
-function updateOffsetDisplay() {
-    const activeTab = getActiveTab();
-    let xMm, yMm;
-
-    if (activeTab === 'image' && g_imageBuffer) {
-        xMm = xPixelsToMm(g_imageBuffer.m_imageOffsetX);
-        yMm = yPixelsToMm(g_imageBuffer.m_imageOffsetY);
-    } else if (activeTab === 'text' && g_textImageBuffer) {
-        xMm = xPixelsToMm(g_textImageBuffer.m_imageOffsetX);
-        yMm = yPixelsToMm(g_textImageBuffer.m_imageOffsetY);
-    } else {
-        xMm = 0;
-        yMm = 0;
-    }
-    
-    // Update input fields
-    const offsetXInput = document.getElementById('offsetXInput');
-    const offsetYInput = document.getElementById('offsetYInput');
-    
-    if (offsetXInput) offsetXInput.value = xMm;
-    if (offsetYInput) offsetYInput.value = yMm;
-}
-
 // Add event listeners for speed and power controls
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize speed and power controls
@@ -927,44 +895,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     powerInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur();
-        }
-    });
-});
-
-// Add offset input handlers
-document.addEventListener('DOMContentLoaded', () => {
-    const offsetXInput = document.getElementById('offsetXInput');
-    const offsetYInput = document.getElementById('offsetYInput');
-
-    // Convert mm to pixels (1mm = 10 pixels)
-    const mmToPixels = (mm) => mm * 10;
-    const pixelsToMm = (pixels) => pixels / 10;
-
-    // X offset handlers
-    offsetXInput.addEventListener('input', (e) => {
-        const mmValue = parseFloat(e.target.value);
-        g_imageOffsetX = mmToPixels(mmValue);
-        updateOffsetDisplay();
-        renderImageToCanvas();
-    });
-
-    offsetXInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur();
-        }
-    });
-
-    // Y offset handlers
-    offsetYInput.addEventListener('input', (e) => {
-        const mmValue = parseFloat(e.target.value);
-        g_imageOffsetY = mmToPixels(mmValue);
-        updateOffsetDisplay();
-        renderImageToCanvas();
-    });
-
-    offsetYInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.target.blur();
         }
