@@ -322,6 +322,9 @@ class K3Laser extends Protocol {
       command[5] = (y >> 8) & 0xFF;
       command[6] = y & 0xFF;
 
+      this.m_startX = x;
+      this.m_startY = y;
+
       const ack = await this.sendMessageAndWaitForAck("start", Buffer.from(command), TIMEOUTS.START);
       if (!ack) {
         logMessage('error', 'Failed to send start command');
@@ -329,7 +332,7 @@ class K3Laser extends Protocol {
       }
 
       // sleep for 500ms
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       return true;
     }
@@ -337,13 +340,9 @@ class K3Laser extends Protocol {
     // Add function to send line data to the engraver
     async engraveLine(lineData, lineNumber) {
       
-      // see if line is all white
-      const isAllWhite = lineData.every(value => value === 0xff);
-
-      // if line is all white, nothing to send
-      //if (isAllWhite) {
-      //  return true;
-      //}
+      // set the laser position to the start position + the line number
+      this.m_laserY = this.m_startY + lineNumber;
+      this.m_laserX = this.m_startX;
 
       // allocate buffer for command
       const commandLength = COMMANDS.ENGRAVE.length + (lineData.length + 7) / 8;
@@ -416,9 +415,6 @@ class K3Laser extends Protocol {
       const elapsedTime = Date.now() - startTime;
       const pixelsPerSecond = (rightmostNonZeroPixel / elapsedTime) * 1000;
       logMessage('info', `Engrave line ${lineNumber} took ${elapsedTime}ms = ${pixelsPerSecond} pixels/sec for ${rightmostNonZeroPixel} pixels`);
-
-      // delaying
-      //await new Promise(resolve => setTimeout(resolve, 1000));
 
       return true;
     }
