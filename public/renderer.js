@@ -52,7 +52,6 @@ function updateScaleSlider() {
     scaleSlider.value = 100;
     scaleValue.textContent = '100%';
     g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale;
-    updateOffsetDisplay();
   }
 }
 
@@ -810,9 +809,6 @@ bitmapCanvas.addEventListener('mousemove', (event) => {
     lastX = currentX;
     lastY = currentY;
     
-    // Update offset display
-    updateOffsetDisplay();
-    
     // Re-render the canvas
     renderImageToCanvas();
 });
@@ -916,7 +912,6 @@ g_clearImageButton.addEventListener('click', () => {
     
     // Update UI
     updateScaleSlider();
-    updateOffsetDisplay();
     
     // Force a re-render
     renderImageToCanvas();

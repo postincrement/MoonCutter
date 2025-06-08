@@ -19,6 +19,9 @@ class ImageBuffer
 
     this.m_rotateAngle  = 0;
     this.m_threshold    = 128;  // Default threshold value
+
+    this.m_invertImage = false;
+    this.m_dithering   = true;
     
     this.clear();
   }
@@ -119,19 +122,74 @@ class ImageBuffer
     // copy the image data to the threshold canvas
     thresholdImageData.data.set(imageData.data);  
 
+    // create a new array to store the error for dithering
+    var nextError = new Array(thresholdCanvas.width);
+    nextError.fill(0);
+
     // apply the threshold to the threshold canvas
-    for (let i = 0; i < thresholdImageData.data.length; i += 4) {
-      const grayValue = Math.round(
-        0.299 * thresholdImageData.data[i] +      // Red
-        0.587 * thresholdImageData.data[i + 1] +  // Green
-        0.114 * thresholdImageData.data[i + 2]    // Blue
-      );  
+    for (let y = 0; y < thresholdCanvas.height; y++) {
+      var thisError = nextError;
+      nextError = new Array(thresholdCanvas.width);
+      nextError.fill(0);
+      for (let x = 0; x < thresholdCanvas.width; x++) {
 
-      const thresholdedValue = grayValue <= this.m_threshold ? 0 : 255;
+        const i = (y * thresholdCanvas.width + x) * 4;
 
-      thresholdImageData.data[i] = thresholdedValue;     // Red
-      thresholdImageData.data[i + 1] = thresholdedValue; // Green
-      thresholdImageData.data[i + 2] = thresholdedValue; // Blue  
+        // calculate the gray value
+        const grayValue = Math.round(
+          0.299 * thresholdImageData.data[i] +
+          0.587 * thresholdImageData.data[i + 1] +
+          0.114 * thresholdImageData.data[i + 2]
+        );  
+
+        // invert the image if the invert image checkbox is checked
+        const black = this.m_invertImage ? 255 : 0;
+        const white = this.m_invertImage ? 0 : 255;
+
+        var thresholdedValue;
+
+        // if enabled, apply floyd-steinberg dithering
+        if (!this.m_dithering) {
+          thresholdedValue = grayValue <= this.m_threshold ? black : white;
+        }
+        else {
+
+          // apply the error to the thresholded value
+          thresholdedValue = (grayValue + thisError[x]) <= this.m_threshold ? black : white;
+
+          // apply floyd-steinberg dithering
+          const error = (grayValue - thresholdedValue) / 16;
+
+          if (thresholdedValue > 255) {
+            thresholdedValue = 255;
+          }
+          if (thresholdedValue < 0) {
+            thresholdedValue = 0;
+          }
+
+          // apply to this row
+          if (x < thresholdCanvas.width - 1) {
+            thisError[x + 1] += error * 7;
+          }
+
+          // apply to next row
+          if (y < thresholdCanvas.height - 1) {
+            if (x > 0) {
+              nextError[x - 1] += error * 3;
+            }
+            nextError[x] += error * 5;
+            if (x < thresholdCanvas.width - 1) {
+              nextError[x + 1] += error * 1;
+            }
+          }
+        }
+
+        // set the thresholded value
+        thresholdImageData.data[i] = thresholdedValue;     // Red
+        thresholdImageData.data[i + 1] = thresholdedValue; // Green
+        thresholdImageData.data[i + 2] = thresholdedValue; // Blue  
+        thresholdImageData.data[i + 3] = 255;              // Alpha
+      }
     }
 
     // copy the thresholded image data to the threshold canvas
