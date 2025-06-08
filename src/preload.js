@@ -39,5 +39,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Preferences API
   loadPreferences: () => ipcRenderer.invoke('load-preferences'),
-  savePreferences: (preferences) => ipcRenderer.invoke('save-preferences', preferences)
+  savePreferences: (preferences) => ipcRenderer.invoke('save-preferences', preferences),
+  preferencesChanged: (preferences) => ipcRenderer.send('preferences-changed', preferences),
+  onPreferencesChanged: (callback) => ipcRenderer.on('preferences-changed', callback)
 }); 

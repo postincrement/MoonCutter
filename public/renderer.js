@@ -530,6 +530,13 @@ window.addEventListener('resize', () => {
     }, 100);
 });
 
+// Add preference change handler
+window.preferencesManager.onPreferenceChange((key, value) => {
+    if (key === 'units' && g_engraverDimensions) {
+        drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
+    }
+});
+
 // calculate the scale between the bitmap window and the engraver dimensions
 function resizeBitmapCanvas() 
 {
@@ -602,6 +609,9 @@ function drawScaleIndicators(horizontalValue, verticalValue)
   {
     ctx.translate(BORDER, 0);
 
+    // clear the rectangle from the left arrow to the right arrow
+    ctx.clearRect(0, BORDER/2 - 5, g_bitmapWidth, BORDER/2 + 5);
+
     // Left arrow
     ctx.moveTo(0, BORDER/2);
     ctx.lineTo(5, BORDER/2 - 5);
@@ -638,6 +648,9 @@ function drawScaleIndicators(horizontalValue, verticalValue)
   {
     ctx.translate(0, BORDER+g_bitmapHeight);
     ctx.rotate(-Math.PI/2);
+
+    // clear the rectangle from the top arrow to the bottom arrow
+    ctx.clearRect(0, BORDER/2 - 5, g_bitmapHeight, BORDER/2 + 5);
     
     // Top arrow
     ctx.moveTo(g_bitmapHeight, BORDER/2);

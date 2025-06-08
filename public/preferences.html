@@ -126,6 +126,8 @@
             };
 
             await window.api.savePreferences(preferences);
+            // Notify the main window that preferences have changed
+            window.api.preferencesChanged(preferences);
             window.close();
         }
     </script>

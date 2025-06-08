@@ -4,22 +4,39 @@ class PreferencesManager {
             units: 'mm',  // 'mm' or 'in'
         };
         this.preferences = { ...this.defaultPreferences };
-        this.loadPreferences();
+        this.initialized = false;
+        this.init();
+        this.setupListeners();
+    }
+
+    setupListeners() {
+        // Listen for preference changes from other windows
+        window.api.onPreferencesChanged((event, preferences) => {
+            this.preferences = { ...this.defaultPreferences, ...preferences };
+            this.applyPreferences();
+        });
+    }
+
+    async init() {
+        await this.loadPreferences();
+        this.initialized = true;
+        this.applyPreferences();
     }
 
     async loadPreferences() {
         logMessage('info', 'Loading preferences');
         try {
             const response = await window.api.loadPreferences();
-            if (response.success) {
-                this.preferences = { ...this.defaultPreferences, ...response.preferences };
+            logMessage('info', 'loadPreferences response:', response);
+            if (response) {
+                this.preferences = { ...this.defaultPreferences, ...response };
                 logMessage('info', 'renderer Preferences loaded:', this.preferences);
+            } else {
+                logMessage('error', 'loadPreferences returned no data');
             }
         } catch (error) {
-            console.log('No preferences file found, using defaults');
+            logMessage('error', 'preferences loading failed:', error);
         }
-        logMessage('info', 'renderer Preferences loaded:', this.preferences);
-        this.applyPreferences();
     }
 
     async savePreferences() {
@@ -34,6 +51,11 @@ class PreferencesManager {
     }
 
     getPreference(key) {
+        if (!this.initialized) {
+            logMessage('warn', 'Preferences not yet initialized, using default value for:', key);
+            return this.defaultPreferences[key];
+        }
+        logMessage('info', 'getPreference:', key, this.preferences[key]);
         return this.preferences[key];
     }
 
@@ -44,6 +66,9 @@ class PreferencesManager {
     }
 
     applyPreferences() {
+        if (!this.initialized) {
+            return;
+        }
         // Update UI elements based on preferences
         const unitElements = document.querySelectorAll('.unit-display');
         unitElements.forEach(element => {

@@ -377,6 +377,14 @@ ipcMain.handle('save-preferences', (event, preferences) => {
     return { success: true };
 });
 
+// Handle preferences changed event
+ipcMain.on('preferences-changed', (event, preferences) => {
+    // Notify all windows about the preference change
+    BrowserWindow.getAllWindows().forEach(window => {
+        window.webContents.send('preferences-changed', preferences);
+    });
+});
+
 // Update menu template
 const template = [
     {
