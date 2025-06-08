@@ -284,7 +284,6 @@ document.addEventListener('DOMContentLoaded', () => {
         thresholdInput.value = value;
         thresholdValue.textContent = value;
         g_imageBuffer.m_threshold = value;
-        g_imageBuffer.applyThreshold();
       }
     });
 
@@ -296,7 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
         thresholdSlider.value = value;
         thresholdValue.textContent = value;
         g_imageBuffer.m_threshold = value;
-        g_imageBuffer.applyThreshold();
     });
 
     // Handle enter key in input field

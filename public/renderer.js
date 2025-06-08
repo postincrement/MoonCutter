@@ -587,126 +587,160 @@ function drawScaleIndicators()
     return;
   }
 
-  var horizontalValue = g_engraverDimensions.widthMm;
-  var verticalValue = g_engraverDimensions.heightMm;
-
   const units = window.preferencesManager.getPreference('units');
-  logMessage('info', `drawScaleIndicators: ${horizontalValue}x${verticalValue} units: ${units}`);
-    
-  const canvas = document.getElementById('bitmapCanvas');
-  const ctx = canvas.getContext('2d');
 
-  // Get current units from preferences
-  
+  const bbWidth = g_boundingBox.right - g_boundingBox.left;
+  const bbHeight = g_boundingBox.bottom - g_boundingBox.top;
+
   // Convert values to current units if needed
-  var horizontalDisplay;
-  var verticalDisplay;
+  var engraverWidthMm = g_engraverDimensions.widthMm; 
+  var engraverHeightMm = g_engraverDimensions.heightMm ;
+  var boundingBoxWidthMm = bbWidth * g_engraverDimensions.widthMm / g_engraveBuffer.m_width;
+  var boundingBoxHeightMm = bbHeight * g_engraverDimensions.heightMm / g_engraveBuffer.m_height;
   
   if (units === 'in') {
     // Convert mm to inches (divide by 25.4)
-    horizontalDisplay = (g_engraverDimensions.widthMm / 25.4).toFixed(2) + ' in';
-    verticalDisplay = (g_engraverDimensions.heightMm / 25.4).toFixed(2) + ' in';
+    engraverWidth     = (engraverWidthMm / 25.4).toFixed(2) + ' in';
+    engraverHeight    = (engraverHeightMm / 25.4).toFixed(2) + ' in';
+    boundingBoxWidth  = (boundingBoxWidthMm / 25.4).toFixed(2) + ' in';
+    boundingBoxHeight = (boundingBoxHeightMm / 25.4).toFixed(2) + ' in';
   }
   else {
-    horizontalDisplay = horizontalValue + ' mm';
-    verticalDisplay = verticalValue + ' mm';
+    engraverWidth     = (engraverWidthMm * 1.0).toFixed(2) + ' mm';
+    engraverHeight    = (engraverHeightMm * 1.0).toFixed(2) + ' mm';
+    boundingBoxWidth  = (boundingBoxWidthMm * 1.0).toFixed(2) + ' mm';
+    boundingBoxHeight = (boundingBoxHeightMm * 1.0).toFixed(2) + ' mm';
   }
+
+  logMessage('info', `engraver width: ${engraverWidth}, engraver height: ${engraverHeight}, bounding box width: ${boundingBoxWidth}, bounding box height: ${boundingBoxHeight}`);
+
+  const canvas = document.getElementById('bitmapCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // clear indicator regions
+  ctx.save();
+
+  ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
+  ctx.fillStyle = 'green';
+  ctx.fillRect(0, 0, g_bitmapWidth, BORDER);
+  ctx.fillRect(0, BORDER, BORDER, g_bitmapHeight);
+
 
   // Set text properties
   ctx.font = '12px monospace';
   ctx.fillStyle = '#666';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+
+  const bbXScale = g_bitmapWidth / g_engraveBuffer.m_width;
+  const bbYScale = g_bitmapHeight / g_engraveBuffer.m_height;
+
+  drawHorizontalScale(ctx, 0,                             0,        g_bitmapWidth,      engraverWidth);
+  //drawHorizontalScale(ctx, g_boundingBox.left * bbXScale, BORDER/2, bbWidth * bbXScale, boundingBoxWidth);
+
+  drawVerticalScale(ctx,      0,        g_bitmapHeight,      engraverHeight);
+  //drawVerticalScale(ctx,      BORDER/2, bbHeight * bbYScale, boundingBoxHeight);
+  
+  ctx.restore();
+}
+
+function drawHorizontalScale(ctx, xoffset, yoffset, length, value) 
+{
+  const height = BORDER/2;
     
   // Draw horizontal scale
   ctx.save();
-  {
-    ctx.translate(BORDER, 0);
+  
+  ctx.translate(BORDER, yoffset);
 
-    // clear the rectangle from the left arrow to the right arrow
-    ctx.save();
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, g_bitmapWidth, BORDER);
-    ctx.restore();
+  // clear the rectangle from the left arrow to the right arrow
+  //ctx.save();
+  //ctx.fillStyle = 'white';
+  //ctx.fillRect(0, 0, g_bitmapWidth, height);
+  //ctx.restore();
 
-    // Left arrow
-    ctx.moveTo(0, BORDER/2);
-    ctx.lineTo(5, BORDER/2 - 5);
-    ctx.lineTo(5, BORDER/2 + 5);
-    ctx.fill();
+  // Left arrow
+  ctx.moveTo(xoffset + 0, height/2);
+  ctx.lineTo(xoffset + 5, height/2 - 5);
+  ctx.lineTo(xoffset + 5, height/2 + 5);
+  ctx.fill();
 
-    // Right arrow
-    ctx.moveTo(g_bitmapWidth,     BORDER/2);
-    ctx.lineTo(g_bitmapWidth - 5, BORDER/2 - 5);
-    ctx.lineTo(g_bitmapWidth - 5, BORDER/2 + 5);
-    ctx.fill();
+  // Right arrow
+  //ctx.moveTo(length,     height/2);
+  //ctx.lineTo(length - 5, height/2 - 5);
+  //ctx.lineTo(length - 5, height/2 + 5);
+  //ctx.fill();
 
-    // get the width of the text
-    const textWidth = ctx.measureText(horizontalDisplay).width;
-    const textLeftX = g_bitmapWidth/2 - textWidth/2;
+  // get the width of the text
+  const textWidth = ctx.measureText(value).width;
+  const textLeftX = g_bitmapWidth/2 - textWidth/2;
 
-    ctx.save();
-    ctx.fillStyle = 'magenta';
-    ctx.fillRect(textLeftX, 0, textWidth, BORDER);
-    ctx.restore();
-
-    // draw line from left arrow to just before the text
-    //ctx.strokeStyle = 'cyan';
-    ctx.moveTo(0, BORDER/2);
-    ctx.lineTo(textLeftX - 5, BORDER/2);
-    ctx.stroke();
-
-    // draw line from right arrow to just after the text
-    //ctx.strokeStyle = 'cyan';
-    ctx.moveTo(g_bitmapWidth, BORDER/2);
-    ctx.lineTo(textLeftX + textWidth + 5, BORDER/2);
-    ctx.stroke();
-
-    // Draw text
-    ctx.fillText(horizontalDisplay, g_bitmapWidth/2, BORDER/2);
-  }
+  ctx.save();
+  ctx.fillStyle = 'white';
+  ctx.fillRect(textLeftX, 0, textWidth, height);
   ctx.restore();
+
+  // draw line from left arrow to just before the text
+  //ctx.strokeStyle = 'cyan';
+  //ctx.moveTo(0, height/2);
+  //ctx.lineTo(textLeftX - 5, height/2);
+  //ctx.stroke();
+
+  // draw line from right arrow to just after the text
+  //ctx.strokeStyle = 'cyan';
+  //ctx.moveTo(length, height/2);
+  //ctx.lineTo(textLeftX + textWidth + 5, height/2);
+  //ctx.stroke();
+
+  // Draw text
+  ctx.fillText(value, g_bitmapWidth/2, height/2);
+  
+  ctx.restore();
+}
+
+function drawVerticalScale(ctx, yoffset, length, value) 
+{
+  const height = BORDER/2;
 
   // Draw vertical scale
   ctx.save();
-  {
-    ctx.translate(0, BORDER+g_bitmapHeight);
-    ctx.rotate(-Math.PI/2);
 
-    // clear the rectangle from the top arrow to the bottom arrow
-    ctx.clearRect(0, 0, g_bitmapHeight, BORDER);
-    
-    // Top arrow
-    ctx.moveTo(g_bitmapHeight, BORDER/2);
-    ctx.lineTo(g_bitmapHeight - 5, BORDER/2 - 5);
-    ctx.lineTo(g_bitmapHeight - 5, BORDER/2 + 5);
+  ctx.translate(0, BORDER+g_bitmapHeight);
+  ctx.rotate(-Math.PI/2);
+  ctx.translate(0, yoffset);
 
-    // Bottom arrow
-    ctx.moveTo(0, BORDER/2);
-    ctx.lineTo(5, BORDER/2+5);
-    ctx.lineTo(5, BORDER/2-5);
-    ctx.fill();
+  // clear the rectangle from the top arrow to the bottom arrow
+  //ctx.clearRect(0, 0, g_bitmapHeight, height);
 
-    // get the width of the text
-    const textWidth = ctx.measureText(verticalDisplay).width;
-    const textLeftX = g_bitmapHeight/2 - textWidth/2;
+  // Top arrow
+  ctx.moveTo(g_bitmapHeight,     height/2);
+  ctx.lineTo(g_bitmapHeight - 5, height/2 - 5);
+  ctx.lineTo(g_bitmapHeight - 5, height/2 + 5);
 
-    // draw line from left arrow to just before the text
-    ctx.moveTo(0, BORDER/2);
-    ctx.lineTo(textLeftX - 5, BORDER/2);
-    ctx.stroke();
+  // Bottom arrow
+  ctx.moveTo(0, height/2);
+  ctx.lineTo(5, height/2+5);
+  ctx.lineTo(5, height/2-5);
+  ctx.fill();
 
-    // draw line from right arrow to just after the text
-    ctx.moveTo(g_bitmapHeight, BORDER/2);
-    ctx.lineTo(textLeftX + textWidth + 5, BORDER/2);
-    ctx.stroke();
+  // get the width of the text
+  const textWidth = ctx.measureText(value).width;
+  const textLeftX = g_bitmapHeight/2 - textWidth/2;
 
-    // Draw text
-    ctx.fillText(verticalDisplay, g_bitmapHeight/2, BORDER/2);
-  }
+  // draw line from left arrow to just before the text
+  ctx.moveTo(0, height/2);
+  ctx.lineTo(textLeftX - 5, height/2);
+  ctx.stroke();
+
+  // draw line from right arrow to just after the text
+  ctx.moveTo(g_bitmapHeight, height/2);
+  ctx.lineTo(textLeftX + textWidth + 5, height/2);
+  ctx.stroke();
+
+  // Draw text
+  ctx.fillText(value, g_bitmapHeight/2, height/2);
+
   ctx.restore();
-
-  logMessage('info', `drawScaleIndicators end:`);
 }
 
 // Add rotate button handlers

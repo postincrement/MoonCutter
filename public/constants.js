@@ -1,5 +1,5 @@
 // Shared constants for MoonCutter
-const BORDER = 30;
+const BORDER = 60;
 
 
 function logMessage(type, ...items) {
