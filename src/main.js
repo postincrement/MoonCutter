@@ -9,9 +9,9 @@ const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
 
-const K3Laser     = require('./k3_laser');
-const GCodeLaser  = require('./gcode_laser');
-const TestLaser   = require('./test_laser');
+const K3Laser     = require('./k3-laser');
+const GCodeLaser  = require('./gcode-laser');
+const TestLaser   = require('./test-laser');
 
 const { createLogWindow, logMessage } = require('./log');
 

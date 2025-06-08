@@ -53,13 +53,18 @@
                                 <button id="loadImageButton">Load Image File</button>
                                 <button id="clearImageButton">Clear Image</button>
                             </div>
-                            <div class="control-buttons">
-                                <button id="rotateLeftButton">
-                                    <img src="images/rotate-left.png" alt="Rotate Left">
-                                </button>
-                                <button id="rotateRightButton">
-                                    <img src="images/rotate-right.png" alt="Rotate Right">
-                                </button>
+                            <div class="scale-control">
+                                <label>Effects:</label>
+                                <div class="scale-input-group">
+                                    <div class="style-buttons" style="display: flex; gap: 0.5em;">
+                                        <button id="rotateLeftButton" class="style-button">
+                                            <img src="images/rotate-left.png" alt="Rotate Left" style="width: 14px; height: 14px;">
+                                        </button>
+                                        <button id="rotateRightButton" class="style-button">
+                                            <img src="images/rotate-right.png" alt="Rotate Right" style="width: 14px; height: 14px;">
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="scale-control">
                                 <label for="thresholdSlider">Threshold: <span id="thresholdValue">128</span></label>
@@ -99,14 +104,14 @@
                                 </div>
                             </div>
                             <div class="scale-control">
-                                <label>Rotation:</label>
+                                <label>Effects:</label>
                                 <div class="scale-input-group">
                                     <div class="style-buttons" style="display: flex; gap: 0.5em;">
                                         <button id="rotateTextLeftButton" class="style-button">
-                                            <img src="images/rotate-left.png" alt="Rotate Left" style="width: 16px; height: 16px;">
+                                            <img src="images/rotate-left.png" alt="Rotate Left" style="width: 14px; height: 14px;">
                                         </button>
                                         <button id="rotateTextRightButton" class="style-button">
-                                            <img src="images/rotate-right.png" alt="Rotate Right" style="width: 16px; height: 16px;">
+                                            <img src="images/rotate-right.png" alt="Rotate Right" style="width: 14px; height: 14px;">
                                         </button>
                                     </div>
                                 </div>
@@ -123,13 +128,13 @@
                                         <button id="italicButton" class="style-button" style="font-style: italic;">I</button>
                                         <button id="underlineButton" class="style-button" style="text-decoration: underline;">U</button>
                                         <button id="justifyLeftButton" class="style-button active">
-                                            <img src="images/left_justify.png" alt="Left Justify" style="width: 16px; height: 16px;">
+                                            <img src="images/left-justify.png" alt="Left Justify" style="width: 16px; height: 16px;">
                                         </button>
                                         <button id="justifyCenterButton" class="style-button">
-                                            <img src="images/center_justify.png" alt="Center Justify" style="width: 16px; height: 16px;">
+                                            <img src="images/center-justify.png" alt="Center Justify" style="width: 16px; height: 16px;">
                                         </button>
                                         <button id="justifyRightButton" class="style-button">
-                                            <img src="images/right_justify.png" alt="Right Justify" style="width: 16px; height: 16px;">
+                                            <img src="images/right-justify.png" alt="Right Justify" style="width: 16px; height: 16px;">
                                         </button>
                                     </div>
                                 </div>
