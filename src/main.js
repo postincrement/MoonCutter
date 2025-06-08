@@ -342,18 +342,20 @@ const userDataPath = app.getPath('userData');
 const preferencesPath = path.join(userDataPath, 'preferences.json');
 
 function loadPreferences() {
+  logMessage('info', 'Loading preferences from:', preferencesPath);
     try {
         if (fs.existsSync(preferencesPath)) {
             const data = fs.readFileSync(preferencesPath, 'utf8');
-            return JSON.parse(data);
+            const preferences = JSON.parse(data);
+            logMessage('info', 'main Preferences loaded:', preferences);
+            return preferences;
         }
     } catch (err) {
         console.error('Error loading preferences:', err);
     }
     // Default preferences
     return {
-        units: 'mm',
-        scaleMode: 'corner'
+        units: 'mm'
     };
 }
 

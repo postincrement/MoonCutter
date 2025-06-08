@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
     <title>MoonCutter</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -75,10 +76,10 @@
                             </div>
                             <div class="offset-display">
                                 <div class="offset-value">
-                                    X:<input type="number" id="offsetXInput" class="offset-input" step="0.1" value="0"> mm
+                                    X:<input type="number" id="offsetXInput" class="offset-input" step="0.1" value="0"> <span class="unit-display">mm</span>
                                 </div>
                                 <div class="offset-value">
-                                    Y:<input type="number" id="offsetYInput" class="offset-input" step="0.1" value="0"> mm
+                                    Y:<input type="number" id="offsetYInput" class="offset-input" step="0.1" value="0"> <span class="unit-display">mm</span>
                                 </div>
                             </div>
                             <div class="scale-control">
@@ -191,6 +192,7 @@
         </div>
     </div>
     <script src="constants.js"></script>
+    <script src="preferences.js"></script>
     <script src="imagebuffer.js"></script>
     <script src="image.js"></script>
     <script src="text.js"></script>

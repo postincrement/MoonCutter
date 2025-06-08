@@ -70,20 +70,6 @@ powerSlider.addEventListener('input', () => {
     powerValue.textContent = powerSlider.value;
 });
 
-function logMessage(type, ...items) {
-  const formattedMessage = items.map(item => {
-    if (typeof item === 'object') {
-      try {
-        return JSON.stringify(item, null, 2); 
-      } catch (e) {
-        return String(item);
-      }
-    }
-    return String(item);
-  }).join(' ');
-  console.log(formattedMessage);
-  window.api.logMessage(formattedMessage, type);
-}
 
 ////////////////////////////////////////////////////////////
 //
@@ -585,10 +571,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function drawScaleIndicators(horizontalValue, verticalValue) 
 {
-  logMessage('info', `drawScaleIndicators: ${horizontalValue}x${verticalValue}`);
+  const units = window.preferencesManager.getPreference('units');
+  logMessage('info', `drawScaleIndicators: ${horizontalValue}x${verticalValue} units: ${units}`);
     
   canvas = document.getElementById('bitmapCanvas');
   ctx = canvas.getContext('2d');
+
+  // Get current units from preferences
+  
+  // Convert values to current units if needed
+  let horizontalDisplay = horizontalValue;
+  let verticalDisplay = verticalValue;
+  
+  if (units === 'in') {
+    // Convert mm to inches (divide by 25.4)
+    const horizontalMm = parseFloat(horizontalValue);
+    const verticalMm = parseFloat(verticalValue);
+    horizontalDisplay = (horizontalMm / 25.4).toFixed(2) + ' in';
+    verticalDisplay = (verticalMm / 25.4).toFixed(2) + ' in';
+  }
 
   // Set text properties
   ctx.font = '12px monospace';
@@ -614,7 +615,7 @@ function drawScaleIndicators(horizontalValue, verticalValue)
     ctx.fill();
 
     // get the width of the text
-    const textWidth = ctx.measureText(horizontalValue).width;
+    const textWidth = ctx.measureText(horizontalDisplay).width;
     const textLeftX = g_bitmapWidth/2 - textWidth/2;
 
     // draw line from left arrow to just before the text
@@ -628,7 +629,7 @@ function drawScaleIndicators(horizontalValue, verticalValue)
     ctx.stroke();
 
     // Draw text
-    ctx.fillText(horizontalValue, g_bitmapWidth/2, BORDER/2);
+    ctx.fillText(horizontalDisplay, g_bitmapWidth/2, BORDER/2);
   }
   ctx.restore();
 
@@ -637,7 +638,6 @@ function drawScaleIndicators(horizontalValue, verticalValue)
   {
     ctx.translate(0, BORDER+g_bitmapHeight);
     ctx.rotate(-Math.PI/2);
-    //ctx.translate(-BORDER, 0);
     
     // Top arrow
     ctx.moveTo(g_bitmapHeight, BORDER/2);
@@ -651,7 +651,7 @@ function drawScaleIndicators(horizontalValue, verticalValue)
     ctx.fill();
 
     // get the width of the text
-    const textWidth = ctx.measureText(verticalValue).width;
+    const textWidth = ctx.measureText(verticalDisplay).width;
     const textLeftX = g_bitmapHeight/2 - textWidth/2;
 
     // draw line from left arrow to just before the text
@@ -665,7 +665,7 @@ function drawScaleIndicators(horizontalValue, verticalValue)
     ctx.stroke();
 
     // Draw text
-    ctx.fillText(verticalValue, g_bitmapHeight/2, BORDER/2);
+    ctx.fillText(verticalDisplay, g_bitmapHeight/2, BORDER/2);
   }
   ctx.restore();
 
@@ -937,4 +937,60 @@ function updateProgress(progress) {
         progressFill.style.width = `${progress}%`;
         progressText.textContent = `${progress}%`;
     }
+}
+
+// render the image buffer to the canvas
+function renderImageToCanvas() 
+{
+  const engraveCanvas = renderImageToEngraveBuffer();
+
+  // clear the bitmap portion of the canvas
+  const canvas = document.getElementById('bitmapCanvas');
+  const ctx = canvas.getContext('2d');
+
+  ctx.save();
+  ctx.translate(BORDER, BORDER);
+
+  // draw the engrave buffer image on the canvas
+  ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
+  ctx.drawImage(engraveCanvas, 0, 0, g_bitmapWidth, g_bitmapHeight);
+
+  // Draw center lines
+  ctx.strokeStyle = 'red';
+  ctx.lineWidth = 1;
+
+  // Vertical center line
+  ctx.beginPath();
+  ctx.moveTo(g_bitmapWidth/2, 0);
+  ctx.lineTo(g_bitmapWidth/2, g_bitmapHeight);
+  ctx.stroke();
+
+  // Horizontal center line
+  ctx.beginPath();
+  ctx.moveTo(0,             g_bitmapHeight/2);
+  ctx.lineTo(g_bitmapWidth, g_bitmapHeight/2);
+  ctx.stroke();
+
+  // convert bounding box to canvas coordinates
+  const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
+  const bitmapBoundingBox = {
+    left:   Math.floor(g_boundingBox.left * canvasScale),
+    top:    Math.floor(g_boundingBox.top * canvasScale),
+    right:  Math.floor(g_boundingBox.right * canvasScale),
+    bottom: Math.floor(g_boundingBox.bottom * canvasScale)
+  };
+
+  // draw the outline of the bounding box
+  ctx.strokeStyle = 'green';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bitmapBoundingBox.left, bitmapBoundingBox.top, 
+                 bitmapBoundingBox.right - bitmapBoundingBox.left, 
+                 bitmapBoundingBox.bottom - bitmapBoundingBox.top);
+
+  ctx.restore();
+
+  // Redraw scale indicators
+  if (g_engraverDimensions) {
+    drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
+  }
 }

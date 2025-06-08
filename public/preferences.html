@@ -100,21 +100,8 @@
                     Millimeters
                 </label>
                 <label class="radio-option">
-                    <input type="radio" name="units" value="inches">
+                    <input type="radio" name="units" value="in">
                     Inches
-                </label>
-            </div>
-        </div>
-        <div class="preference-group">
-            <div class="preference-label">Scale Mode</div>
-            <div class="radio-group">
-                <label class="radio-option">
-                    <input type="radio" name="scaleMode" value="corner" checked>
-                    Scale from Corner
-                </label>
-                <label class="radio-option">
-                    <input type="radio" name="scaleMode" value="center">
-                    Scale from Center
                 </label>
             </div>
         </div>
@@ -130,14 +117,12 @@
             
             // Set radio buttons based on saved preferences
             document.querySelector(`input[name="units"][value="${preferences.units}"]`).checked = true;
-            document.querySelector(`input[name="scaleMode"][value="${preferences.scaleMode}"]`).checked = true;
         });
 
         // Save preferences when Save button is clicked
         async function savePreferences() {
             const preferences = {
                 units: document.querySelector('input[name="units"]:checked').value,
-                scaleMode: document.querySelector('input[name="scaleMode"]:checked').value
             };
 
             await window.api.savePreferences(preferences);

@@ -8,14 +8,12 @@ body {
 }
 
 .container {
-    width: 100%;
-    height: 100vh;
     display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 20px 0 10px 0;
-    overflow: hidden;
+    flex-direction: column;
+    height: 100vh;
+    padding: 0.5em;
     box-sizing: border-box;
+    background-color: #f0f0f0;
 }
 
 h1 {
@@ -65,15 +63,9 @@ p {
 
 .content-wrapper {
     display: flex;
+    flex: 1;
     gap: 1em;
-    height: calc(100vh - 40px);
-    align-items: stretch;
-    min-width: 850px;
-    width: 100%;
-    margin: 0;
-    padding: 0 20px;
     overflow: hidden;
-    box-sizing: border-box;
 }
 
 .controls {
@@ -141,27 +133,23 @@ p {
 }
 
 .bitmap-container {
-    position: relative;
     flex: 1;
-    min-width: 530px;
-    height: 100%;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
     overflow: hidden;
-    box-sizing: border-box;
+    margin-top: 0;
 }
 
 #bitmapCanvas {
     max-width: 100%;
     max-height: 100%;
-    width: auto;
-    height: auto;
-    border: 1px solid #ddd;
-    background-color: transparent;
-    image-rendering: pixelated;
     object-fit: contain;
-    box-sizing: border-box;
 }
 
 #horizontalScaleCanvas {
@@ -410,19 +398,23 @@ p {
 }
 
 .tab-button {
-    padding: 10px 15px;
+    padding: 8px 16px;
     border: none;
     background: none;
     cursor: pointer;
-    font-size: 14px;
     color: #666;
+    font-size: 14px;
     border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    color: #333;
 }
 
 .tab-button.active {
-    color: #333;
-    border-bottom: 2px solid #4CAF50;
+    color: #007bff;
+    border-bottom-color: #007bff;
 }
 
 .tabs-content {
@@ -909,4 +901,75 @@ p {
     display: flex;
     gap: 0.25em;
     justify-content: flex-start;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 1.5em;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    min-width: 300px;
+}
+
+.modal h2 {
+    margin-top: 0;
+    margin-bottom: 1em;
+    color: #333;
+}
+
+.preferences-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.preference-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5em;
+    margin-top: 1.5em;
+}
+
+.modal-buttons button {
+    padding: 0.5em 1em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#savePreferencesButton {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#cancelPreferencesButton {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+#preferencesButton {
+    padding: 0.25em 0.5em;
+    font-size: 16px;
 } 
