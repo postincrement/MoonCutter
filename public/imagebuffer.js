@@ -30,7 +30,7 @@ class ImageBuffer
 
   setDefaultScale(engraveWidth, engraveHeight) 
   {
-    logMessage('info', `setDefaultScale(): engrave buffer size: ${engraveWidth}x${engraveHeight}`);
+    //logMessage('debug', `setDefaultScale(): engrave buffer size: ${engraveWidth}x${engraveHeight}`);
     
     // Calculate scaling to fit image into engraving buffer while maintaining aspect ratio and zero rotation
     this.m_rotateAngle = 0;
@@ -63,7 +63,7 @@ class ImageBuffer
     scaledCtx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height);
     scaledCtx.restore();
   
-    logMessage('info', `scaled canvas size: ${scaledCanvas.width}x${scaledCanvas.height}`);
+    //logMessage('debug', `scaled canvas size: ${scaledCanvas.width}x${scaledCanvas.height}`);
   
     // get the transformed image data
     return scaledCanvas;
@@ -77,7 +77,7 @@ class ImageBuffer
     const rotatedWidth  = Math.round(Math.abs(sourceCanvas.width * Math.cos(radians)) + Math.abs(sourceCanvas.height * Math.sin(radians)));
     const rotatedHeight = Math.round(Math.abs(sourceCanvas.width * Math.sin(radians)) + Math.abs(sourceCanvas.height * Math.cos(radians)));
   
-    logMessage('info', `rotated by ${this.m_rotateAngle} degrees: ${rotatedWidth}x${rotatedHeight}`);
+    //logMessage('debug', `rotated by ${this.m_rotateAngle} degrees: ${rotatedWidth}x${rotatedHeight}`);
   
     // Create a temporary canvas for the destination image
     const rotatedCanvas = document.createElement('canvas');
@@ -85,7 +85,7 @@ class ImageBuffer
     rotatedCanvas.width  = rotatedWidth;
     rotatedCanvas.height = rotatedHeight;
   
-    logMessage('info', `rotated canvas size: ${rotatedWidth}x${rotatedCanvas.height}`);
+    //logMessage('debug', `rotated canvas size: ${rotatedWidth}x${rotatedCanvas.height}`);
   
     // draw the source canvas onto the destination canvas with rotation
     rotatedCtx.save();
@@ -182,23 +182,19 @@ class ImageBuffer
     const scaledWidth  = Math.round(this.m_width * this.m_imageScale);
     const scaledHeight = Math.round(this.m_height * this.m_imageScale);
   
-    logMessage('info', `--------------------------------`);
-  
-    logMessage('info', `scaled width: ${scaledWidth}, scaled height: ${scaledHeight}`);
+    //logMessage('debug', `scaled width: ${scaledWidth}, scaled height: ${scaledHeight}`);
   
     // calculate the rotated width
     const rotatedWidth  = Math.round(Math.abs(scaledWidth * Math.cos(degreesToRadians(this.m_rotateAngle))) + Math.abs(scaledHeight * Math.sin(degreesToRadians(this.m_rotateAngle))));
     const rotatedHeight = Math.round(Math.abs(scaledWidth * Math.sin(degreesToRadians(this.m_rotateAngle))) + Math.abs(scaledHeight * Math.cos(degreesToRadians(this.m_rotateAngle))));
   
-    logMessage('info', `angle: ${this.m_rotateAngle}, rotated width: ${rotatedWidth}, rotated height: ${rotatedHeight}`);
+    //logMessage('debug', `angle: ${this.m_rotateAngle}, rotated width: ${rotatedWidth}, rotated height: ${rotatedHeight}`);
   
     // calculate the offset to center the image on the engrave buffer
     this.m_imageOffsetX = Math.round((engraveWidth - rotatedWidth) / 2);
     this.m_imageOffsetY = Math.round((engraveHeight - rotatedHeight) / 2);
   
-    logMessage('info', `adjusted offset: ${this.m_imageOffsetX}, ${this.m_imageOffsetY}`);
-  
-    logMessage('info', `--------------------------------`);
+    //logMessage('debug', `adjusted offset: ${this.m_imageOffsetX}, ${this.m_imageOffsetY}`);
   }
 
   onScaleChange(value)

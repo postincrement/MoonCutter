@@ -31,13 +31,10 @@ class PreferencesManager {
     }
 
     async loadPreferences() {
-        logMessage('info', 'Loading preferences');
         try {
             const response = await window.api.loadPreferences();
-            logMessage('info', 'loadPreferences response:', response);
             if (response) {
                 this.preferences = { ...this.defaultPreferences, ...response };
-                logMessage('info', 'renderer Preferences loaded:', this.preferences);
             } else {
                 logMessage('error', 'loadPreferences returned no data');
             }
@@ -62,7 +59,6 @@ class PreferencesManager {
             logMessage('warn', 'Preferences not yet initialized, using default value for:', key);
             return this.defaultPreferences[key];
         }
-        logMessage('info', 'getPreference:', key, this.preferences[key]);
         return this.preferences[key];
     }
 

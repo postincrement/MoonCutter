@@ -538,42 +538,42 @@ window.preferencesManager.onPreferenceChange((key, value) => {
 // calculate the scale between the bitmap window and the engraver dimensions
 function resizeBitmapCanvas() 
 {
-    if (!g_engraveBuffer) {
-        return;
-    }
+  if (!g_engraveBuffer) {
+      return;
+  }
 
-    const bitmapContainer = document.querySelector('.bitmap-container');
-    const containerWidth = bitmapContainer.clientWidth;
-    const containerHeight = bitmapContainer.clientHeight;
+  const bitmapContainer = document.querySelector('.bitmap-container');
+  const containerWidth = bitmapContainer.clientWidth;
+  const containerHeight = bitmapContainer.clientHeight;
 
-    logMessage('info', `container size: ${containerWidth}x${containerHeight}`);
+  logMessage('info', `container size: ${containerWidth}x${containerHeight}`);
 
-    // Calculate scale to fit the container while maintaining aspect ratio
-    const scaleX = (containerWidth - BORDER) / g_engraveBuffer.m_width;
-    const scaleY = (containerHeight - BORDER) / g_engraveBuffer.m_height;
-    const scale = Math.min(scaleX, scaleY);
+  // Calculate scale to fit the container while maintaining aspect ratio
+  const scaleX = (containerWidth - BORDER) / g_engraveBuffer.m_width;
+  const scaleY = (containerHeight - BORDER) / g_engraveBuffer.m_height;
+  const scale = Math.min(scaleX, scaleY);
 
-    // Calculate new dimensions
-    g_bitmapWidth = Math.floor(g_engraveBuffer.m_width * scale);
-    g_bitmapHeight = Math.floor(g_engraveBuffer.m_height * scale);
+  // Calculate new dimensions
+  g_bitmapWidth = Math.floor(g_engraveBuffer.m_width * scale);
+  g_bitmapHeight = Math.floor(g_engraveBuffer.m_height * scale);
 
-    // Update canvas size
-    const canvas = document.getElementById('bitmapCanvas');
-    canvas.width = BORDER + g_bitmapWidth;
-    canvas.height = BORDER + g_bitmapHeight;
+  // Update canvas size
+  const canvas = document.getElementById('bitmapCanvas');
+  canvas.width = BORDER + g_bitmapWidth;
+  canvas.height = BORDER + g_bitmapHeight;
 
-    if (canvas.height < canvas.width) {
-      canvas.height += BORDER/2;
-    }
-    else {
-      canvas.width += BORDER/2;
-    }
+  if (canvas.height < canvas.width) {
+    canvas.height += BORDER/2;
+  }
+  else {
+    canvas.width += BORDER/2;
+  }
 
-    logMessage('info', `bitmap size: ${g_bitmapWidth}x${g_bitmapHeight}`);
-    logMessage('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
+  logMessage('info', `bitmap size: ${g_bitmapWidth}x${g_bitmapHeight}`);
+  logMessage('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
 
-    // Force a re-render
-    renderImageToCanvas();
+  // Force a re-render
+  renderImageToCanvas();
 }
 
 // Initial resize
@@ -600,10 +600,10 @@ function drawScaleIndicators()
   
   if (units === 'in') {
     // Convert mm to inches (divide by 25.4)
-    engraverWidth     = (engraverWidthMm / 25.4).toFixed(2) + ' in';
-    engraverHeight    = (engraverHeightMm / 25.4).toFixed(2) + ' in';
-    boundingBoxWidth  = (boundingBoxWidthMm / 25.4).toFixed(2) + ' in';
-    boundingBoxHeight = (boundingBoxHeightMm / 25.4).toFixed(2) + ' in';
+    engraverWidth     = (engraverWidthMm / 25.4).toFixed(2) + '"';
+    engraverHeight    = (engraverHeightMm / 25.4).toFixed(2) + '"';
+    boundingBoxWidth  = (boundingBoxWidthMm / 25.4).toFixed(2) + '"';
+    boundingBoxHeight = (boundingBoxHeightMm / 25.4).toFixed(2) + '"';
   }
   else {
     engraverWidth     = (engraverWidthMm * 1.0).toFixed(2) + ' mm';
@@ -612,19 +612,15 @@ function drawScaleIndicators()
     boundingBoxHeight = (boundingBoxHeightMm * 1.0).toFixed(2) + ' mm';
   }
 
-  logMessage('info', `engraver width: ${engraverWidth}, engraver height: ${engraverHeight}, bounding box width: ${boundingBoxWidth}, bounding box height: ${boundingBoxHeight}`);
-
   const canvas = document.getElementById('bitmapCanvas');
   const ctx = canvas.getContext('2d');
 
   // clear indicator regions
   ctx.save();
 
-  ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
-  ctx.fillStyle = 'green';
-  ctx.fillRect(0, 0, g_bitmapWidth, BORDER);
-  ctx.fillRect(0, BORDER, BORDER, g_bitmapHeight);
-
+  //ctx.fillStyle = 'green';
+  //ctx.fillRect(0, 0, g_bitmapWidth + BORDER, BORDER);
+  //ctx.fillRect(0, BORDER, BORDER, g_bitmapHeight);
 
   // Set text properties
   ctx.font = '12px monospace';
@@ -635,73 +631,31 @@ function drawScaleIndicators()
   const bbXScale = g_bitmapWidth / g_engraveBuffer.m_width;
   const bbYScale = g_bitmapHeight / g_engraveBuffer.m_height;
 
-  drawHorizontalScale(ctx, 0,                             0,        g_bitmapWidth,      engraverWidth);
-  //drawHorizontalScale(ctx, g_boundingBox.left * bbXScale, BORDER/2, bbWidth * bbXScale, boundingBoxWidth);
+  drawHorizontalScale(ctx, 0, 0, g_bitmapWidth,  engraverWidth);
+  drawVerticalScale  (ctx, 0, 0, g_bitmapHeight, engraverHeight);
 
-  drawVerticalScale(ctx,      0,        g_bitmapHeight,      engraverHeight);
-  //drawVerticalScale(ctx,      BORDER/2, bbHeight * bbYScale, boundingBoxHeight);
-  
+  if (bbWidth != 0 && bbHeight != 0) {
+    drawHorizontalScale(ctx, g_boundingBox.left * bbXScale, BORDER/2, bbWidth * bbXScale,  boundingBoxWidth);
+
+    const bbYOffset = g_bitmapHeight - (g_boundingBox.bottom * bbYScale);
+    drawVerticalScale  (ctx, bbYOffset,  BORDER/2, bbHeight * bbYScale, boundingBoxHeight);
+  }
+
   ctx.restore();
 }
 
 function drawHorizontalScale(ctx, xoffset, yoffset, length, value) 
 {
-  const height = BORDER/2;
-    
   // Draw horizontal scale
   ctx.save();
   
   ctx.translate(BORDER, yoffset);
 
-  // clear the rectangle from the left arrow to the right arrow
-  //ctx.save();
-  //ctx.fillStyle = 'white';
-  //ctx.fillRect(0, 0, g_bitmapWidth, height);
-  //ctx.restore();
-
-  // Left arrow
-  ctx.moveTo(xoffset + 0, height/2);
-  ctx.lineTo(xoffset + 5, height/2 - 5);
-  ctx.lineTo(xoffset + 5, height/2 + 5);
-  ctx.fill();
-
-  // Right arrow
-  //ctx.moveTo(length,     height/2);
-  //ctx.lineTo(length - 5, height/2 - 5);
-  //ctx.lineTo(length - 5, height/2 + 5);
-  //ctx.fill();
-
-  // get the width of the text
-  const textWidth = ctx.measureText(value).width;
-  const textLeftX = g_bitmapWidth/2 - textWidth/2;
-
-  ctx.save();
-  ctx.fillStyle = 'white';
-  ctx.fillRect(textLeftX, 0, textWidth, height);
-  ctx.restore();
-
-  // draw line from left arrow to just before the text
-  //ctx.strokeStyle = 'cyan';
-  //ctx.moveTo(0, height/2);
-  //ctx.lineTo(textLeftX - 5, height/2);
-  //ctx.stroke();
-
-  // draw line from right arrow to just after the text
-  //ctx.strokeStyle = 'cyan';
-  //ctx.moveTo(length, height/2);
-  //ctx.lineTo(textLeftX + textWidth + 5, height/2);
-  //ctx.stroke();
-
-  // Draw text
-  ctx.fillText(value, g_bitmapWidth/2, height/2);
-  
-  ctx.restore();
+  drawScale(ctx, xoffset, length, value);
 }
 
-function drawVerticalScale(ctx, yoffset, length, value) 
+function drawVerticalScale(ctx, xoffset, yoffset, length, value) 
 {
-  const height = BORDER/2;
-
   // Draw vertical scale
   ctx.save();
 
@@ -709,37 +663,61 @@ function drawVerticalScale(ctx, yoffset, length, value)
   ctx.rotate(-Math.PI/2);
   ctx.translate(0, yoffset);
 
-  // clear the rectangle from the top arrow to the bottom arrow
-  //ctx.clearRect(0, 0, g_bitmapHeight, height);
+  drawScale(ctx, xoffset, length, value);
+}
 
-  // Top arrow
-  ctx.moveTo(g_bitmapHeight,     height/2);
-  ctx.lineTo(g_bitmapHeight - 5, height/2 - 5);
-  ctx.lineTo(g_bitmapHeight - 5, height/2 + 5);
 
-  // Bottom arrow
-  ctx.moveTo(0, height/2);
-  ctx.lineTo(5, height/2+5);
-  ctx.lineTo(5, height/2-5);
+function drawScale(ctx, xoffset, length, value) 
+{
+  const height = BORDER/2;
+    
+  // clear the rectangle from the left arrow to the right arrow
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, g_bitmapWidth, height);
+
+  // Left arrow
+  ctx.beginPath();
+  ctx.fillStyle = 'black';
+  ctx.moveTo(xoffset + 0, height/2);
+  ctx.lineTo(xoffset + 5, height/2 - 5);
+  ctx.lineTo(xoffset + 5, height/2 + 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Right arrow
+  ctx.beginPath();
+  ctx.moveTo(xoffset + length,     height/2);
+  ctx.lineTo(xoffset + length - 5, height/2 - 5);
+  ctx.lineTo(xoffset + length - 5, height/2 + 5);
+  ctx.closePath();
   ctx.fill();
 
   // get the width of the text
   const textWidth = ctx.measureText(value).width;
-  const textLeftX = g_bitmapHeight/2 - textWidth/2;
+  const textLeftX = xoffset + length/2 - textWidth/2;
+
+  ctx.save();
+  ctx.fillStyle = 'white';
+  ctx.fillRect(textLeftX, 0, textWidth, height);
+  ctx.restore();
 
   // draw line from left arrow to just before the text
-  ctx.moveTo(0, height/2);
+  ctx.beginPath();
+  ctx.moveTo(xoffset, height/2);
   ctx.lineTo(textLeftX - 5, height/2);
+  ctx.closePath();
   ctx.stroke();
 
   // draw line from right arrow to just after the text
-  ctx.moveTo(g_bitmapHeight, height/2);
+  ctx.beginPath();
+  ctx.moveTo(xoffset + length, height/2);
   ctx.lineTo(textLeftX + textWidth + 5, height/2);
+  ctx.closePath();
   ctx.stroke();
 
   // Draw text
-  ctx.fillText(value, g_bitmapHeight/2, height/2);
-
+  ctx.fillText(value, xoffset + length/2, height/2);
+  
   ctx.restore();
 }
 

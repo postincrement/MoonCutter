@@ -13,12 +13,12 @@ g_boundingBox  = null;
 // create a default image and remove any text. Used on start
 function setDefaultImage()
 {
-  logMessage('info', `setDefaultImage()`);
+  //logMessage('debug', `setDefaultImage()`);
 
   g_textImageBuffer = null;
 
   if (g_engraveBuffer) {
-    logMessage('info', `image buffer size is ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
+    //logMessage('debug', `image buffer size is ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
     g_imageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
   }
   else {
@@ -28,10 +28,10 @@ function setDefaultImage()
 
   g_imageBuffer.m_default = true;
 
-  logMessage('info', `default image size is ${g_imageBuffer.m_width}x${g_imageBuffer.m_height}`);
+  //logMessage('debug', `default image size is ${g_imageBuffer.m_width}x${g_imageBuffer.m_height}`);
 
   const scale = Math.floor((g_imageBuffer.m_height + g_imageBuffer.m_width) / 256);
-  logMessage('info', `scale: ${scale}`);
+  //logMessage('debug', `scale: ${scale}`);
 
   // Create a grayscale gradient pattern directly in the buffer
   for (let y = 0; y < g_imageBuffer.m_height; y++) {
@@ -50,7 +50,7 @@ function setDefaultImage()
   newImage();
 
   g_boundingBox = findBoundingBox();
-  logMessage('info', `default bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
+  //logMessage('debug', `default bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
 
   renderImageToCanvas();
 };
@@ -91,14 +91,14 @@ function loadImage(img)
 // common code for default image and image loaded from a file
 function newImage() {
 
-  logMessage('info', `newImage()`);
+  //logMessage('debug', `newImage()`);
     
   g_imageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
 
-  logMessage('info', `image scale: ${g_imageBuffer.m_imageScale}`);
-  logMessage('info', `image offset: ${g_imageBuffer.m_imageOffsetX}, ${g_imageBuffer.m_imageOffsetY}`);
-  logMessage('info', `image rotate: ${g_imageBuffer.m_rotateAngle}`);
-  logMessage('info', `image threshold: ${g_imageBuffer.m_threshold}`);
+  //logMessage('debug', `image scale: ${g_imageBuffer.m_imageScale}`);
+  //logMessage('debug', `image offset: ${g_imageBuffer.m_imageOffsetX}, ${g_imageBuffer.m_imageOffsetY}`);
+  //logMessage('debug', `image rotate: ${g_imageBuffer.m_rotateAngle}`);
+  //logMessage('debug', `image threshold: ${g_imageBuffer.m_threshold}`);
   
   // Update threshold slider to current value
   const thresholdSlider = document.getElementById('thresholdSlider');
@@ -145,7 +145,7 @@ function renderImageToEngraveBuffer()
 
   // find the bounding box of the engraved image
   g_boundingBox = findBoundingBox();
-  logMessage('info', `image bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
+  //logMessage('debug', `image bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
 
   return engraveCanvas;
 }
