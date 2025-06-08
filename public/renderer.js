@@ -124,7 +124,7 @@ async function setDeviceType(deviceType) {
     
     resizeBitmapCanvas();
 
-    drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
+    drawScaleIndicators();
   }
   setConnectedState(false);
   logMessage('info', `setDeviceType end`);
@@ -524,16 +524,14 @@ window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
         resizeBitmapCanvas();
-        if (g_engraverDimensions) {
-            drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
-        }
+        drawScaleIndicators();
     }, 100);
 });
 
 // Add preference change handler
 window.preferencesManager.onPreferenceChange((key, value) => {
     if (key === 'units' && g_engraverDimensions) {
-        drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
+        drawScaleIndicators();
     }
 });
 
@@ -576,8 +574,15 @@ document.addEventListener('DOMContentLoaded', () => {
     resizeBitmapCanvas();
 });
 
-function drawScaleIndicators(horizontalValue, verticalValue) 
+function drawScaleIndicators() 
 {
+  if (!g_engraverDimensions) {
+    return;
+  }
+
+  var horizontalValue = g_engraverDimensions.widthMm;
+  var verticalValue = g_engraverDimensions.heightMm;
+
   const units = window.preferencesManager.getPreference('units');
   logMessage('info', `drawScaleIndicators: ${horizontalValue}x${verticalValue} units: ${units}`);
     
@@ -587,15 +592,17 @@ function drawScaleIndicators(horizontalValue, verticalValue)
   // Get current units from preferences
   
   // Convert values to current units if needed
-  let horizontalDisplay = horizontalValue;
-  let verticalDisplay = verticalValue;
+  var horizontalDisplay;
+  var verticalDisplay;
   
   if (units === 'in') {
     // Convert mm to inches (divide by 25.4)
-    const horizontalMm = parseFloat(horizontalValue);
-    const verticalMm = parseFloat(verticalValue);
-    horizontalDisplay = (horizontalMm / 25.4).toFixed(2) + ' in';
-    verticalDisplay = (verticalMm / 25.4).toFixed(2) + ' in';
+    horizontalDisplay = (g_engraverDimensions.widthMm / 25.4).toFixed(2) + ' in';
+    verticalDisplay = (g_engraverDimensions.heightMm / 25.4).toFixed(2) + ' in';
+  }
+  else {
+    horizontalDisplay = horizontalValue + ' mm';
+    verticalDisplay = verticalValue + ' mm';
   }
 
   // Set text properties
@@ -610,7 +617,10 @@ function drawScaleIndicators(horizontalValue, verticalValue)
     ctx.translate(BORDER, 0);
 
     // clear the rectangle from the left arrow to the right arrow
-    ctx.clearRect(0, BORDER/2 - 5, g_bitmapWidth, BORDER/2 + 5);
+    ctx.save();
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, g_bitmapWidth, BORDER);
+    ctx.restore();
 
     // Left arrow
     ctx.moveTo(0, BORDER/2);
@@ -628,12 +638,19 @@ function drawScaleIndicators(horizontalValue, verticalValue)
     const textWidth = ctx.measureText(horizontalDisplay).width;
     const textLeftX = g_bitmapWidth/2 - textWidth/2;
 
+    ctx.save();
+    ctx.fillStyle = 'magenta';
+    ctx.fillRect(textLeftX, 0, textWidth, BORDER);
+    ctx.restore();
+
     // draw line from left arrow to just before the text
+    //ctx.strokeStyle = 'cyan';
     ctx.moveTo(0, BORDER/2);
     ctx.lineTo(textLeftX - 5, BORDER/2);
     ctx.stroke();
 
     // draw line from right arrow to just after the text
+    //ctx.strokeStyle = 'cyan';
     ctx.moveTo(g_bitmapWidth, BORDER/2);
     ctx.lineTo(textLeftX + textWidth + 5, BORDER/2);
     ctx.stroke();
@@ -650,7 +667,7 @@ function drawScaleIndicators(horizontalValue, verticalValue)
     ctx.rotate(-Math.PI/2);
 
     // clear the rectangle from the top arrow to the bottom arrow
-    ctx.clearRect(0, BORDER/2 - 5, g_bitmapHeight, BORDER/2 + 5);
+    ctx.clearRect(0, 0, g_bitmapHeight, BORDER);
     
     // Top arrow
     ctx.moveTo(g_bitmapHeight, BORDER/2);

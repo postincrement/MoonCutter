@@ -131,10 +131,6 @@ function renderImageToEngraveBuffer()
   engraveCanvas.height = g_engraveBuffer.m_height;
   const engraveCtx = engraveCanvas.getContext('2d');
 
-  // Fill the canvas with white
-  engraveCtx.fillStyle = 'white';
-  engraveCtx.fillRect(0, 0, engraveCanvas.width, engraveCanvas.height);
-
   if (g_imageBuffer) {
     g_imageBuffer.renderToCanvas(engraveCtx);
   }
@@ -163,27 +159,6 @@ function renderImageToCanvas()
   const canvas = document.getElementById('bitmapCanvas');
   const ctx = canvas.getContext('2d');
 
-  ctx.save();
-  ctx.translate(BORDER, BORDER);
-
-  // draw the engrave buffer image on the canvas
-  ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
-  ctx.drawImage(engraveCanvas, 0, 0, g_bitmapWidth, g_bitmapHeight);
-
-  // Draw center lines
-  ctx.save();  // Save the current context state
-  
-  // Set fill style for both lines
-  ctx.fillStyle = '#FF0000';
-
-  // Vertical center line - draw as a filled rectangle
-  ctx.fillRect(g_bitmapWidth/2 - 0.5, 0, 1, g_bitmapHeight);
-
-  // Horizontal center line - draw as a filled rectangle
-  ctx.fillRect(0, g_bitmapHeight/2 - 0.5, g_bitmapWidth, 1);
-
-  ctx.restore();  // Restore the previous context state
-
   // convert bounding box to canvas coordinates
   const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
   const bitmapBoundingBox = {
@@ -192,6 +167,42 @@ function renderImageToCanvas()
     right:  Math.floor(g_boundingBox.right * canvasScale),
     bottom: Math.floor(g_boundingBox.bottom * canvasScale)
   };
+
+  ctx.save();
+  ctx.translate(BORDER, BORDER);
+
+  // draw the engrave buffer image on the canvas
+  ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
+
+  // fill the canvas with white
+  //ctx.fillStyle = 'white';
+  //ctx.fillRect(0, 0, g_bitmapWidth, g_bitmapHeight);
+
+  ctx.drawImage(engraveCanvas, 
+
+                 // source coordinates
+                 g_boundingBox.left, g_boundingBox.top, 
+                 g_boundingBox.right - g_boundingBox.left, 
+                 g_boundingBox.bottom - g_boundingBox.top,
+
+                 // destination coordinates
+                 bitmapBoundingBox.left, bitmapBoundingBox.top, 
+                 bitmapBoundingBox.right - bitmapBoundingBox.left, 
+                 bitmapBoundingBox.bottom - bitmapBoundingBox.top);
+
+  // Draw center lines
+  ctx.save();  // Save the current context state
+  
+  // Set fill style for both lines
+  ctx.fillStyle = 'red';
+
+  // Vertical center line - draw as a filled rectangle
+  ctx.fillRect(g_bitmapWidth/2 - 0.5, 0, 1, g_bitmapHeight);
+
+  // Horizontal center line - draw as a filled rectangle
+  ctx.fillRect(0, g_bitmapHeight/2 - 0.5, g_bitmapWidth, 1);
+
+  ctx.restore();  // Restore the previous context state
 
   // draw the outline of the bounding box
   ctx.strokeStyle = 'green';
@@ -203,10 +214,7 @@ function renderImageToCanvas()
   ctx.restore();
 
   // Redraw scale indicators
-  if (g_engraverDimensions) {
-    drawScaleIndicators(g_engraverDimensions.widthMm + ' mm', g_engraverDimensions.heightMm + ' mm');
-  }
-
+  drawScaleIndicators();
 }
 
 // find the bounding box of the engraver image
