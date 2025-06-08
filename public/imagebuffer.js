@@ -21,7 +21,7 @@ class ImageBuffer
     this.m_threshold    = 128;  // Default threshold value
 
     this.m_invertImage = false;
-    this.m_dithering   = true;
+    this.m_dithering   = false;
     
     this.clear();
   }
@@ -201,6 +201,8 @@ class ImageBuffer
 
   renderToCanvas(engraveCtx)
   {
+    logMessage('debug', `renderToCanvas(): dithering: ${this.m_dithering}, invert: ${this.m_invertImage}`);
+
     // load the raw image data into a new ImageData object
     const loadedImageData = new ImageData(this.m_data, this.m_width, this.m_height);
 

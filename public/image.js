@@ -303,6 +303,28 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.blur(); // Remove focus from input
         }
     });
+
+    // Add event listeners for dither and invert buttons
+    const ditherButton = document.getElementById('ditherButton');
+    const invertButton = document.getElementById('invertButton');
+
+    ditherButton.addEventListener('click', () => {
+        if (g_imageBuffer) {
+            g_imageBuffer.m_dithering = !g_imageBuffer.m_dithering;
+            ditherButton.classList.toggle('active', g_imageBuffer.m_dithering);
+            logMessage('debug', `dithering: ${g_imageBuffer.m_dithering}`);
+            renderImageToCanvas();
+        }
+    });
+
+    invertButton.addEventListener('click', () => {
+        if (g_imageBuffer) {
+            g_imageBuffer.m_invertImage = !g_imageBuffer.m_invertImage;
+            invertButton.classList.toggle('active', g_imageBuffer.m_invertImage);
+            logMessage('debug', `inversion: ${g_imageBuffer.m_invertImage}`);
+            renderImageToCanvas();
+        }
+    });
 });
 
 // Add event listeners for scale controls

@@ -52,17 +52,23 @@
                         <div class="image-content" style="display: flex; flex-direction: column; gap: 1em;">
                             <div class="control-buttons" style="display: flex; gap: 1em;">
                                 <button id="loadImageButton">Load Image File</button>
-                                <button id="clearImageButton">Clear Image</button>
+                                <button id="clearImageButton" title="Clear Current Image">Clear Image</button>
                             </div>
                             <div class="scale-control">
                                 <label>Effects:</label>
                                 <div class="scale-input-group">
                                     <div class="style-buttons" style="display: flex; gap: 0.5em;">
-                                        <button id="rotateLeftButton" class="style-button">
+                                        <button id="rotateLeftButton" class="style-button" title="Rotate Left">
                                             <img src="images/rotate-left.png" alt="Rotate Left" style="width: 14px; height: 14px;">
                                         </button>
-                                        <button id="rotateRightButton" class="style-button">
+                                        <button id="rotateRightButton" class="style-button" title="Rotate Right">
                                             <img src="images/rotate-right.png" alt="Rotate Right" style="width: 14px; height: 14px;">
+                                        </button>
+                                        <button id="ditherButton" class="style-button" title="Toggle Dithering">
+                                            <img src="images/dither.png" alt="Dither" style="width: 14px; height: 14px;">
+                                        </button>
+                                        <button id="invertButton" class="style-button" title="Toggle Inversion">
+                                            <img src="images/invert.png" alt="Invert" style="width: 14px; height: 14px;">
                                         </button>
                                     </div>
                                 </div>
@@ -70,15 +76,15 @@
                             <div class="scale-control">
                                 <label for="thresholdSlider">Threshold: <span id="thresholdValue">128</span></label>
                                 <div class="scale-input-group">
-                                    <input type="range" id="thresholdSlider" min="0" max="255" value="128" class="slider">
-                                    <input type="number" id="thresholdInput" min="0" max="255" value="128" class="scale-input">
+                                    <input type="range" id="thresholdSlider" min="0" max="255" value="128" class="slider" title="Adjust Threshold">
+                                    <input type="number" id="thresholdInput" min="0" max="255" value="128" class="scale-input" title="Enter Threshold Value">
                                 </div>
                             </div>
                             <div class="scale-control">
                                 <label for="scaleSlider">Scale: <span id="scaleValue">100</span>%</label>
                                 <div class="scale-input-group">
-                                    <input type="range" id="scaleSlider" min="10" max="200" value="100" class="slider">
-                                    <input type="number" id="scaleInput" min="10" max="200" value="100" class="scale-input">
+                                    <input type="range" id="scaleSlider" min="10" max="200" value="100" class="slider" title="Adjust Scale">
+                                    <input type="number" id="scaleInput" min="10" max="200" value="100" class="scale-input" title="Enter Scale Value">
                                 </div>
                             </div>
                         </div>
