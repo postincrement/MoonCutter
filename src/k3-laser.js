@@ -231,7 +231,15 @@ class K3Laser extends Protocol {
     }
 
     // send move command and wait for ack
-    async sendRelativeMove(directionData) {
+    async sendRelativeMove(directionData) 
+    {
+
+      logMessage('info', `Sending relative move dx=${directionData.dx} dy=${directionData.dy}`);
+
+      if (directionData.dx == 0 && directionData.dy == 0) {
+        logMessage('info', `Move is zero, skipping`);
+        return true;
+      }
 
       // update the x coordinate
       this.m_laserX += directionData.dx;
@@ -239,7 +247,12 @@ class K3Laser extends Protocol {
 
       // calculate the timeout based on the distance. 
       const distance = Math.sqrt(Math.pow(directionData.dx, 2) + Math.pow(directionData.dy, 2));
-      const timeout = Math.max(100 + distance * (10000 / 1600), 1000);
+      const timeout = Math.max(100, (distance * (distance < 100 ? 1 : 2)));
+
+      logMessage('info', `Distance: ${distance} -> ${timeout}ms`);
+
+      // start timer
+      const now = Date.now();
 
       logMessage('info', `Sending move dx=${directionData.dx} dy=${directionData.dy} with timeout: ${timeout}`);
 
@@ -276,10 +289,18 @@ class K3Laser extends Protocol {
         return false;
       }
 
+      const elapsedTime = Date.now() - now;
+      logMessage('info', `Move took ${elapsedTime}ms`);
+
+      const delay = timeout;
+      logMessage('info', `Delaying for ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+
       return true;
     }
 
     async sendAbsoluteMove(command) {
+      logMessage('info', `Sending absolute move to ${command.x}, ${command.y}`);
       const relativeCommand = {
         dx: command.x - this.m_laserX,
         dy: command.y - this.m_laserY
@@ -421,6 +442,10 @@ class K3Laser extends Protocol {
 
     async stopEngraving() 
     {
+      // set the laser position to the start position + the line number
+      this.m_laserY = this.m_startY;
+      this.m_laserX = this.m_startX;
+
       // send stop command
       const stopCommand = COMMANDS.STOP;
       const stopAck = await this.sendMessageAndWaitForAck("stop", Buffer.from(stopCommand), TIMEOUTS.STOP);

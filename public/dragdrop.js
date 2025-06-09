@@ -60,11 +60,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tempCanvas.height = g_imageBuffer.m_height;
         const ctx = tempCanvas.getContext('2d');
         
-        // Create ImageData from the buffer
+        // Create ImageData from the engrave buffer
         const imageData = new ImageData(
-            new Uint8ClampedArray(g_imageBuffer.m_data),
-            g_imageBuffer.m_width,
-            g_imageBuffer.m_height
+            new Uint8ClampedArray(g_engraveBuffer.m_data),
+            g_engraveBuffer.m_width,
+            g_engraveBuffer.m_height
         );
         
         // Put the image data on the canvas

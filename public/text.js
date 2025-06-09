@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const justifyLeftButton = document.getElementById('justifyLeftButton');
     const justifyCenterButton = document.getElementById('justifyCenterButton');
     const justifyRightButton = document.getElementById('justifyRightButton');
+    const textInvertButton = document.getElementById('textInvertButton');
 
     // Text input event
     textInput.addEventListener('input', (e) => {
@@ -106,6 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTextToBuffer();
     });
 
+    textInvertButton.addEventListener('click', () => {
+        textInvertButton.classList.toggle('active');
+        updateTextPreview();
+    });
+
     // Justification button events
     justifyLeftButton.addEventListener('click', () => {
         g_textSettings.justify = 'left';
@@ -136,7 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Render text to the text image buffer
-function renderTextToBuffer() {
+function renderTextToBuffer() 
+{
     if (!g_textSettings.text.trim()) {
         // If text is empty, clear the text buffer
         g_textImageBuffer = null;
@@ -185,8 +192,9 @@ function renderTextToBuffer() {
     tempCanvas.width = width;
     tempCanvas.height = height;
 
-    // Clear canvas with transparency
-    ctx.clearRect(0, 0, width, height);
+    // clear rect to white
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
     // Set up text rendering
     ctx.fillStyle = 'black';

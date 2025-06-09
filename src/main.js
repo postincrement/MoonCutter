@@ -185,7 +185,7 @@ app.whenReady().then(() => {
 
       var errorString = '';
       try {
-        var response = await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top })
+        var response =    await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top })
                        && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.top })
                        && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.bottom })
                        && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.bottom })

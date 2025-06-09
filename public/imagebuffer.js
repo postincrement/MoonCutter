@@ -28,7 +28,7 @@ class ImageBuffer
 
   clear() 
   {
-    this.m_data.fill(0); // Fill with transparent black
+    this.m_data.fill(255); // Fill with white
   }
 
   setDefaultScale(engraveWidth, engraveHeight) 
@@ -136,7 +136,7 @@ class ImageBuffer
         const i = (y * thresholdCanvas.width + x) * 4;
 
         // calculate the gray value
-        const grayValue = Math.round(
+        var grayValue = Math.round(
           0.299 * thresholdImageData.data[i] +
           0.587 * thresholdImageData.data[i + 1] +
           0.114 * thresholdImageData.data[i + 2]
@@ -154,8 +154,11 @@ class ImageBuffer
         }
         else {
 
+          // calculate the thresholded value
+          grayValue += thisError[x];
+
           // apply the error to the thresholded value
-          thresholdedValue = (grayValue + thisError[x]) <= this.m_threshold ? black : white;
+          thresholdedValue = grayValue <= this.m_threshold ? black : white;
 
           // apply floyd-steinberg dithering
           const error = (grayValue - thresholdedValue) / 16;
