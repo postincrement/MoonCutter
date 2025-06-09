@@ -901,18 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
 g_clearImageButton.addEventListener('click', () => {
     // Clear the image buffer
     g_imageBuffer = null;
-    
-    // Create a new empty image buffer
-    g_imageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
-    g_imageBuffer.clear();
-    g_imageBuffer.m_default = false;  // Ensure default flag is cleared
-    
-    // Set default scale for the empty image
-    g_imageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
-    
-    // Update UI
-    updateScaleSlider();
-    
+        
     // Force a re-render
     renderImageToCanvas();
 });

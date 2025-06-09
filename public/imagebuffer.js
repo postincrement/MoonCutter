@@ -28,7 +28,12 @@ class ImageBuffer
 
   clear() 
   {
-    this.m_data.fill(255); // Fill with white
+    for (let i = 0; i < this.m_data.length; i+=4) {
+      this.m_data[i] = 255;
+      this.m_data[i+1] = 255;
+      this.m_data[i+2] = 255;
+      this.m_data[i+3] = 0;
+    }
   }
 
   setDefaultScale(engraveWidth, engraveHeight) 
@@ -107,40 +112,33 @@ class ImageBuffer
       return null;
     }
 
-    // create a canvas the same size as the source canvas
-    const thresholdCanvas = document.createElement('canvas');
-    thresholdCanvas.width  = sourceCanvas.width;
-    thresholdCanvas.height = sourceCanvas.height;
-    const thresholdCtx = thresholdCanvas.getContext('2d');
-
     // get the image data from the source canvas
-    const imageData = sourceCanvas.getContext('2d').getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);  
+    const sourceData = sourceCanvas.getContext('2d').getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);  
 
     // get the image data from the threshold canvas
-    const thresholdImageData = thresholdCtx.getImageData(0, 0, thresholdCanvas.width, thresholdCanvas.height);
-
-    // copy the image data to the threshold canvas
-    thresholdImageData.data.set(imageData.data);  
+    const destinationData = new ImageData(sourceData.data, sourceCanvas.width, sourceCanvas.height);
 
     // create a new array to store the error for dithering
-    var nextError = new Array(thresholdCanvas.width);
+    var nextError = new Array(sourceCanvas.width);
     nextError.fill(0);
 
     // apply the threshold to the threshold canvas
-    for (let y = 0; y < thresholdCanvas.height; y++) {
+    for (let y = 0; y < sourceCanvas.height; y++) {
       var thisError = nextError;
-      nextError = new Array(thresholdCanvas.width);
+      nextError = new Array(sourceCanvas.width);
       nextError.fill(0);
-      for (let x = 0; x < thresholdCanvas.width; x++) {
+      for (let x = 0; x < sourceCanvas.width; x++) {
 
-        const i = (y * thresholdCanvas.width + x) * 4;
+        const i = (y * sourceCanvas.width + x) * 4;
 
         // calculate the gray value
         var grayValue = Math.round(
-          0.299 * thresholdImageData.data[i] +
-          0.587 * thresholdImageData.data[i + 1] +
-          0.114 * thresholdImageData.data[i + 2]
+          0.299 * sourceData.data[i] +
+          0.587 * sourceData.data[i + 1] +
+          0.114 * sourceData.data[i + 2]
         );  
+
+        grayValue *= sourceData.data[i+3] / 255;
 
         // invert the image if the invert image checkbox is checked
         const black = this.m_invertImage ? 255 : 0;
@@ -171,35 +169,43 @@ class ImageBuffer
           }
 
           // apply to this row
-          if (x < thresholdCanvas.width - 1) {
+          if (x < sourceCanvas.width - 1) {
             thisError[x + 1] += error * 7;
           }
 
           // apply to next row
-          if (y < thresholdCanvas.height - 1) {
+          if (y < sourceCanvas.height - 1) {
             if (x > 0) {
               nextError[x - 1] += error * 3;
             }
             nextError[x] += error * 5;
-            if (x < thresholdCanvas.width - 1) {
+            if (x < sourceCanvas.width - 1) {
               nextError[x + 1] += error * 1;
             }
           }
         }
 
+        const alpha = thresholdedValue < 128 ? 255 : 0;
+
         // set the thresholded value
-        thresholdImageData.data[i] = thresholdedValue;     // Red
-        thresholdImageData.data[i + 1] = thresholdedValue; // Green
-        thresholdImageData.data[i + 2] = thresholdedValue; // Blue  
-        thresholdImageData.data[i + 3] = 255;              // Alpha
+        destinationData.data[i] = thresholdedValue;     // Red
+        destinationData.data[i + 1] = 0; //thresholdedValue; // Green
+        destinationData.data[i + 2] = thresholdedValue; // Blue  
+        destinationData.data[i + 3] = alpha;            // Alpha
       }
     }
 
+    // create a canvas the same size as the source canvas
+    const destinationCanvas = document.createElement('canvas');
+    destinationCanvas.width  = sourceCanvas.width;
+    destinationCanvas.height = sourceCanvas.height;
+    const destinationCtx = destinationCanvas.getContext('2d');
+
     // copy the thresholded image data to the threshold canvas
-    thresholdCtx.putImageData(thresholdImageData, 0, 0);
+    destinationCtx.putImageData(destinationData, 0, 0);
 
     // return the thresholded canvas
-    return thresholdCanvas;
+    return destinationCanvas;
   }
 
   renderToCanvas(engraveCtx)

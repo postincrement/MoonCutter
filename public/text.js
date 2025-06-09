@@ -193,7 +193,7 @@ function renderTextToBuffer()
     tempCanvas.height = height;
 
     // clear rect to white
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
     // Set up text rendering

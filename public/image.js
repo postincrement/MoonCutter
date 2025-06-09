@@ -131,6 +131,14 @@ function renderImageToEngraveBuffer()
   engraveCanvas.height = g_engraveBuffer.m_height;
   const engraveCtx = engraveCanvas.getContext('2d');
 
+  // set alpha to 0
+  engraveCtx.globalAlpha = 0;
+  engraveCtx.fillStyle = '#FFFFFF';
+  engraveCtx.fillRect(0, 0, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+
+  // set alpha to 1
+  engraveCtx.globalAlpha = 1;
+
   if (g_imageBuffer) {
     g_imageBuffer.renderToCanvas(engraveCtx);
   }
@@ -174,7 +182,7 @@ function renderImageToCanvas()
   // clear the bitmap canvas
   //ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
 
-  // fill the canvas with white
+  // fill the canvas with grey
   ctx.fillStyle = '#e0e0e0';
   ctx.fillRect(0, 0, g_bitmapWidth, g_bitmapHeight);
 
