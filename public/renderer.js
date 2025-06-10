@@ -1,16 +1,6 @@
-const g_deviceTypeSelect    = document.getElementById('deviceTypeSelect');
-const g_serialPortSelect    = document.getElementById('serialPortSelect');
-const g_refreshButton       = document.getElementById('refreshButton');
-const g_connectButton       = document.getElementById('connectButton');
-const g_connectionIndicator = document.getElementById('connectionIndicator');
-const g_loadImageButton     = document.getElementById('loadImageButton');
-const g_clearImageButton    = document.getElementById('clearImageButton');
 
-const g_startButton         = document.getElementById('startButton');
-const g_stopButton          = document.getElementById('stopButton');
-const g_homeButton          = document.getElementById('homeButton');
-const g_engraveAreaButton   = document.getElementById('engraveAreaButton');
 
+// global state
 let g_fanState = false;         // false = off, true = on
 let g_isConnected = false;      // Track connection state
 let g_needsSerialPort = false;  // Track if serial port is needed
@@ -19,54 +9,53 @@ let g_isRunning = false;        // Track running state
 let g_bitmapWidth = 0;
 let g_bitmapHeight = 0;
 
+// image buffer loaded from a file 
+let g_imageBuffer = null;
+
+// text image buffer created from text
+let g_textImageBuffer = null;
+
+// image at engraver resolution to be engraved
+let g_engraveBuffer = null;
+
 let DEFAULT_SPEED = 45;
 let DEFAULT_POWER = 100;
 
-// Add scale slider handler
-const scaleSlider = document.getElementById('scaleSlider');
-const scaleValue = document.getElementById('scaleValue');
-
-scaleSlider.addEventListener('input', () => {
-  if (g_imageBuffer) {
-    g_imageBuffer.onScaleChange(scaleSlider.value);
-    scaleValue.textContent = `${scaleSlider.value}%`;
-    renderImageToCanvas();
-  }
-});
-
-// Add threshold slider handler
-const thresholdSlider = document.getElementById('thresholdSlider');
-const thresholdValue = document.getElementById('thresholdValue');
-
-thresholdSlider.addEventListener('input', () => {
-  if (g_imageBuffer) {
-    g_imageBuffer.m_threshold = parseInt(thresholdSlider.value);
-    thresholdValue.textContent = thresholdSlider.value;
-    renderImageToCanvas();
-  }
-});
-
-// Update scale slider when new image is loaded
-function updateScaleSlider() {
-  if (g_imageBuffer) {
-    scaleSlider.value = 100;
-    scaleValue.textContent = '100%';
-    g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale;
-  }
+let g_deviceSettings = {
+  m_speed: DEFAULT_SPEED,
+  m_power: DEFAULT_POWER,
 }
 
-// Add speed and power slider handlers
-const speedSlider = document.getElementById('speedSlider');
-const speedValue = document.getElementById('speedValue');
-const powerSlider = document.getElementById('powerSlider');
-const powerValue = document.getElementById('powerValue');
+// bounding box of the image to be engraved
+let g_boundingBox  = null;
 
-speedSlider.addEventListener('input', () => {
-    speedValue.textContent = speedSlider.value;
+// Add scale slider handler
+
+g_scaleSlider.addEventListener('input', () => {
+  g_imageSettings.m_imageScale = g_scaleSlider.value;
+  g_scaleValue.textContent = `${g_scaleSlider.value}%`;
+  if (g_imageBuffer) {
+    g_imageSettings = g_imageBuffer.onScaleChange(g_imageSettings, g_scaleSlider.value);
+    renderImageToScreen();
+  }
+});
+
+g_thresholdSlider.addEventListener('input', () => {
+  g_imageSettings.m_threshold = parseInt(g_thresholdSlider.value);
+  g_thresholdValue.textContent = g_thresholdSlider.value;
+  if (g_imageBuffer) {
+    renderImageToScreen();
+  }
+});
+
+g_speedSlider.addEventListener('input', () => {
+    g_deviceSettings.m_speed = g_speedSlider.value;
+    g_speedValue.textContent = g_deviceSettings.m_speed;
 });
 
 powerSlider.addEventListener('input', () => {
-    powerValue.textContent = powerSlider.value;
+    g_deviceSettings.m_power = g_powerSlider.value;
+    g_powerValue.textContent = g_deviceSettings.m_power;
 });
 
 
@@ -89,7 +78,7 @@ window.api.onSetDeviceTypes(async (event, data) => {
   await setDeviceType(deviceNames[0])
   .then(() => {
     setDefaultImage();
-    renderImageToCanvas();
+    renderImageToScreen();
   });
 });
 
@@ -102,7 +91,7 @@ g_deviceTypeSelect.addEventListener('change', async (event) => {
     else {
       loadImage(g_imageBuffer.m_image);
     }
-    renderImageToCanvas();
+    renderImageToScreen();
   });
 });
 
@@ -117,7 +106,7 @@ async function setDeviceType(deviceType) {
 
     g_engraverDimensions        = result.engraverDimensions;
 
-    g_engraveBuffer             = new ImageBuffer(g_engraverDimensions.width, g_engraverDimensions.height);
+    g_engraveBuffer             = new ImageBuffer(g_engraverDimensions.width, g_engraverDimensions.height, false, false);
 
     logMessage('info', `engraver dimensions: ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
     
@@ -572,7 +561,7 @@ function resizeBitmapCanvas()
   logMessage('info', `bitmap canvas size: ${canvas.width}x${canvas.height}`);
 
   // Force a re-render
-  renderImageToCanvas();
+  renderImageToScreen();
 }
 
 // Initial resize
@@ -717,48 +706,48 @@ function drawScale(ctx, xoffset, length, value)
 
 // Add rotate button handlers
 document.getElementById('rotateLeftButton').addEventListener('click', () => {
-  if (g_imageBuffer) {
-    g_imageBuffer.m_rotateAngle -= 90;
-    if (g_imageBuffer.m_rotateAngle < 0) {
-      g_imageBuffer.m_rotateAngle += 360;
-    }
-    g_imageBuffer.adjustOffsetAfterRotation(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+  g_imageSettings.m_rotateAngle -= 90;
+  if (g_imageSettings.m_rotateAngle < 0) {
+    g_imageSettings.m_rotateAngle += 360;
   }
-  renderImageToCanvas();
+  if (g_imageBuffer) {
+    g_imageBuffer.adjustOffsetAfterRotation(g_imageSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    renderImageToScreen();
+  }
 });
 
 document.getElementById('rotateRightButton').addEventListener('click', () => {
-  if (g_imageBuffer) {
-    g_imageBuffer.m_rotateAngle += 90;
-    if (g_imageBuffer.m_rotateAngle >= 360) {
-      g_imageBuffer.m_rotateAngle -= 360;
-    }
-    g_imageBuffer.adjustOffsetAfterRotation(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+  g_imageSettings.m_rotateAngle += 90;
+  if (g_imageSettings.m_rotateAngle >= 360) {
+    g_imageSettings.m_rotateAngle -= 360;
   }
-  renderImageToCanvas();
+  if (g_imageBuffer) {
+    g_imageBuffer.adjustOffsetAfterRotation(g_imageSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    renderImageToScreen();
+  }
 });
 
 // Add text rotation button handlers
 document.getElementById('rotateTextLeftButton').addEventListener('click', () => {
-    if (g_textImageBuffer) {
-        g_textImageBuffer.m_rotateAngle -= 90;
-        if (g_textImageBuffer.m_rotateAngle < 0) {
-            g_textImageBuffer.m_rotateAngle += 360;
-        }
-        g_textImageBuffer.adjustOffsetAfterRotation(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
-        renderImageToCanvas();
-    }
+  g_textSettings.m_rotateAngle -= 90;
+  if (g_textSettings.m_rotateAngle < 0) {
+    g_textSettings.m_rotateAngle += 360;
+  }
+  if (g_textImageBuffer) {
+    g_textImageBuffer.adjustOffsetAfterRotation(g_textSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    renderImageToScreen();
+  }
 });
 
 document.getElementById('rotateTextRightButton').addEventListener('click', () => {
-    if (g_textImageBuffer) {
-        g_textImageBuffer.m_rotateAngle += 90;
-        if (g_textImageBuffer.m_rotateAngle >= 360) {
-            g_textImageBuffer.m_rotateAngle -= 360;
-        }
-        g_textImageBuffer.adjustOffsetAfterRotation(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
-        renderImageToCanvas();
-    }
+  g_textSettings.m_rotateAngle += 90;
+  if (g_textSettings.m_rotateAngle >= 360) {
+    g_textSettings.m_rotateAngle -= 360;
+  }
+  if (g_textImageBuffer) {
+    g_textImageBuffer.adjustOffsetAfterRotation(g_textSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    renderImageToScreen();
+  }
 });
 
 // Add click handler for bitmap canvas
@@ -797,12 +786,12 @@ bitmapCanvas.addEventListener('mousemove', (event) => {
     
     if (activeTab === 'image' && g_imageBuffer) {
         // Move the image
-        g_imageBuffer.m_imageOffsetX += deltaX / canvasScale;
-        g_imageBuffer.m_imageOffsetY += deltaY / canvasScale;
+        g_imageSettings.m_imageOffsetX += deltaX / canvasScale;
+        g_imageSettings.m_imageOffsetY += deltaY / canvasScale;
     } else if (activeTab === 'text' && g_textImageBuffer) {
         // Move the text
-        g_textImageBuffer.m_imageOffsetX += deltaX / canvasScale;
-        g_textImageBuffer.m_imageOffsetY += deltaY / canvasScale;
+        g_textSettings.m_imageOffsetX += deltaX / canvasScale;
+        g_textSettings.m_imageOffsetY += deltaY / canvasScale;
     }
     
     // Update last position
@@ -810,7 +799,7 @@ bitmapCanvas.addEventListener('mousemove', (event) => {
     lastY = currentY;
     
     // Re-render the canvas
-    renderImageToCanvas();
+    renderImageToScreen();
 });
 
 // Add mouseup and mouseleave handlers to stop dragging
@@ -903,7 +892,7 @@ g_clearImageButton.addEventListener('click', () => {
     g_imageBuffer = null;
         
     // Force a re-render
-    renderImageToCanvas();
+    renderImageToScreen();
 });
 
 function updateProgress(progress) {

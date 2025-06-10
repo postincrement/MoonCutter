@@ -4,136 +4,121 @@ const FONT_SIZE_SCALE = 5;
 
 // Global variables for text settings
 let g_textSettings = {
-    text: '',
-    font: 'Arial',
-    sampleFontSize: 16,
-    fontSize: 16 * FONT_SIZE_SCALE,
-    bold: false,
-    italic: false,
-    underline: false,
-    justify: 'left'  // 'left', 'center', or 'right'
+    m_text: '',
+    m_font: 'Arial',
+    m_sampleFontSize: 16,
+    m_fontSize: 16 * FONT_SIZE_SCALE,
+    m_bold: false,
+    m_italic: false,
+    m_underline: false,
+    m_justify: 'left',  // 'left', 'center', or 'right'
+    m_invert: false,
+    m_rotateAngle: 0,
+    m_imageOffsetX: 0,
+    m_imageOffsetY: 0,
+    m_imageScale: 1
 };
 
 // Function to update sample text display
 function updateSampleText() {
     const sampleText = document.getElementById('sampleText');
-    const fontFamily = g_textSettings.fontFamily || 'Arial';
-    const fontSize = 16; // Always use 16pt for preview
-    const fontStyle = `${g_textSettings.bold ? 'bold ' : ''}${g_textSettings.italic ? 'italic ' : ''}${fontSize}px ${fontFamily}`;
     
-    sampleText.style.fontFamily = fontFamily;
-    sampleText.style.fontSize = `${fontSize}px`;
-    sampleText.style.fontWeight = g_textSettings.bold ? 'bold' : 'normal';
-    sampleText.style.fontStyle = g_textSettings.italic ? 'italic' : 'normal';
-    sampleText.style.textDecoration = g_textSettings.underline ? 'underline' : 'none';
-    sampleText.style.textAlign = g_textSettings.justify;
+    sampleText.style.fontFamily     = g_textSettings.m_font;
+    sampleText.style.fontSize       = `${g_textSettings.m_sampleFontSize}px`;
+    sampleText.style.fontWeight     = g_textSettings.m_bold ? 'bold' : 'normal';
+    sampleText.style.fontStyle      = g_textSettings.m_italic ? 'italic' : 'normal';
+    sampleText.style.textDecoration = g_textSettings.m_underline ? 'underline' : 'none';
+    sampleText.style.textAlign      = g_textSettings.m_justify;
 }
 
 // Initialize text controls
 document.addEventListener('DOMContentLoaded', () => {
-    const textInput = document.getElementById('textInput');
-    const fontSelect = document.getElementById('fontSelect');
-    const fontSizeSlider = document.getElementById('fontSizeSlider');
-    const fontSizeInput = document.getElementById('fontSizeInput');
-    const fontSizeValue = document.getElementById('fontSizeValue');
-    const boldButton = document.getElementById('boldButton');
-    const italicButton = document.getElementById('italicButton');
-    const underlineButton = document.getElementById('underlineButton');
-    const justifyLeftButton = document.getElementById('justifyLeftButton');
-    const justifyCenterButton = document.getElementById('justifyCenterButton');
-    const justifyRightButton = document.getElementById('justifyRightButton');
-    const textInvertButton = document.getElementById('textInvertButton');
 
     // Text input event
-    textInput.addEventListener('input', (e) => {
-        g_textSettings.text = e.target.value;
+    g_textInput.addEventListener('input', (e) => {
+        g_textSettings.m_text = e.target.value;
         // Hide drop zone if text is entered
         const dropZone = document.getElementById('dropZone');
         if (dropZone) {
-            dropZone.style.display = g_textSettings.text.trim() ? 'none' : 'flex';
+            dropZone.style.display = g_textSettings.m_text.trim() ? 'none' : 'flex';
         }
         renderTextToBuffer();
     });
 
     // Font selection event
-    fontSelect.addEventListener('change', (e) => {
-        g_textSettings.font = e.target.value;
+    g_fontSelect.addEventListener('change', (e) => {
+        g_textSettings.m_font = e.target.value;
         updateSampleText();
         renderTextToBuffer();
     });
 
     // Font size slider event
-    fontSizeSlider.addEventListener('input', (e) => {
+    g_fontSizeSlider.addEventListener('input', (e) => {
         const value = parseInt(e.target.value);
-        fontSizeInput.value = value;
-        fontSizeValue.textContent = value;
-        g_textSettings.sampleFontSize = value;
-        g_textSettings.fontSize = value * FONT_SIZE_SCALE;
-        updateSampleText();
+        g_textSettings.m_fontSize = value * FONT_SIZE_SCALE;
         renderTextToBuffer();
     });
 
     // Font size input event
-    fontSizeInput.addEventListener('input', (e) => {
+    g_fontSizeInput.addEventListener('input', (e) => {
         let value = parseInt(e.target.value);
         // Clamp value between min and max
         value = Math.max(12, Math.min(144, value));
-        fontSizeSlider.value = value;
-        fontSizeValue.textContent = value;
-        g_textSettings.fontSize = value;
-        updateSampleText();
+        g_textSettings.m_fontSize = value;
         renderTextToBuffer();
     });
 
     // Style button events
-    boldButton.addEventListener('click', () => {
-        g_textSettings.bold = !g_textSettings.bold;
-        boldButton.classList.toggle('active');
+    g_boldButton.addEventListener('click', () => {
+        g_textSettings.m_bold = !g_textSettings.m_bold;
+        g_boldButton.classList.toggle('active');
         updateSampleText();
         renderTextToBuffer();
     });
 
-    italicButton.addEventListener('click', () => {
-        g_textSettings.italic = !g_textSettings.italic;
-        italicButton.classList.toggle('active');
+    g_italicButton.addEventListener('click', () => {
+        g_textSettings.m_italic = !g_textSettings.m_italic;
+        g_italicButton.classList.toggle('active');
         updateSampleText();
         renderTextToBuffer();
     });
 
-    underlineButton.addEventListener('click', () => {
-        g_textSettings.underline = !g_textSettings.underline;
-        underlineButton.classList.toggle('active');
+    g_underlineButton.addEventListener('click', () => {
+        g_textSettings.m_underline = !g_textSettings.m_underline;
+        g_underlineButton.classList.toggle('active');
         updateSampleText();
         renderTextToBuffer();
     });
 
-    textInvertButton.addEventListener('click', () => {
-        textInvertButton.classList.toggle('active');
-        updateTextPreview();
+    g_invertTextButton.addEventListener('click', () => {
+        g_textSettings.m_invert = !g_textSettings.m_invert;
+        g_invertTextButton.classList.toggle('active');
+        updateSampleText();
+        renderTextToBuffer();
     });
 
     // Justification button events
-    justifyLeftButton.addEventListener('click', () => {
-        g_textSettings.justify = 'left';
-        justifyLeftButton.classList.add('active');
-        justifyCenterButton.classList.remove('active');
-        justifyRightButton.classList.remove('active');
+    g_justifyLeftButton.addEventListener('click', () => {
+        g_textSettings.m_justify = 'left';
+        g_justifyLeftButton.classList.add('active');
+        g_justifyCenterButton.classList.remove('active');
+        g_justifyRightButton.classList.remove('active');
         renderTextToBuffer();
     });
 
-    justifyCenterButton.addEventListener('click', () => {
-        g_textSettings.justify = 'center';
-        justifyLeftButton.classList.remove('active');
-        justifyCenterButton.classList.add('active');
-        justifyRightButton.classList.remove('active');
+    g_justifyCenterButton.addEventListener('click', () => {
+        g_textSettings.m_justify = 'center';
+        g_justifyLeftButton.classList.remove('active');
+        g_justifyCenterButton.classList.add('active');
+        g_justifyRightButton.classList.remove('active');
         renderTextToBuffer();
     });
 
-    justifyRightButton.addEventListener('click', () => {
-        g_textSettings.justify = 'right';
-        justifyLeftButton.classList.remove('active');
-        justifyCenterButton.classList.remove('active');
-        justifyRightButton.classList.add('active');
+    g_justifyRightButton.addEventListener('click', () => {
+        g_textSettings.m_justify = 'right';
+        g_justifyLeftButton.classList.remove('active');
+        g_justifyCenterButton.classList.remove('active');
+        g_justifyRightButton.classList.add('active');
         renderTextToBuffer();
     });
 
@@ -144,10 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // Render text to the text image buffer
 function renderTextToBuffer() 
 {
-    if (!g_textSettings.text.trim()) {
+    if (!g_textSettings.m_text.trim()) {
         // If text is empty, clear the text buffer
         g_textImageBuffer = null;
-        renderImageToCanvas();
+        renderImageToScreen();
         return;
     }
 
@@ -155,8 +140,8 @@ function renderTextToBuffer()
     let centerX = 0;
     let centerY = 0;
     if (g_textImageBuffer) {
-        centerX = g_textImageBuffer.m_imageOffsetX + (g_textImageBuffer.m_width / 2);
-        centerY = g_textImageBuffer.m_imageOffsetY + (g_textImageBuffer.m_height / 2);
+        centerX = g_textSettings.m_imageOffsetX + (g_textImageBuffer.m_width / 2);
+        centerY = g_textSettings.m_imageOffsetY + (g_textImageBuffer.m_height / 2);
     }
 
     // Create a temporary canvas to render the text
@@ -165,16 +150,16 @@ function renderTextToBuffer()
 
     // Set up the font style
     let fontStyle = '';
-    if (g_textSettings.bold) fontStyle += 'bold ';
-    if (g_textSettings.italic) fontStyle += 'italic ';
-    fontStyle += `${g_textSettings.fontSize}px ${g_textSettings.font}`;
+    if (g_textSettings.m_bold) fontStyle += 'bold ';
+    if (g_textSettings.m_italic) fontStyle += 'italic ';
+    fontStyle += `${g_textSettings.m_fontSize}px ${g_textSettings.m_font}`;
     ctx.font = fontStyle;
 
     // Measure text to determine canvas size
-    const lines = g_textSettings.text.split('\n');
+    const lines = g_textSettings.m_text.split('\n');
     let maxWidth = 0;
     let totalHeight = 0;
-    const lineHeight = g_textSettings.fontSize * 1.2; // 1.2 is a common line height factor
+    const lineHeight = g_textSettings.m_fontSize * 1.2; // 1.2 is a common line height factor
 
     // Calculate dimensions needed for the text
     for (const line of lines) {
@@ -192,6 +177,8 @@ function renderTextToBuffer()
     tempCanvas.width = width;
     tempCanvas.height = height;
 
+    logMessage('debug', `text canvas size: ${width}x${height}`);
+
     // clear rect to white
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
@@ -208,7 +195,7 @@ function renderTextToBuffer()
         const metrics = ctx.measureText(line);
         
         // Apply justification
-        switch (g_textSettings.justify) {
+        switch (g_textSettings.m_justify) {
             case 'center':
                 x = (width - metrics.width) / 2;
                 break;
@@ -222,8 +209,8 @@ function renderTextToBuffer()
         ctx.fillText(line, x, y);
         
         // Draw underline if enabled
-        if (g_textSettings.underline) {
-            const baseline = y + g_textSettings.fontSize;
+        if (g_textSettings.m_underline) {
+            const baseline = y + g_textSettings.m_fontSize;
             ctx.beginPath();
             ctx.moveTo(x, baseline);
             ctx.lineTo(x + metrics.width, baseline);
@@ -235,7 +222,7 @@ function renderTextToBuffer()
 
     // Create or update the text image buffer
     if (!g_textImageBuffer || g_textImageBuffer.m_width !== width || g_textImageBuffer.m_height !== height) {
-        g_textImageBuffer = new ImageBuffer(width, height);
+        g_textImageBuffer = new ImageBuffer(width, height, true);
         
         // Center text on screen for new text
         if (!centerX && !centerY) {
@@ -257,5 +244,5 @@ function renderTextToBuffer()
     }
 
     // Render the updated image to the canvas
-    renderImageToCanvas();
+    renderImageToScreen();
 }

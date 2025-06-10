@@ -79,8 +79,8 @@ class PreferencesManager {
         });
 
         // Trigger a redraw of the canvas to update scale indicators
-        if (typeof window.renderImageToCanvas === 'function') {
-            window.renderImageToCanvas();
+        if (typeof window.renderImageToScreen === 'function') {
+            window.renderImageToScreen();
         }
     }
 }

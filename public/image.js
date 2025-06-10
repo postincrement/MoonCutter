@@ -1,14 +1,17 @@
-// image buffer loaded from a file 
-g_imageBuffer = null;
 
-// text image buffer created from text
-g_textImageBuffer = null;
 
-// image at engraver resolution to be engraved
-g_engraveBuffer = null;
+let g_imageSettings = {
 
-// bounding box of the image to be engraved
-g_boundingBox  = null;
+  m_rotateAngle: 0,
+  m_imageOffsetX: 0,
+  m_imageOffsetY: 0,
+  m_imageScale: 1,
+  m_maxImageScale: 1,
+  m_invert: false,
+  m_dither: false,
+  m_threshold: 128,
+  m_scale: 100
+};
 
 // create a default image and remove any text. Used on start
 function setDefaultImage()
@@ -19,14 +22,14 @@ function setDefaultImage()
 
   if (g_engraveBuffer) {
     //logMessage('debug', `image buffer size is ${g_engraveBuffer.m_width}x${g_engraveBuffer.m_height}`);
-    g_imageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    g_imageBuffer = new ImageBuffer(g_engraveBuffer.m_width, g_engraveBuffer.m_height, false);
   }
   else {
-    g_imageBuffer = new ImageBuffer(512, 512);
+    g_imageBuffer = new ImageBuffer(512, 512, false);
     logMessage('error', 'engrave buffer not initialized using default size is 512x512');
   }
 
-  g_imageBuffer.m_default = true;
+  g_imageBuffer.m_default     = true;
 
   //logMessage('debug', `default image size is ${g_imageBuffer.m_width}x${g_imageBuffer.m_height}`);
 
@@ -52,7 +55,7 @@ function setDefaultImage()
   g_boundingBox = findBoundingBox();
   //logMessage('debug', `default bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
 
-  renderImageToCanvas();
+  renderImageToScreen();
 };
 
 // Load an image from a file.
@@ -66,7 +69,7 @@ function loadImage(img)
   }
 
   // resize the image buffer to the image size
-  g_imageBuffer = new ImageBuffer(img.width, img.height);
+  g_imageBuffer = new ImageBuffer(img.width, img.height, false, g_imageSettings.invert);
 
   // create a canvas the same size as the image
   const imageCanvas = document.createElement('canvas');
@@ -93,7 +96,7 @@ function newImage() {
 
   //logMessage('debug', `newImage()`);
     
-  g_imageBuffer.setDefaultScale(g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+  g_imageSettings = g_imageBuffer.setDefaultScale(g_imageSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
 
   //logMessage('debug', `image scale: ${g_imageBuffer.m_imageScale}`);
   //logMessage('debug', `image offset: ${g_imageBuffer.m_imageOffsetX}, ${g_imageBuffer.m_imageOffsetY}`);
@@ -110,7 +113,7 @@ function newImage() {
   logMessage('info', `new image ${g_imageBuffer.m_width}x${g_imageBuffer.m_height}`);
   
   // render the image to the canvas
-  renderImageToCanvas();
+  renderImageToScreen();
 
   g_boundingBox = findBoundingBox();
   logMessage('info', `default bounding box: ${g_boundingBox.left}, ${g_boundingBox.top}, ${g_boundingBox.right}, ${g_boundingBox.bottom}`);
@@ -118,7 +121,7 @@ function newImage() {
 
 
 // render the image buffer and text buffer to the engrave buffer
-function renderImageToEngraveBuffer() 
+function renderToEngraveBuffer() 
 {
   if (!g_engraveBuffer) {
     logMessage('error', 'Image buffers not initialized');
@@ -130,6 +133,7 @@ function renderImageToEngraveBuffer()
   engraveCanvas.width  = g_engraveBuffer.m_width;
   engraveCanvas.height = g_engraveBuffer.m_height;
   const engraveCtx = engraveCanvas.getContext('2d');
+  engraveCtx.willReadFrequently = true;
 
   // set alpha to 0
   engraveCtx.globalAlpha = 0;
@@ -140,12 +144,17 @@ function renderImageToEngraveBuffer()
   engraveCtx.globalAlpha = 1;
 
   if (g_imageBuffer) {
-    g_imageBuffer.renderToCanvas(engraveCtx);
+    logMessage('debug', `rendering image to engrave buffer`);
+    g_imageBuffer.renderToCanvas(g_imageSettings, engraveCtx);
   }
 
   if (g_textImageBuffer) {
-    g_textImageBuffer.renderToCanvas(engraveCtx);
+    logMessage('debug', `rendering text to engrave buffer`);
+    g_textImageBuffer.renderToCanvas(g_textSettings, engraveCtx);
   }
+
+  // Apply threshold to the image
+  applyThreshold(engraveCtx, engraveCanvas.width, engraveCanvas.height, g_imageSettings.m_dither, g_imageSettings.m_threshold);
 
   // Copy the result into g_engraveBuffer.m_data
   const resultImageData = engraveCtx.getImageData(0, 0, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
@@ -158,10 +167,103 @@ function renderImageToEngraveBuffer()
   return engraveCanvas;
 }
 
-// render the image buffer to the canvas
-function renderImageToCanvas() 
+// Add threshold processing function
+function applyThreshold(sourceCtx, width, height, dithering, threshold) 
 {
-  const engraveCanvas = renderImageToEngraveBuffer();
+  // get the image data from the source canvas
+  const sourceData = sourceCtx.getImageData(0, 0, width, height);  
+
+  // get the image data from the threshold canvas
+  const destinationData = new ImageData(sourceData.data, width, height);
+
+  // create a new array to store the error for dithering
+  var nextError = new Array(width);
+  nextError.fill(0);
+
+  // apply the threshold to the threshold canvas
+  for (let y = 0; y < height; y++) {
+
+    var thisError = nextError;
+    nextError = new Array(width);
+    nextError.fill(0);
+    for (let x = 0; x < width; x++) {
+
+      const i = (y * width + x) * 4;
+
+      // calculate the gray value
+      var grayValue = Math.round(
+        0.299 * sourceData.data[i] +
+        0.587 * sourceData.data[i + 1] +
+        0.114 * sourceData.data[i + 2]
+      );  
+
+      if (sourceData.data[i+3] == 0) {
+        grayValue = 255;
+      }
+
+      var thresholdedValue;
+
+      // if enabled, apply floyd-steinberg dithering
+      if (!dithering) {
+        thresholdedValue = grayValue <= threshold ? 0 : 255;
+      }
+      else {
+
+        // calculate the thresholded value
+        grayValue += thisError[x];
+
+        // apply the error to the thresholded value
+        thresholdedValue = grayValue <= threshold ? 0 : 255;
+
+        // apply floyd-steinberg dithering
+        const error = (grayValue - thresholdedValue) / 16;
+
+        if (thresholdedValue > 255) {
+          thresholdedValue = 255;
+        }
+        if (thresholdedValue < 0) {
+          thresholdedValue = 0;
+        }
+
+        // apply to this row
+        if (x < width - 1) {
+          thisError[x + 1] += error * 7;
+        }
+
+        // apply to next row
+        if (y < height - 1) {
+          if (x > 0) {
+            nextError[x - 1] += error * 3;
+          }
+          nextError[x] += error * 5;
+          if (x < width - 1) {
+            nextError[x + 1] += error * 1;
+          }
+        }
+      }
+
+      const alpha = thresholdedValue == 0 ? 255 : 0;
+
+      // set the thresholded value
+      destinationData.data[i] = thresholdedValue;     // Red
+      destinationData.data[i + 1] = thresholdedValue; // Green
+      destinationData.data[i + 2] = thresholdedValue; // Blue  
+      destinationData.data[i + 3] = alpha;            // Alpha
+    }
+  }
+
+  // copy the thresholded image data back to the source canvas
+  sourceCtx.putImageData(destinationData, 0, 0);
+}
+
+
+
+// recreate the engrave buffer from the image and text buffers
+// and then render the engrave buffer to the screen
+function renderImageToScreen() 
+{
+  // recreate the engrave buffer from the image and text buffers
+  const engraveCanvas = renderToEngraveBuffer();
 
   // clear the bitmap portion of the canvas
   const canvas = document.getElementById('bitmapCanvas');
@@ -176,16 +278,15 @@ function renderImageToCanvas()
     bottom: Math.floor(g_boundingBox.bottom * canvasScale)
   };
 
+  // translate beyond the border
   ctx.save();
   ctx.translate(BORDER, BORDER);
-
-  // clear the bitmap canvas
-  //ctx.clearRect(0, 0, g_bitmapWidth, g_bitmapHeight);
 
   // fill the canvas with grey
   ctx.fillStyle = '#e0e0e0';
   ctx.fillRect(0, 0, g_bitmapWidth, g_bitmapHeight);
 
+  // draw the engrave buffer to the canvas
   ctx.drawImage(engraveCanvas, 
 
                  // source coordinates
@@ -280,93 +381,82 @@ function findBoundingBox()
 
 // Add event listeners for threshold controls
 document.addEventListener('DOMContentLoaded', () => {
-    const thresholdSlider = document.getElementById('thresholdSlider');
-    const thresholdInput = document.getElementById('thresholdInput');
-    const thresholdValue = document.getElementById('thresholdValue');
 
     // Update both slider and input when slider changes
-    thresholdSlider.addEventListener('input', (e) => {
+    g_thresholdSlider.addEventListener('input', (e) => {
       if (g_imageBuffer) {
         let value = parseInt(e.target.value); 
         value = Math.max(0, Math.min(255, value));
-        thresholdInput.value = value;
-        thresholdValue.textContent = value;
+        g_thresholdInput.value = value;
+        g_thresholdValue.textContent = value;
         g_imageBuffer.m_threshold = value;
       }
     });
 
     // Update both slider and display when input changes
-    thresholdInput.addEventListener('input', (e) => {
+    g_thresholdInput.addEventListener('input', (e) => {
         let value = parseInt(e.target.value);
         // Clamp value between min and max
         value = Math.max(0, Math.min(255, value));
-        thresholdSlider.value = value;
-        thresholdValue.textContent = value;
+        g_thresholdSlider.value = value;
+        g_thresholdValue.textContent = value;
         g_imageBuffer.m_threshold = value;
     });
 
     // Handle enter key in input field
-    thresholdInput.addEventListener('keypress', (e) => {
+    g_thresholdInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.target.blur(); // Remove focus from input
         }
     });
 
     // Add event listeners for dither and invert buttons
-    const ditherButton = document.getElementById('ditherButton');
-    const invertButton = document.getElementById('invertButton');
 
     ditherButton.addEventListener('click', () => {
+        g_ditherButton.classList.toggle('active');
+        g_imageSettings.m_dither = g_ditherButton.classList.contains('active');
+        logMessage('debug', `dithering: ${g_imageSettings.m_dither}`);
         if (g_imageBuffer) {
-            g_imageBuffer.m_dithering = !g_imageBuffer.m_dithering;
-            ditherButton.classList.toggle('active', g_imageBuffer.m_dithering);
-            logMessage('debug', `dithering: ${g_imageBuffer.m_dithering}`);
-            renderImageToCanvas();
+          renderImageToScreen();
         }
     });
 
-    invertButton.addEventListener('click', () => {
-        if (g_imageBuffer) {
-            g_imageBuffer.m_invertImage = !g_imageBuffer.m_invertImage;
-            invertButton.classList.toggle('active', g_imageBuffer.m_invertImage);
-            logMessage('debug', `inversion: ${g_imageBuffer.m_invertImage}`);
-            renderImageToCanvas();
-        }
+    g_invertImageButton.addEventListener('click', () => {
+      g_invertImageButton.classList.toggle('active');
+      g_imageSettings.m_invert = g_invertImageButton.classList.contains('active');
+      if (g_imageBuffer) {
+        renderImageToScreen();
+      }
     });
-});
-
-// Add event listeners for scale controls
-document.addEventListener('DOMContentLoaded', () => {
-    const scaleSlider = document.getElementById('scaleSlider');
-    const scaleInput = document.getElementById('scaleInput');
-    const scaleValue = document.getElementById('scaleValue');
 
     // Update both slider and input when slider changes
-    scaleSlider.addEventListener('input', (e) => {
+    g_scaleSlider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      g_scaleInput.value = value;
+      g_scaleValue.textContent = value;
+      g_imageSettings.scale = value;
       if (g_imageBuffer) {
-        const value = parseInt(e.target.value);
-        scaleInput.value = value;
-        scaleValue.textContent = value;
         g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
-        renderImageToCanvas();
+        renderImageToScreen();
       }
     });
 
     // Update both slider and display when input changes
-    scaleInput.addEventListener('input', (e) => {
+    g_scaleInput.addEventListener('input', (e) => {
+      let value = parseInt(e.target.value);
+      // Clamp value between min and max
+      value = Math.max(10, Math.min(200, value));
+      g_scaleSlider.value = value;
+      g_scaleValue.textContent = value;
+      g_imageSettings.scale = value;
       if (g_imageBuffer) {  
-        let value = parseInt(e.target.value);
-        // Clamp value between min and max
-        value = Math.max(10, Math.min(200, value));
-        scaleSlider.value = value;
-        scaleValue.textContent = value;
         g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
-        renderImageToCanvas();
+        renderImageToScreen();
       }
     });
 
     // Handle enter key in input field
-    scaleInput.addEventListener('keypress', (e) => {
+    g_scaleInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.target.blur(); // Remove focus from input
         }
@@ -374,26 +464,27 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Rotate the image
-function rotate(angle) {
+function rotate(angle) 
+{
     // Store current center position
-    const centerX = this.m_imageOffsetX + (this.m_width / 2);
-    const centerY = this.m_imageOffsetY + (this.m_height / 2);
+    const centerX = g_imageBuffer.m_imageOffsetX + (g_imageBuffer.m_width / 2);
+    const centerY = g_imageBuffer.m_imageOffsetY + (g_imageBuffer.m_height / 2);
 
     // Update rotation angle
-    this.m_rotateAngle = (this.m_rotateAngle + angle) % 360;
-    if (this.m_rotateAngle < 0) {
-        this.m_rotateAngle += 360;
+    g_imageSettings.rotate = (g_imageSettings.rotate + angle) % 360;
+    if (g_imageSettings.rotate < 0) {
+        g_imageSettings.rotate += 360;
     }
 
     // Swap width and height if rotating 90 or 270 degrees
     if (angle === 90 || angle === -90 || angle === 270 || angle === -270) {
-        const temp = this.m_width;
-        this.m_width = this.m_height;
-        this.m_height = temp;
+        const temp = g_imageBuffer.m_width;
+        g_imageBuffer.m_width = g_imageBuffer.m_height;
+        g_imageBuffer.m_height = temp;
     }
 
     // Adjust position to maintain center point
-    this.m_imageOffsetX = centerX - (this.m_width / 2);
-    this.m_imageOffsetY = centerY - (this.m_height / 2);
+    g_imageBuffer.m_imageOffsetX = centerX - (g_imageBuffer.m_width / 2);
+    g_imageBuffer.m_imageOffsetY = centerY - (g_imageBuffer.m_height / 2);
 };
 
