@@ -12,6 +12,8 @@ class ImageBuffer
     this.m_height  = height;
     this.m_data    = new Uint8ClampedArray(width * height * 4);
 
+    this.m_isText = isText;
+
     this.clear();
   }
 
@@ -123,7 +125,13 @@ class ImageBuffer
     // rotate the image
     const rotateCanvas = this.applyRotation(settings, scaleCanvas);
 
-    if (settings.m_invert) {
+    if (settings.m_keyhole) {
+      logMessage('debug', `keyholing image`);
+      const rotateCtx = rotateCanvas.getContext('2d');
+      rotateCtx.globalCompositeOperation='destination-out';
+    }
+
+    else if (settings.m_invert) {
       logMessage('debug', `inverting image`);
       const rotateCtx = rotateCanvas.getContext('2d');
       rotateCtx.globalCompositeOperation='difference';

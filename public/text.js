@@ -16,7 +16,8 @@ let g_textSettings = {
     m_rotateAngle: 0,
     m_imageOffsetX: 0,
     m_imageOffsetY: 0,
-    m_imageScale: 1
+    m_imageScale: 1,
+    m_keyhole: false
 };
 
 // Function to update sample text display
@@ -31,96 +32,133 @@ function updateSampleText() {
     sampleText.style.textAlign      = g_textSettings.m_justify;
 }
 
+// rotate controls
+g_rotateTextLeftButton.addEventListener('click', () => {
+  g_textSettings.m_rotateAngle -= 90;
+  if (g_textSettings.m_rotateAngle < 0) {
+    g_textSettings.m_rotateAngle += 360;
+  }
+  if (g_textImageBuffer) {
+    g_textImageBuffer.adjustOffsetAfterRotation(g_textSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    renderTextToBuffer();
+  }
+});
+  
+g_rotateTextRightButton.addEventListener('click', () => {
+  g_textSettings.m_rotateAngle += 90;
+  if (g_textSettings.m_rotateAngle >= 360) {
+    g_textSettings.m_rotateAngle -= 360;
+  }
+  if (g_textImageBuffer) {
+    g_textImageBuffer.adjustOffsetAfterRotation(g_textSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    renderImageToScreen();
+  }
+});
+  
+// Text input event
+g_textInput.addEventListener('input', (e) => {
+    g_textSettings.m_text = e.target.value;
+    // Hide drop zone if text is entered
+    const dropZone = document.getElementById('dropZone');
+    if (dropZone) {
+        dropZone.style.display = g_textSettings.m_text.trim() ? 'none' : 'flex';
+    }
+    renderTextToBuffer();
+});
+
+// Font selection event
+g_fontSelect.addEventListener('change', (e) => {
+    g_textSettings.m_font = e.target.value;
+    updateSampleText();
+    renderTextToBuffer();
+});
+
+// Font size slider event
+g_fontSizeSlider.addEventListener('input', (e) => {
+    const value = parseInt(e.target.value);
+    g_textSettings.m_fontSize = value * FONT_SIZE_SCALE;
+    renderTextToBuffer();
+});
+
+// Font size input event
+g_fontSizeInput.addEventListener('input', (e) => {
+    let value = parseInt(e.target.value);
+    // Clamp value between min and max
+    value = Math.max(12, Math.min(144, value));
+    g_textSettings.m_fontSize = value;
+    renderTextToBuffer();
+});
+
+// Style button events
+g_boldButton.addEventListener('click', () => {
+    g_boldButton.classList.toggle('active');
+    g_textSettings.m_bold = g_boldButton.classList.contains('active');
+    updateSampleText();
+    renderTextToBuffer();
+});
+
+g_italicButton.addEventListener('click', () => {
+    g_italicButton.classList.toggle('active');
+    g_textSettings.m_italic = g_italicButton.classList.contains('active');
+    updateSampleText();
+    renderTextToBuffer();
+});
+
+g_underlineButton.addEventListener('click', () => {
+    g_underlineButton.classList.toggle('active');
+    g_textSettings.m_underline = g_underlineButton.classList.contains('active');
+    updateSampleText();
+    renderTextToBuffer();
+});
+
+// Justification button events
+g_justifyLeftButton.addEventListener('click', () => {
+    g_justifyLeftButton.classList.add('active');
+    g_justifyCenterButton.classList.remove('active');
+    g_justifyRightButton.classList.remove('active');
+    g_textSettings.m_justify = 'left';
+    renderTextToBuffer();
+});
+
+g_justifyCenterButton.addEventListener('click', () => {
+    g_justifyLeftButton.classList.remove('active');
+    g_justifyCenterButton.classList.add('active');
+    g_justifyRightButton.classList.remove('active');
+    g_textSettings.m_justify = 'center';
+    renderTextToBuffer();
+});
+
+g_justifyRightButton.addEventListener('click', () => {
+    g_justifyLeftButton.classList.remove('active');
+    g_justifyCenterButton.classList.remove('active');
+    g_justifyRightButton.classList.add('active');
+    g_textSettings.m_justify = 'right';
+    renderTextToBuffer();
+});
+  
+
+// Invert text button
+g_invertTextButton.addEventListener('click', () => {
+    g_invertTextButton.classList.toggle('active');
+    logMessage('debug', `invert: ${g_invertTextButton.classList.contains('active')}`);
+    g_textSettings.m_invert = g_invertTextButton.classList.contains('active');
+    updateSampleText();
+    renderTextToBuffer();
+});
+
+// Keyhole text button
+g_keyholeTextButton.addEventListener('click', () => {
+    g_keyholeTextButton.classList.toggle('active');
+    logMessage('debug', `keyhole: ${g_keyholeTextButton.classList.contains('active')}`);
+    g_textSettings.m_keyhole = g_keyholeTextButton.classList.contains('active');
+    updateSampleText();
+    renderTextToBuffer();
+});
+
+
 // Initialize text controls
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Text input event
-    g_textInput.addEventListener('input', (e) => {
-        g_textSettings.m_text = e.target.value;
-        // Hide drop zone if text is entered
-        const dropZone = document.getElementById('dropZone');
-        if (dropZone) {
-            dropZone.style.display = g_textSettings.m_text.trim() ? 'none' : 'flex';
-        }
-        renderTextToBuffer();
-    });
-
-    // Font selection event
-    g_fontSelect.addEventListener('change', (e) => {
-        g_textSettings.m_font = e.target.value;
-        updateSampleText();
-        renderTextToBuffer();
-    });
-
-    // Font size slider event
-    g_fontSizeSlider.addEventListener('input', (e) => {
-        const value = parseInt(e.target.value);
-        g_textSettings.m_fontSize = value * FONT_SIZE_SCALE;
-        renderTextToBuffer();
-    });
-
-    // Font size input event
-    g_fontSizeInput.addEventListener('input', (e) => {
-        let value = parseInt(e.target.value);
-        // Clamp value between min and max
-        value = Math.max(12, Math.min(144, value));
-        g_textSettings.m_fontSize = value;
-        renderTextToBuffer();
-    });
-
-    // Style button events
-    g_boldButton.addEventListener('click', () => {
-        g_textSettings.m_bold = !g_textSettings.m_bold;
-        g_boldButton.classList.toggle('active');
-        updateSampleText();
-        renderTextToBuffer();
-    });
-
-    g_italicButton.addEventListener('click', () => {
-        g_textSettings.m_italic = !g_textSettings.m_italic;
-        g_italicButton.classList.toggle('active');
-        updateSampleText();
-        renderTextToBuffer();
-    });
-
-    g_underlineButton.addEventListener('click', () => {
-        g_textSettings.m_underline = !g_textSettings.m_underline;
-        g_underlineButton.classList.toggle('active');
-        updateSampleText();
-        renderTextToBuffer();
-    });
-
-    g_invertTextButton.addEventListener('click', () => {
-        g_textSettings.m_invert = !g_textSettings.m_invert;
-        g_invertTextButton.classList.toggle('active');
-        updateSampleText();
-        renderTextToBuffer();
-    });
-
-    // Justification button events
-    g_justifyLeftButton.addEventListener('click', () => {
-        g_textSettings.m_justify = 'left';
-        g_justifyLeftButton.classList.add('active');
-        g_justifyCenterButton.classList.remove('active');
-        g_justifyRightButton.classList.remove('active');
-        renderTextToBuffer();
-    });
-
-    g_justifyCenterButton.addEventListener('click', () => {
-        g_textSettings.m_justify = 'center';
-        g_justifyLeftButton.classList.remove('active');
-        g_justifyCenterButton.classList.add('active');
-        g_justifyRightButton.classList.remove('active');
-        renderTextToBuffer();
-    });
-
-    g_justifyRightButton.addEventListener('click', () => {
-        g_textSettings.m_justify = 'right';
-        g_justifyLeftButton.classList.remove('active');
-        g_justifyCenterButton.classList.remove('active');
-        g_justifyRightButton.classList.add('active');
-        renderTextToBuffer();
-    });
 
     // Initial sample text update
     updateSampleText();
@@ -184,6 +222,7 @@ function renderTextToBuffer()
     ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
     // Set up text rendering
+    //ctx.fillStyle = 'black';
     ctx.fillStyle = 'black';
     ctx.font = fontStyle;
     ctx.textBaseline = 'top';

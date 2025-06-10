@@ -13,6 +13,79 @@ let g_imageSettings = {
   m_scale: 100
 };
 
+// scale controls
+
+g_scaleSlider.addEventListener('input', () => {
+  g_imageSettings.m_imageScale = g_scaleSlider.value;
+  g_scaleValue.textContent = `${g_scaleSlider.value}%`;
+  if (g_imageBuffer) {
+    g_imageSettings = g_imageBuffer.onScaleChange(g_imageSettings, g_scaleSlider.value);
+    renderImageToScreen();
+  }
+});
+
+g_thresholdSlider.addEventListener('input', () => {
+  g_imageSettings.m_threshold = parseInt(g_thresholdSlider.value);
+  g_thresholdValue.textContent = g_thresholdSlider.value;
+  if (g_imageBuffer) {
+    renderImageToScreen();
+  }
+});
+
+// rotate controls
+g_rotateImageLeftButton.addEventListener('click', () => {
+  g_imageSettings.m_rotateAngle -= 90;
+  if (g_imageSettings.m_rotateAngle < 0) {
+    g_imageSettings.m_rotateAngle += 360;
+  }
+  if (g_imageBuffer) {
+    g_imageBuffer.adjustOffsetAfterRotation(g_imageSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    renderImageToScreen();
+  }
+});
+
+g_rotateImageRightButton.addEventListener('click', () => {
+  g_imageSettings.m_rotateAngle += 90;
+  if (g_imageSettings.m_rotateAngle >= 360) {
+    g_imageSettings.m_rotateAngle -= 360;
+  }
+  if (g_imageBuffer) {
+    g_imageBuffer.adjustOffsetAfterRotation(g_imageSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
+    renderImageToScreen();
+  }
+});
+
+// load image from file
+g_loadImageButton.addEventListener('click', async () => {
+  try {
+    const filePath = await window.api.openFileDialog();
+    if (!filePath) 
+      return;
+    
+    // Load image into a temp img element
+    const img = new Image();
+    img.onload = () => {
+      loadImage(img);
+    }
+    img.onerror = () => {
+      logMessage('error', `Failed to load image ${filePath}`);
+    };    
+    img.src = filePath;
+  } catch (err) {
+    logMessage('error', `Failed to load image: ${err.message}`);
+  }
+});
+
+// Add clear image button handler
+g_clearImageButton.addEventListener('click', () => {
+  // Clear the image buffer
+  g_imageBuffer = null;
+      
+  // Force a re-render
+  renderImageToScreen();
+});
+
+
 // create a default image and remove any text. Used on start
 function setDefaultImage()
 {
@@ -132,8 +205,7 @@ function renderToEngraveBuffer()
   const engraveCanvas = document.createElement('canvas');
   engraveCanvas.width  = g_engraveBuffer.m_width;
   engraveCanvas.height = g_engraveBuffer.m_height;
-  const engraveCtx = engraveCanvas.getContext('2d');
-  engraveCtx.willReadFrequently = true;
+  const engraveCtx = engraveCanvas.getContext('2d', { willReadFrequently: true });
 
   // set alpha to 0
   engraveCtx.globalAlpha = 0;

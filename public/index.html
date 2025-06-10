@@ -58,10 +58,10 @@
                                 <label>Effects:</label>
                                 <div class="scale-input-group">
                                     <div class="style-buttons" style="display: flex; gap: 0.5em;">
-                                        <button id="rotateLeftButton" class="style-button" title="Rotate Left">
+                                        <button id="rotateImageLeftButton" class="style-button" title="Rotate Left">
                                             <img src="images/rotate-left.png" alt="Rotate Left" style="width: 14px; height: 14px;">
                                         </button>
-                                        <button id="rotateRightButton" class="style-button" title="Rotate Right">
+                                        <button id="rotateImageRightButton" class="style-button" title="Rotate Right">
                                             <img src="images/rotate-right.png" alt="Rotate Right" style="width: 14px; height: 14px;">
                                         </button>
                                         <button id="ditherButton" class="style-button" title="Toggle Dithering">
@@ -114,6 +114,9 @@
                                         </button>
                                         <button id="invertTextButton" class="style-button" title="Toggle Inversion">
                                             <img src="images/invert.png" alt="Invert" style="width: 14px; height: 14px;">
+                                        </button>
+                                        <button id="keyholeTextButton" class="style-button" title="Toggle Keyhole Effect">
+                                            <img src="images/keyhole.png" alt="Keyhole" style="width: 14px; height: 14px;">
                                         </button>
                                     </div>
                                 </div>
@@ -195,8 +198,10 @@
     <script src="constants.js"></script>
     <script src="preferences.js"></script>
     <script src="imagebuffer.js"></script>
+    <script src="device.js"></script>
     <script src="image.js"></script>
     <script src="text.js"></script>
+    <script src="engrave.js"></script>
     <script src="renderer.js"></script>
     <script src="dragdrop.js"></script>
     <script src="fonts.js"></script>
