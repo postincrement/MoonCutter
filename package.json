@@ -35,6 +35,8 @@
     "files": [
       "public/about.html",
       "public/constants.js",
+      "public/device.js",
+      "public/engrave.js",
       "public/dragdrop.js",
       "public/fonts.js",
       "public/image.js",
@@ -55,6 +57,9 @@
       "public/images/rotate-left.png",
       "public/images/rotate-right.png",
       "public/images/up.png",
+      "public/images/dither.png",
+      "public/images/invert.png",
+      "public/images/keyhole.png",
       "src/gcode-laser.js",
       "src/k3-laser.js",
       "src/log.js",

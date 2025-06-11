@@ -158,130 +158,130 @@ g_keyholeTextButton.addEventListener('click', () => {
 
 // Initialize text controls
 document.addEventListener('DOMContentLoaded', () => {
-
-
     // Initial sample text update
     updateSampleText();
 });
 
+
 // Render text to the text image buffer
 function renderTextToBuffer() 
 {
-    if (!g_textSettings.m_text.trim()) {
-        // If text is empty, clear the text buffer
-        g_textImageBuffer = null;
-        renderImageToScreen();
-        return;
-    }
+  if (!g_textSettings.m_text.trim()) {
+      // If text is empty, clear the text buffer
+      g_textImageBuffer = null;
+      renderImageToScreen();
+      return;
+  }
 
-    // Store current center position if text buffer exists
-    let centerX = 0;
-    let centerY = 0;
-    if (g_textImageBuffer) {
-        centerX = g_textSettings.m_imageOffsetX + (g_textImageBuffer.m_width / 2);
-        centerY = g_textSettings.m_imageOffsetY + (g_textImageBuffer.m_height / 2);
-    }
+  // Store current center position if text buffer exists
+  let centerX = 0;
+  let centerY = 0;
+  if (g_textImageBuffer) {
+      centerX = g_textSettings.m_imageOffsetX + (g_textImageBuffer.m_width / 2);
+      centerY = g_textSettings.m_imageOffsetY + (g_textImageBuffer.m_height / 2);
+  }
 
-    // Create a temporary canvas to render the text
-    const tempCanvas = document.createElement('canvas');
-    const ctx = tempCanvas.getContext('2d');
+  // Create a temporary canvas to render the text
+  const tempCanvas = document.createElement('canvas');
+  const ctx = tempCanvas.getContext('2d');
 
-    // Set up the font style
-    let fontStyle = '';
-    if (g_textSettings.m_bold) fontStyle += 'bold ';
-    if (g_textSettings.m_italic) fontStyle += 'italic ';
-    fontStyle += `${g_textSettings.m_fontSize}px ${g_textSettings.m_font}`;
-    ctx.font = fontStyle;
+  // Set up the font style
+  let fontStyle = '';
+  if (g_textSettings.m_bold) fontStyle += 'bold ';
+  if (g_textSettings.m_italic) fontStyle += 'italic ';
+  fontStyle += `${g_textSettings.m_fontSize}px ${g_textSettings.m_font}`;
+  ctx.font = fontStyle;
 
-    // Measure text to determine canvas size
-    const lines = g_textSettings.m_text.split('\n');
-    let maxWidth = 0;
-    let totalHeight = 0;
-    const lineHeight = g_textSettings.m_fontSize * 1.2; // 1.2 is a common line height factor
+  // Measure text to determine canvas size
+  const lines = g_textSettings.m_text.split('\n');
+  let maxWidth = 0;
+  let totalHeight = 0;
+  const lineHeight = g_textSettings.m_fontSize;
 
-    // Calculate dimensions needed for the text
-    for (const line of lines) {
-        const metrics = ctx.measureText(line);
-        maxWidth = Math.max(maxWidth, metrics.width);
-        totalHeight += lineHeight;
-    }
+  // Calculate dimensions needed for the text
+  for (const line of lines) {
+      const metrics = ctx.measureText(line);
+      maxWidth = Math.max(maxWidth, metrics.width);
+      totalHeight += lineHeight;
+  }
 
-    // Add padding
-    const padding = 10;
-    const width = Math.ceil(maxWidth) + padding * 2;
-    const height = Math.ceil(totalHeight) + padding * 2;
+  // Add padding
+  const padding = 10;
+  const width = Math.ceil(maxWidth) + padding * 2;
+  const height = Math.ceil(totalHeight) + padding * 2;
 
-    // Resize canvas to fit text
-    tempCanvas.width = width;
-    tempCanvas.height = height;
+  // Resize canvas to fit text
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  logMessage('debug', `text canvas size: ${width}x${height}`);
 
-    logMessage('debug', `text canvas size: ${width}x${height}`);
-
-    // clear rect to white
+  // clear rect to white
+  if (g_textSettings.m_keyhole) {
+    ctx.fillStyle = 'white';
+  }
+  else {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-    // Set up text rendering
-    //ctx.fillStyle = 'black';
     ctx.fillStyle = 'black';
-    ctx.font = fontStyle;
-    ctx.textBaseline = 'top';
+}
 
-    // Draw text with justification
-    let y = padding;
-    for (const line of lines) {
-        let x = padding;
-        const metrics = ctx.measureText(line);
-        
-        // Apply justification
-        switch (g_textSettings.m_justify) {
-            case 'center':
-                x = (width - metrics.width) / 2;
-                break;
-            case 'right':
-                x = width - metrics.width - padding;
-                break;
-            default: // 'left'
-                x = padding;
-        }
+  // Set up text rendering
+  ctx.font = fontStyle;
+  ctx.textBaseline = 'top';
 
-        ctx.fillText(line, x, y);
-        
-        // Draw underline if enabled
-        if (g_textSettings.m_underline) {
-            const baseline = y + g_textSettings.m_fontSize;
-            ctx.beginPath();
-            ctx.moveTo(x, baseline);
-            ctx.lineTo(x + metrics.width, baseline);
-            ctx.stroke();
-        }
-        
-        y += lineHeight;
-    }
+  // Draw text with justification
+  let y = padding;
+  for (const line of lines) {
+      let x = padding;
+      const metrics = ctx.measureText(line);
+      
+      // Apply justification
+      switch (g_textSettings.m_justify) {
+          case 'center':
+              x = (width - metrics.width) / 2;
+              break;
+          case 'right':
+              x = width - metrics.width - padding;
+              break;
+          default: // 'left'
+              x = padding;
+      }
+      ctx.fillText(line, x, y);
+      
+      // Draw underline if enabled
+      if (g_textSettings.m_underline) {
+          const baseline = y + g_textSettings.m_fontSize;
+          ctx.beginPath();
+          ctx.moveTo(x, baseline);
+          ctx.lineTo(x + metrics.width, baseline);
+          ctx.stroke();
+      }
+      
+      y += lineHeight;
+  }
 
-    // Create or update the text image buffer
-    if (!g_textImageBuffer || g_textImageBuffer.m_width !== width || g_textImageBuffer.m_height !== height) {
-        g_textImageBuffer = new ImageBuffer(width, height, true);
-        
-        // Center text on screen for new text
-        if (!centerX && !centerY) {
-            centerX = g_engraveBuffer.m_width / 2;
-            centerY = g_engraveBuffer.m_height / 2;
-        }
-    }
+  // Create or update the text image buffer
+  if (!g_textImageBuffer || g_textImageBuffer.m_width !== width || g_textImageBuffer.m_height !== height) {
+      g_textImageBuffer = new ImageBuffer(width, height, true);
+      
+      // Center text on screen for new text
+      if (!centerX && !centerY) {
+          centerX = g_engraveBuffer.m_width / 2;
+          centerY = g_engraveBuffer.m_height / 2;
+      }
+  }
 
-    // Get the image data from the canvas
-    const imageData = ctx.getImageData(0, 0, width, height);
-    
-    // Copy the image data to the text buffer
-    g_textImageBuffer.m_data.set(imageData.data);
+  // Get the image data from the canvas
+  const imageData = ctx.getImageData(0, 0, width, height);
+  
+  // Copy the image data to the text buffer
+  g_textImageBuffer.m_data.set(imageData.data);
 
-    // Adjust position to maintain center point
-    if (centerX !== 0 || centerY !== 0) {
-        g_textImageBuffer.m_imageOffsetX = centerX - (width / 2);
-        g_textImageBuffer.m_imageOffsetY = centerY - (height / 2);
-    }
-
-    // Render the updated image to the canvas
-    renderImageToScreen();
+  // Adjust position to maintain center point
+  if (centerX !== 0 || centerY !== 0) {
+      g_textImageBuffer.m_imageOffsetX = centerX - (width / 2);
+      g_textImageBuffer.m_imageOffsetY = centerY - (height / 2);
+  }
+  // Render the updated image to the canvas
+  renderImageToScreen();
 }

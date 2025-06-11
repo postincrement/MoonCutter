@@ -88,32 +88,6 @@ function yPixelsToMm(pixels) {
   return g_engraverDimensions.heightMm * pixels / g_engraverDimensions.height;
 }
 
-////////////////////////////////////////////////////////////
-//
-//  serial port handling
-//
-
-////////////////////////////////////////////////////////////
-//
-//  bitmap handling
-//
-
-// Convert image to grayscale
-function convertToGrayscale(imageData) {
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-        // Calculate grayscale value using luminance formula
-        const grayValue = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-        
-        // Set all channels to the grayscale value
-        data[i] = grayValue;     // Red
-        data[i + 1] = grayValue; // Green
-        data[i + 2] = grayValue; // Blue
-        // Alpha channel remains unchanged
-    }
-    return imageData;
-}
-
 // Function to check connection and show alert if not connected
 function checkConnection() {
   if (!g_isConnected) {
@@ -122,7 +96,6 @@ function checkConnection() {
   }
   return true;
 }
-
 
 ////////////////////////////////////////////////////////////
 //
@@ -459,6 +432,129 @@ bitmapCanvas.addEventListener('mouseenter', () => {
 bitmapCanvas.addEventListener('mouseleave', () => {
     bitmapCanvas.style.cursor = 'default';
 });
+
+
+
+// recreate the engrave buffer from the image and text buffers
+// and then render the engrave buffer to the screen
+function renderImageToScreen() 
+{
+  // recreate the engrave buffer from the image and text buffers
+  const engraveCanvas = renderToEngraveBuffer();
+
+  // clear the bitmap portion of the canvas
+  const canvas = document.getElementById('bitmapCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // convert bounding box to canvas coordinates
+  const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
+  const bitmapBoundingBox = {
+    left:   Math.floor(g_boundingBox.left * canvasScale),
+    top:    Math.floor(g_boundingBox.top * canvasScale),
+    right:  Math.floor(g_boundingBox.right * canvasScale),
+    bottom: Math.floor(g_boundingBox.bottom * canvasScale)
+  };
+
+  // translate beyond the border
+  ctx.save();
+  ctx.translate(BORDER, BORDER);
+
+  // fill the canvas with grey
+  ctx.fillStyle = '#e0e0e0';
+  ctx.fillRect(0, 0, g_bitmapWidth, g_bitmapHeight);
+
+  // draw the engrave buffer to the canvas
+  ctx.drawImage(engraveCanvas, 
+
+                 // source coordinates
+                 g_boundingBox.left, g_boundingBox.top, 
+                 g_boundingBox.right - g_boundingBox.left, 
+                 g_boundingBox.bottom - g_boundingBox.top,
+
+                 // destination coordinates
+                 bitmapBoundingBox.left, bitmapBoundingBox.top, 
+                 bitmapBoundingBox.right - bitmapBoundingBox.left, 
+                 bitmapBoundingBox.bottom - bitmapBoundingBox.top);
+
+  // Draw center lines
+  ctx.save();  // Save the current context state
+  
+  // Set fill style for both lines
+  ctx.fillStyle = 'red';
+
+  // Vertical center line - draw as a filled rectangle
+  ctx.fillRect(g_bitmapWidth/2 - 0.5, 0, 1, g_bitmapHeight);
+
+  // Horizontal center line - draw as a filled rectangle
+  ctx.fillRect(0, g_bitmapHeight/2 - 0.5, g_bitmapWidth, 1);
+
+  ctx.restore();  // Restore the previous context state
+
+  // draw the outline of the bounding box
+  ctx.strokeStyle = 'green';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bitmapBoundingBox.left, bitmapBoundingBox.top, 
+                 bitmapBoundingBox.right - bitmapBoundingBox.left, 
+                 bitmapBoundingBox.bottom - bitmapBoundingBox.top);
+
+  ctx.restore();
+
+  // Redraw scale indicators
+  drawScaleIndicators();
+}
+
+// find the bounding box of the engraver image
+function findBoundingBox()
+{
+  // search from top of engraver image for the top non-white pixel and leftmost non-white pixel
+  let found = false;
+  let topy = -1;
+  let leftx = -1;
+  for (let y = 0; y < g_engraveBuffer.m_height; y++) {
+    for (let x = 0; x < g_engraveBuffer.m_width; x++) {
+      const index = (y * g_engraveBuffer.m_width + x) * 4;
+
+      const grayData = g_engraveBuffer.m_data[index];
+      const alphaData = g_engraveBuffer.m_data[index + 3];  
+      const pixelSet = (alphaData != 0) && (grayData != 255);
+
+      if (pixelSet) {
+        if (topy == -1) {
+          topy = y;
+        }
+        if ((leftx == -1) || (x < leftx)) {
+          leftx = x;
+        }
+      }
+    }
+  }
+
+  // search from bottom of engraver image for the bottom non-white pixel and rightmost non-white pixel
+  found = false;
+  let bottomy = -1;
+  let rightx = -1;
+  for (let y = g_engraveBuffer.m_height - 1; y >= 0; y--) {
+    for (let x = g_engraveBuffer.m_width - 1; x >= 0; x--) {  
+      const index = (y * g_engraveBuffer.m_width + x) * 4;
+
+      const grayData = g_engraveBuffer.m_data[index];
+      const alphaData = g_engraveBuffer.m_data[index + 3];  
+      const pixelSet = (alphaData != 0) && (grayData != 255);
+
+      if (pixelSet) {
+        if (bottomy == -1) {
+          bottomy = y;
+        }
+        if ((rightx == -1) || (rightx < x)) { 
+          rightx = x;
+        }
+      }
+    }
+  }
+
+  return { left: leftx, top: topy, right: rightx, bottom: bottomy }; 
+}
+
 
 
 

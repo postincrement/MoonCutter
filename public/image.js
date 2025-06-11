@@ -15,22 +15,102 @@ let g_imageSettings = {
 
 // scale controls
 
+
+    // Update both slider and input when slider changes
+    g_thresholdSlider.addEventListener('input', (e) => {
+      if (g_imageBuffer) {
+        let value = parseInt(e.target.value); 
+        value = Math.max(0, Math.min(255, value));
+        g_thresholdInput.value = value;
+        g_thresholdValue.textContent = value;
+        g_imageBuffer.m_threshold = value;
+      }
+    });
+
+    // Update both slider and display when input changes
+    g_thresholdInput.addEventListener('input', (e) => {
+        let value = parseInt(e.target.value);
+        // Clamp value between min and max
+        value = Math.max(0, Math.min(255, value));
+        g_thresholdSlider.value = value;
+        g_thresholdValue.textContent = value;
+        g_imageBuffer.m_threshold = value;
+    });
+
+    // Handle enter key in input field
+    g_thresholdInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur(); // Remove focus from input
+        }
+    });
+
+    // Update both slider and input when slider changes
+    g_scaleSlider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      g_scaleInput.value = value;
+      g_scaleValue.textContent = value;
+      g_imageSettings.scale = value;
+      if (g_imageBuffer) {
+        g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
+        renderImageToScreen();
+      }
+    });
+
+
+
+// scale
+
 g_scaleSlider.addEventListener('input', () => {
-  g_imageSettings.m_imageScale = g_scaleSlider.value;
-  g_scaleValue.textContent = `${g_scaleSlider.value}%`;
-  if (g_imageBuffer) {
-    g_imageSettings = g_imageBuffer.onScaleChange(g_imageSettings, g_scaleSlider.value);
-    renderImageToScreen();
+  setNewScale(parseInt(g_scaleSlider.value));
+});
+
+// Update both slider and display when input changes
+g_scaleInput.addEventListener('input', (e) => {
+  setNewScale(parseInt(e.target.value));
+})
+
+// Handle enter key in input field
+g_scaleInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+      e.target.blur(); // Remove focus from input
   }
 });
 
-g_thresholdSlider.addEventListener('input', () => {
-  g_imageSettings.m_threshold = parseInt(g_thresholdSlider.value);
-  g_thresholdValue.textContent = g_thresholdSlider.value;
-  if (g_imageBuffer) {
+function setNewScale(value) {
+  g_imageSettings.m_imageScale = Math.max(10, Math.min(200, value));
+  g_scaleSlider.value = value;
+  g_scaleValue.textContent = value;
+  g_imageSettings.m_imageScale = value;
+  if (g_imageBuffer) {  
+    g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
     renderImageToScreen();
+  }  
+}
+
+// threshold
+
+g_thresholdSlider.addEventListener('input', () => {
+  setNewThreshold(parseInt(g_thresholdSlider.value));
+});
+
+// Update both slider and display when input changes
+g_thresholdInput.addEventListener('input', (e) => {
+  setNewThreshold(parseInt(e.target.value));
+});
+
+// Handle enter key in input field
+g_thresholdInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+      e.target.blur(); // Remove focus from input
   }
 });
+
+function setNewThreshold(value) {
+  g_imageSettings.m_threshold = Math.max(0, Math.min(255, value));
+  g_thresholdSlider.value = value;
+  g_thresholdValue.textContent = value;
+  renderImageToScreen();
+}
 
 // rotate controls
 g_rotateImageLeftButton.addEventListener('click', () => {
@@ -40,8 +120,8 @@ g_rotateImageLeftButton.addEventListener('click', () => {
   }
   if (g_imageBuffer) {
     g_imageBuffer.adjustOffsetAfterRotation(g_imageSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
-    renderImageToScreen();
   }
+  renderImageToScreen();
 });
 
 g_rotateImageRightButton.addEventListener('click', () => {
@@ -50,10 +130,26 @@ g_rotateImageRightButton.addEventListener('click', () => {
     g_imageSettings.m_rotateAngle -= 360;
   }
   if (g_imageBuffer) {
-    g_imageBuffer.adjustOffsetAfterRotation(g_imageSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
-    renderImageToScreen();
+    g_imageSettings = g_imageBuffer.adjustOffsetAfterRotation(g_imageSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
   }
+  renderImageToScreen();
 });
+
+// dither button
+g_ditherButton.addEventListener('click', () => {
+    g_ditherButton.classList.toggle('active');
+    g_imageSettings.m_dither = g_ditherButton.classList.contains('active');
+    logMessage('debug', `dithering: ${g_imageSettings.m_dither}`);
+    renderImageToScreen();
+});
+
+// invert button
+g_invertImageButton.addEventListener('click', () => {
+  g_invertImageButton.classList.toggle('active');
+  g_imageSettings.m_invert = g_invertImageButton.classList.contains('active');
+  renderImageToScreen();
+});
+
 
 // load image from file
 g_loadImageButton.addEventListener('click', async () => {
@@ -76,12 +172,9 @@ g_loadImageButton.addEventListener('click', async () => {
   }
 });
 
-// Add clear image button handler
+// clear image
 g_clearImageButton.addEventListener('click', () => {
-  // Clear the image buffer
   g_imageBuffer = null;
-      
-  // Force a re-render
   renderImageToScreen();
 });
 
@@ -329,210 +422,9 @@ function applyThreshold(sourceCtx, width, height, dithering, threshold)
 }
 
 
-
-// recreate the engrave buffer from the image and text buffers
-// and then render the engrave buffer to the screen
-function renderImageToScreen() 
-{
-  // recreate the engrave buffer from the image and text buffers
-  const engraveCanvas = renderToEngraveBuffer();
-
-  // clear the bitmap portion of the canvas
-  const canvas = document.getElementById('bitmapCanvas');
-  const ctx = canvas.getContext('2d');
-
-  // convert bounding box to canvas coordinates
-  const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
-  const bitmapBoundingBox = {
-    left:   Math.floor(g_boundingBox.left * canvasScale),
-    top:    Math.floor(g_boundingBox.top * canvasScale),
-    right:  Math.floor(g_boundingBox.right * canvasScale),
-    bottom: Math.floor(g_boundingBox.bottom * canvasScale)
-  };
-
-  // translate beyond the border
-  ctx.save();
-  ctx.translate(BORDER, BORDER);
-
-  // fill the canvas with grey
-  ctx.fillStyle = '#e0e0e0';
-  ctx.fillRect(0, 0, g_bitmapWidth, g_bitmapHeight);
-
-  // draw the engrave buffer to the canvas
-  ctx.drawImage(engraveCanvas, 
-
-                 // source coordinates
-                 g_boundingBox.left, g_boundingBox.top, 
-                 g_boundingBox.right - g_boundingBox.left, 
-                 g_boundingBox.bottom - g_boundingBox.top,
-
-                 // destination coordinates
-                 bitmapBoundingBox.left, bitmapBoundingBox.top, 
-                 bitmapBoundingBox.right - bitmapBoundingBox.left, 
-                 bitmapBoundingBox.bottom - bitmapBoundingBox.top);
-
-  // Draw center lines
-  ctx.save();  // Save the current context state
-  
-  // Set fill style for both lines
-  ctx.fillStyle = 'red';
-
-  // Vertical center line - draw as a filled rectangle
-  ctx.fillRect(g_bitmapWidth/2 - 0.5, 0, 1, g_bitmapHeight);
-
-  // Horizontal center line - draw as a filled rectangle
-  ctx.fillRect(0, g_bitmapHeight/2 - 0.5, g_bitmapWidth, 1);
-
-  ctx.restore();  // Restore the previous context state
-
-  // draw the outline of the bounding box
-  ctx.strokeStyle = 'green';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(bitmapBoundingBox.left, bitmapBoundingBox.top, 
-                 bitmapBoundingBox.right - bitmapBoundingBox.left, 
-                 bitmapBoundingBox.bottom - bitmapBoundingBox.top);
-
-  ctx.restore();
-
-  // Redraw scale indicators
-  drawScaleIndicators();
-}
-
-// find the bounding box of the engraver image
-function findBoundingBox()
-{
-  // search from top of engraver image for the top non-white pixel and leftmost non-white pixel
-  let found = false;
-  let topy = -1;
-  let leftx = -1;
-  for (let y = 0; y < g_engraveBuffer.m_height; y++) {
-    for (let x = 0; x < g_engraveBuffer.m_width; x++) {
-      const index = (y * g_engraveBuffer.m_width + x) * 4;
-
-      const grayData = g_engraveBuffer.m_data[index];
-      const alphaData = g_engraveBuffer.m_data[index + 3];  
-      const pixelSet = (alphaData != 0) && (grayData != 255);
-
-      if (pixelSet) {
-        if (topy == -1) {
-          topy = y;
-        }
-        if ((leftx == -1) || (x < leftx)) {
-          leftx = x;
-        }
-      }
-    }
-  }
-
-  // search from bottom of engraver image for the bottom non-white pixel and rightmost non-white pixel
-  found = false;
-  let bottomy = -1;
-  let rightx = -1;
-  for (let y = g_engraveBuffer.m_height - 1; y >= 0; y--) {
-    for (let x = g_engraveBuffer.m_width - 1; x >= 0; x--) {  
-      const index = (y * g_engraveBuffer.m_width + x) * 4;
-
-      const grayData = g_engraveBuffer.m_data[index];
-      const alphaData = g_engraveBuffer.m_data[index + 3];  
-      const pixelSet = (alphaData != 0) && (grayData != 255);
-
-      if (pixelSet) {
-        if (bottomy == -1) {
-          bottomy = y;
-        }
-        if ((rightx == -1) || (rightx < x)) { 
-          rightx = x;
-        }
-      }
-    }
-  }
-
-  return { left: leftx, top: topy, right: rightx, bottom: bottomy }; 
-}
-
-
 // Add event listeners for threshold controls
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Update both slider and input when slider changes
-    g_thresholdSlider.addEventListener('input', (e) => {
-      if (g_imageBuffer) {
-        let value = parseInt(e.target.value); 
-        value = Math.max(0, Math.min(255, value));
-        g_thresholdInput.value = value;
-        g_thresholdValue.textContent = value;
-        g_imageBuffer.m_threshold = value;
-      }
-    });
-
-    // Update both slider and display when input changes
-    g_thresholdInput.addEventListener('input', (e) => {
-        let value = parseInt(e.target.value);
-        // Clamp value between min and max
-        value = Math.max(0, Math.min(255, value));
-        g_thresholdSlider.value = value;
-        g_thresholdValue.textContent = value;
-        g_imageBuffer.m_threshold = value;
-    });
-
-    // Handle enter key in input field
-    g_thresholdInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur(); // Remove focus from input
-        }
-    });
-
-    // Add event listeners for dither and invert buttons
-
-    ditherButton.addEventListener('click', () => {
-        g_ditherButton.classList.toggle('active');
-        g_imageSettings.m_dither = g_ditherButton.classList.contains('active');
-        logMessage('debug', `dithering: ${g_imageSettings.m_dither}`);
-        if (g_imageBuffer) {
-          renderImageToScreen();
-        }
-    });
-
-    g_invertImageButton.addEventListener('click', () => {
-      g_invertImageButton.classList.toggle('active');
-      g_imageSettings.m_invert = g_invertImageButton.classList.contains('active');
-      if (g_imageBuffer) {
-        renderImageToScreen();
-      }
-    });
-
-    // Update both slider and input when slider changes
-    g_scaleSlider.addEventListener('input', (e) => {
-      const value = parseInt(e.target.value);
-      g_scaleInput.value = value;
-      g_scaleValue.textContent = value;
-      g_imageSettings.scale = value;
-      if (g_imageBuffer) {
-        g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
-        renderImageToScreen();
-      }
-    });
-
-    // Update both slider and display when input changes
-    g_scaleInput.addEventListener('input', (e) => {
-      let value = parseInt(e.target.value);
-      // Clamp value between min and max
-      value = Math.max(10, Math.min(200, value));
-      g_scaleSlider.value = value;
-      g_scaleValue.textContent = value;
-      g_imageSettings.scale = value;
-      if (g_imageBuffer) {  
-        g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
-        renderImageToScreen();
-      }
-    });
-
-    // Handle enter key in input field
-    g_scaleInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur(); // Remove focus from input
-        }
-    });
 });
 
 // Rotate the image
