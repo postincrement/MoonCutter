@@ -291,69 +291,134 @@ function applyThreshold(sourceCtx, width, height, dithering, threshold)
     var thisError = nextError;
     nextError = new Array(width);
     nextError.fill(0);
+
+    let grayValues = new Array(width);
+
+    // calculate gray values for all pixels
     for (let x = 0; x < width; x++) {
-
       const i = (y * width + x) * 4;
-
-      // calculate the gray value
-      var grayValue = Math.round(
+      const grayValue = Math.round(
         0.299 * sourceData.data[i] +
         0.587 * sourceData.data[i + 1] +
         0.114 * sourceData.data[i + 2]
       );  
 
-      if (sourceData.data[i+3] == 0) {
-        grayValue = 255;
-      }
-
-      var thresholdedValue;
-
-      // if enabled, apply floyd-steinberg dithering
-      if (!dithering) {
-        thresholdedValue = grayValue <= threshold ? 0 : 255;
+      if (dithering) {
+        grayValues[x] = grayValue;
       }
       else {
-
-        // calculate the thresholded value
-        grayValue += thisError[x];
-
         // apply the error to the thresholded value
-        thresholdedValue = grayValue <= threshold ? 0 : 255;
-
-        // apply floyd-steinberg dithering
-        const error = (grayValue - thresholdedValue) / 16;
-
+        var thresholdedValue = grayValue <= threshold ? 0 : 255;
+    
         if (thresholdedValue > 255) {
           thresholdedValue = 255;
         }
-        if (thresholdedValue < 0) {
+        else if (thresholdedValue < 0) {
           thresholdedValue = 0;
         }
 
-        // apply to this row
-        if (x < width - 1) {
-          thisError[x + 1] += error * 7;
-        }
+        // set the thresholded value
+        destinationData.data[i] = thresholdedValue;     // Red
+        destinationData.data[i + 1] = thresholdedValue; // Green
+        destinationData.data[i + 2] = thresholdedValue; // Blue  
+        destinationData.data[i + 3] = thresholdedValue == 0 ? 255 : 0;     // Alpha
+      }
+    }
 
-        // apply to next row
-        if (y < height - 1) {
-          if (x > 0) {
-            nextError[x - 1] += error * 3;
+    if (dithering) {
+      if (y % 1 == 0) {
+        for (let x = 0; x < width; x++) {
+          var grayValue = grayValues[x];
+
+          // calculate the thresholded value
+          grayValue += thisError[x];
+
+          // apply the error to the thresholded value
+          var thresholdedValue = grayValue <= threshold ? 0 : 255;
+    
+          // apply floyd-steinberg dithering
+          const error = (grayValue - thresholdedValue) / 16;
+    
+          if (thresholdedValue > 255) {
+            thresholdedValue = 255;
           }
-          nextError[x] += error * 5;
+          else if (thresholdedValue < 0) {
+            thresholdedValue = 0;
+          }
+    
+          // apply to this row
           if (x < width - 1) {
-            nextError[x + 1] += error * 1;
+            thisError[x + 1] += error * 7;
           }
+    
+          // apply to next row
+          if (y < height - 1) {
+            if (x > 0) {
+              nextError[x - 1] += error * 3;
+            }
+            nextError[x] += error * 5;
+            if (x < width - 1) {
+              nextError[x + 1] += error * 1;
+            }
+          }
+          const alpha = thresholdedValue == 0 ? 255 : 0;
+      
+          // set the thresholded value
+          const i = (y * width + x) * 4;
+
+          destinationData.data[i] = thresholdedValue;     // Red
+          destinationData.data[i + 1] = thresholdedValue; // Green
+          destinationData.data[i + 2] = thresholdedValue; // Blue  
+          destinationData.data[i + 3] = alpha;            // Alpha
         }
       }
+      else {
+        for (let x = width-1; x >= 0; x--) {
+          
+          // calculate the gray value
+          var grayValue = grayValues[x];
+            
+          // calculate the thresholded value
+          grayValue += thisError[x];
 
-      const alpha = thresholdedValue == 0 ? 255 : 0;
-
-      // set the thresholded value
-      destinationData.data[i] = thresholdedValue;     // Red
-      destinationData.data[i + 1] = thresholdedValue; // Green
-      destinationData.data[i + 2] = thresholdedValue; // Blue  
-      destinationData.data[i + 3] = alpha;            // Alpha
+          // apply the error to the thresholded value
+          var thresholdedValue = grayValue <= threshold ? 0 : 255;
+      
+          // apply floyd-steinberg dithering
+          const error = (grayValue - thresholdedValue) / 16;
+      
+          if (thresholdedValue > 255) {
+            thresholdedValue = 255;
+          }
+          if (thresholdedValue < 0) {
+            thresholdedValue = 0;
+          }
+      
+          // apply to this row
+          if (x > 0) {
+            thisError[x - 1] += error * 7;
+          }
+      
+          // apply to next row
+          if (y < height - 1) {
+            if (x < width - 1) {
+              nextError[x + 1] += error * 1;
+            }
+            nextError[x] += error * 5;
+            if (x > 0) {
+              nextError[x - 1] += error * 3;
+            }
+          }
+          const alpha = thresholdedValue == 0 ? 255 : 0;
+      
+          // set the thresholded value
+          const i = (y * width + x) * 4;
+          destinationData.data[i] = thresholdedValue;     // Red
+          destinationData.data[i + 1] = thresholdedValue; // Green
+          destinationData.data[i + 2] = thresholdedValue; // Blue  
+          destinationData.data[i + 3] = alpha;            // Alpha
+        }
+      }
     }
   }
 
@@ -361,11 +426,6 @@ function applyThreshold(sourceCtx, width, height, dithering, threshold)
   sourceCtx.putImageData(destinationData, 0, 0);
 }
 
-
-// Add event listeners for threshold controls
-document.addEventListener('DOMContentLoaded', () => {
-
-});
 
 // Rotate the image
 function rotate(angle) 
