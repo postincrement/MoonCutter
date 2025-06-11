@@ -878,32 +878,31 @@ p {
 }
 
 .style-button {
-    width: 28px;
-    height: 28px;
-    padding: 0;
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+    min-width: 32px;
+    height: 32px;
 }
 
 .style-button img {
     width: 14px;
     height: 14px;
-    object-fit: contain;
+    filter: none;
 }
 
 .style-button:hover {
-    background-color: #e0e0e0;
+    background-color: #f0f0f0;
 }
 
 .style-button.active {
-    background-color: #4CAF50;
-    border-color: #45a049;
+    background-color: #007bff;
+    border-color: #0056b3;
 }
 
 .style-button.active img {

@@ -131,19 +131,26 @@ class ImageBuffer
     // rotate the image
     const rotateCanvas = this.applyRotation(settings, scaleCanvas);
 
-    if (settings.m_keyhole) {
-      logMessage('debug', `keyholing image`);
-      const rotateCtx = rotateCanvas.getContext('2d');
-      rotateCtx.globalCompositeOperation='destination-out';
-    }
+    const rotateCtx = rotateCanvas.getContext('2d');
 
+    if (settings.m_text) {
+      if (settings.m_mode == 'invert') {
+        logMessage('debug', `inverting image`);
+        rotateCtx.globalCompositeOperation='difference';
+        rotateCtx.fillStyle='white';
+        rotateCtx.fillRect(0,0,rotateCanvas.width,rotateCanvas.height);
+      }
+      else if (settings.m_mode == 'keyhole') {
+        logMessage('debug', `keyholing image`);
+        rotateCtx.globalCompositeOperation='destination-out';
+      }
+    }
     else if (settings.m_invert) {
       logMessage('debug', `inverting image`);
-      const rotateCtx = rotateCanvas.getContext('2d');
       rotateCtx.globalCompositeOperation='difference';
       rotateCtx.fillStyle='white';
       rotateCtx.fillRect(0,0,rotateCanvas.width,rotateCanvas.height);
-    }      
+    }
 
     // Draw the image onto the engrave canvas
     engraveCtx.drawImage(
@@ -151,7 +158,6 @@ class ImageBuffer
       0, 0, rotateCanvas.width, rotateCanvas.height,
       settings.m_imageOffsetX, settings.m_imageOffsetY, rotateCanvas.width, rotateCanvas.height
     );
-
   }
 
   adjustOffsetAfterRotation(settings, engraveWidth, engraveHeight)

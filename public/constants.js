@@ -31,6 +31,7 @@ const g_underlineButton       = document.getElementById('underlineButton');
 const g_justifyLeftButton     = document.getElementById('justifyLeftButton');
 const g_justifyCenterButton   = document.getElementById('justifyCenterButton');
 const g_justifyRightButton    = document.getElementById('justifyRightButton');
+const g_normalTextButton      = document.getElementById('normalTextButton');
 const g_invertTextButton      = document.getElementById('invertTextButton');
 const g_keyholeTextButton     = document.getElementById('keyholeTextButton');
 const g_rotateTextLeftButton  = document.getElementById('rotateTextLeftButton');

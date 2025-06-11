@@ -12,12 +12,11 @@ let g_textSettings = {
     m_italic: false,
     m_underline: false,
     m_justify: 'left',  // 'left', 'center', or 'right'
-    m_invert: false,
     m_rotateAngle: 0,
     m_imageOffsetX: 0,
     m_imageOffsetY: 0,
     m_imageScale: 1,
-    m_keyhole: false
+    m_mode: 'normal', // 'normal', 'invert', 'keyhole'
 };
 
 // Function to update sample text display
@@ -139,24 +138,32 @@ g_justifyRightButton.addEventListener('click', () => {
     renderTextToBuffer();
 });
   
+// Normal text button
+g_normalTextButton.addEventListener('click', () => {
+    g_normalTextButton.classList.add('active');
+    g_invertTextButton.classList.remove('active');
+    g_keyholeTextButton.classList.remove('active');
+    g_textSettings.m_mode = 'normal';
+    renderTextToBuffer();
+});
 
 // Invert text button
 g_invertTextButton.addEventListener('click', () => {
-    g_invertTextButton.classList.toggle('active');
+    g_invertTextButton.classList.add('active');
+    g_normalTextButton.classList.remove('active');
     g_keyholeTextButton.classList.remove('active');
     logMessage('debug', `invert: ${g_invertTextButton.classList.contains('active')}`);
-    g_textSettings.m_invert = g_invertTextButton.classList.contains('active');
-    updateSampleText();
+    g_textSettings.m_mode = 'invert';
     renderTextToBuffer();
 });
 
 // Keyhole text button
 g_keyholeTextButton.addEventListener('click', () => {
-    g_keyholeTextButton.classList.toggle('active');
+    g_keyholeTextButton.classList.add('active');
+    g_normalTextButton.classList.remove('active');
     g_invertTextButton.classList.remove('active');
     logMessage('debug', `keyhole: ${g_keyholeTextButton.classList.contains('active')}`);
-    g_textSettings.m_keyhole = g_keyholeTextButton.classList.contains('active');
-    updateSampleText();
+    g_textSettings.m_mode = 'keyhole';
     renderTextToBuffer();
 });
 
@@ -221,7 +228,7 @@ function renderTextToBuffer()
   logMessage('debug', `text canvas size: ${width}x${height}`);
 
   // clear rect to white
-  if (g_textSettings.m_keyhole) {
+  if (g_textSettings.m_mode == "keyhole") {
     ctx.fillStyle = 'white';
   }
   else {

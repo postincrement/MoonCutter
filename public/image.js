@@ -1,7 +1,6 @@
 
 
 let g_imageSettings = {
-
   m_rotateAngle: 0,
   m_imageOffsetX: 0,
   m_imageOffsetY: 0,
