@@ -1,3 +1,6 @@
+<img src="public/images/icon.png" width="200" height="200" alt="Mooncutter Icon"/>
+
+
 # MoonCutter - a GUI for the K3 Laser Engraver
 
 STILL UNDER DEVELOPMENT!
