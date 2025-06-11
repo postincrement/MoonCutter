@@ -289,7 +289,7 @@ class K3Laser extends Protocol {
         return false;
       }
 
-      const elapsedTime = Date.now() - now;
+      const elapsedTime = (Date.now() - now).toFixed(0);
       logMessage('info', `Move took ${elapsedTime}ms`);
 
       const delay = 100;

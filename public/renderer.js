@@ -392,11 +392,12 @@ bitmapCanvas.addEventListener('mousemove', (event) => {
     // Convert canvas coordinates to engrave buffer coordinates
     const canvasScale = g_bitmapWidth / g_engraveBuffer.m_width;
     
-    if (activeTab === 'image' && g_imageBuffer) {
+    if ((activeTab === 'image' || activeTab === 'engrave') && g_imageBuffer) {
         // Move the image
         g_imageSettings.m_imageOffsetX += deltaX / canvasScale;
         g_imageSettings.m_imageOffsetY += deltaY / canvasScale;
-    } else if (activeTab === 'text' && g_textImageBuffer) {
+    } 
+    if ((activeTab === 'text' || activeTab === 'engrave') && g_textImageBuffer) {
         // Move the text
         g_textSettings.m_imageOffsetX += deltaX / canvasScale;
         g_textSettings.m_imageOffsetY += deltaY / canvasScale;
@@ -432,8 +433,6 @@ bitmapCanvas.addEventListener('mouseenter', () => {
 bitmapCanvas.addEventListener('mouseleave', () => {
     bitmapCanvas.style.cursor = 'default';
 });
-
-
 
 // recreate the engrave buffer from the image and text buffers
 // and then render the engrave buffer to the screen
