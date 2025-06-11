@@ -15,7 +15,7 @@
     "electron-dev": "concurrently \"npm run dev\" \"npm run electron\"",
     "package": "electron-builder",
     "package:mac": "electron-builder --mac",
-    "package:win": "electron-builder --win"
+    "package:win": "electron-builder --win --x64"
   },
   "author": "",
   "license": "ISC",

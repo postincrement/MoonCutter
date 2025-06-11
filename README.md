@@ -80,6 +80,13 @@ npm run package:win
 
 This creates a Windows installer in the `dist` folder.
 
+If you are building the Windows installer on MacOS, and the installed program crashes with an error about 
+binding.node not being a valid Win32 program, run the following command rebuild the installer:
+
+```base
+rm -rf node_modules/\@serialport/bindings-cpp/build/Release/bindings.node
+```
+
 ### Building for Both Platforms
 
 ```bash
