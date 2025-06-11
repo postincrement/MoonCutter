@@ -75,19 +75,22 @@ g_fontSelect.addEventListener('change', (e) => {
 
 // Font size slider event
 g_fontSizeSlider.addEventListener('input', (e) => {
-    const value = parseInt(e.target.value);
-    g_textSettings.m_fontSize = value * FONT_SIZE_SCALE;
+    setFontSize(parseInt(e.target.value));
     renderTextToBuffer();
 });
 
 // Font size input event
 g_fontSizeInput.addEventListener('input', (e) => {
-    let value = parseInt(e.target.value);
-    // Clamp value between min and max
-    value = Math.max(12, Math.min(144, value));
-    g_textSettings.m_fontSize = value;
+    setFontSize(parseInt(e.target.value));
     renderTextToBuffer();
 });
+
+function setFontSize(value) {
+    value = Math.max(12, Math.min(144, value));
+    g_textSettings.m_fontSize = value * FONT_SIZE_SCALE;
+    g_fontSizeInput.value = value;
+    g_fontSizeSlider.value = value;
+}
 
 // Style button events
 g_boldButton.addEventListener('click', () => {
@@ -140,6 +143,7 @@ g_justifyRightButton.addEventListener('click', () => {
 // Invert text button
 g_invertTextButton.addEventListener('click', () => {
     g_invertTextButton.classList.toggle('active');
+    g_keyholeTextButton.classList.remove('active');
     logMessage('debug', `invert: ${g_invertTextButton.classList.contains('active')}`);
     g_textSettings.m_invert = g_invertTextButton.classList.contains('active');
     updateSampleText();
@@ -149,6 +153,7 @@ g_invertTextButton.addEventListener('click', () => {
 // Keyhole text button
 g_keyholeTextButton.addEventListener('click', () => {
     g_keyholeTextButton.classList.toggle('active');
+    g_invertTextButton.classList.remove('active');
     logMessage('debug', `keyhole: ${g_keyholeTextButton.classList.contains('active')}`);
     g_textSettings.m_keyhole = g_keyholeTextButton.classList.contains('active');
     updateSampleText();

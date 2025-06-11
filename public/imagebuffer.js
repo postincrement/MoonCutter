@@ -14,6 +14,8 @@ class ImageBuffer
 
     this.m_isText = isText;
 
+    this.m_maxImageScale = 1.0;
+
     this.clear();
   }
 
@@ -34,33 +36,37 @@ class ImageBuffer
     
     // Calculate scaling to fit image into engraving buffer while maintaining aspect ratio and zero rotation
     settings.m_rotateAngle = 0;
+    settings.m_imageScale = 1.0;
     if (this.m_width > this.m_height) {
-      settings.m_maxImageScale = engraveWidth / this.m_width;
+      this.m_maxImageScale = engraveWidth / this.m_width;
       settings.m_imageOffsetX = 0;
-      settings.m_imageOffsetY = (engraveHeight - this.m_height * settings.m_maxImageScale) / 2;
+      settings.m_imageOffsetY = (engraveHeight - this.m_height * this.m_maxImageScale) / 2;
     }
     else {
-      settings.m_maxImageScale = engraveHeight / this.m_height;
-      settings.m_imageOffsetX = (engraveWidth - this.m_width * settings.m_maxImageScale) / 2;
+      this.m_maxImageScale = engraveHeight / this.m_height;
+      settings.m_imageOffsetX = (engraveWidth - this.m_width * this.m_maxImageScale) / 2;
       settings.m_imageOffsetY = 0;
     }
-    settings.m_imageScale = settings.m_maxImageScale;
     return settings;
   }
 
   // apply scale to the source canvas
   applyScale(settings, sourceCanvas)
   {
+    const scale = this.m_maxImageScale * settings.m_imageScale;
+
+    logMessage('debug', `maxImageScale: ${this.m_maxImageScale}, imageScale: ${settings.m_imageScale}`);
+
     // create a canvas the same size as the scaled image
     const scaledCanvas = document.createElement('canvas');
-    scaledCanvas.width  = sourceCanvas.width * settings.m_imageScale;
-    scaledCanvas.height = sourceCanvas.height * settings.m_imageScale;
+    scaledCanvas.width  = sourceCanvas.width * scale;
+    scaledCanvas.height = sourceCanvas.height * scale;
     const scaledCtx = scaledCanvas.getContext('2d');
   
     // scale image to the scaled canvas
     scaledCtx.save();
     scaledCtx.translate(scaledCanvas.width / 2, scaledCanvas.height / 2);
-    scaledCtx.scale(settings.m_imageScale, settings.m_imageScale);
+    scaledCtx.scale(scale, scale);
     scaledCtx.translate(-sourceCanvas.width / 2, -sourceCanvas.height / 2);
     scaledCtx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height);
     scaledCtx.restore();
@@ -151,8 +157,8 @@ class ImageBuffer
   adjustOffsetAfterRotation(settings, engraveWidth, engraveHeight)
   {
     // calculate the scaled width and height
-    const scaledWidth  = Math.round(this.m_width * settings.m_imageScale);
-    const scaledHeight = Math.round(this.m_height * settings.m_imageScale);
+    const scaledWidth  = Math.round(this.m_width * settings.m_imageScale / 100.0);
+    const scaledHeight = Math.round(this.m_height * settings.m_imageScale / 100.0);
   
     logMessage('debug', `scaled width: ${scaledWidth}, scaled height: ${scaledHeight}`);
   
@@ -169,12 +175,6 @@ class ImageBuffer
     logMessage('debug', `adjusted offset: ${settings.m_imageOffsetX}, ${settings.m_imageOffsetY}`);
 
     return settings;
-  }
-
-  onScaleChange(settings, value)
-  {
-    settings.m_imageScale = settings.m_maxImageScale * value / 100;
-    return this.adjustOffsetAfterRotation(settings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
   }
 } // ImageBuffer
 

@@ -6,57 +6,11 @@ let g_imageSettings = {
   m_imageOffsetX: 0,
   m_imageOffsetY: 0,
   m_imageScale: 1,
-  m_maxImageScale: 1,
   m_invert: false,
   m_dither: false,
   m_threshold: 128,
   m_scale: 100
 };
-
-// scale controls
-
-
-    // Update both slider and input when slider changes
-    g_thresholdSlider.addEventListener('input', (e) => {
-      if (g_imageBuffer) {
-        let value = parseInt(e.target.value); 
-        value = Math.max(0, Math.min(255, value));
-        g_thresholdInput.value = value;
-        g_thresholdValue.textContent = value;
-        g_imageBuffer.m_threshold = value;
-      }
-    });
-
-    // Update both slider and display when input changes
-    g_thresholdInput.addEventListener('input', (e) => {
-        let value = parseInt(e.target.value);
-        // Clamp value between min and max
-        value = Math.max(0, Math.min(255, value));
-        g_thresholdSlider.value = value;
-        g_thresholdValue.textContent = value;
-        g_imageBuffer.m_threshold = value;
-    });
-
-    // Handle enter key in input field
-    g_thresholdInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur(); // Remove focus from input
-        }
-    });
-
-    // Update both slider and input when slider changes
-    g_scaleSlider.addEventListener('input', (e) => {
-      const value = parseInt(e.target.value);
-      g_scaleInput.value = value;
-      g_scaleValue.textContent = value;
-      g_imageSettings.scale = value;
-      if (g_imageBuffer) {
-        g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
-        renderImageToScreen();
-      }
-    });
-
-
 
 // scale
 
@@ -77,14 +31,11 @@ g_scaleInput.addEventListener('keypress', (e) => {
 });
 
 function setNewScale(value) {
-  g_imageSettings.m_imageScale = Math.max(10, Math.min(200, value));
-  g_scaleSlider.value = value;
-  g_scaleValue.textContent = value;
-  g_imageSettings.m_imageScale = value;
-  if (g_imageBuffer) {  
-    g_imageBuffer.m_imageScale = g_imageBuffer.m_maxImageScale * value / 100;
-    renderImageToScreen();
-  }  
+  const percentage = Math.max(10, Math.min(200, value));
+  g_scaleSlider.value          = percentage;
+  g_scaleInput.value           = percentage;
+  g_imageSettings.m_imageScale = percentage / 100.0;
+  renderImageToScreen();
 }
 
 // threshold
@@ -108,7 +59,7 @@ g_thresholdInput.addEventListener('keypress', (e) => {
 function setNewThreshold(value) {
   g_imageSettings.m_threshold = Math.max(0, Math.min(255, value));
   g_thresholdSlider.value = value;
-  g_thresholdValue.textContent = value;
+  g_thresholdInput.value = value;
   renderImageToScreen();
 }
 
@@ -264,17 +215,6 @@ function newImage() {
     
   g_imageSettings = g_imageBuffer.setDefaultScale(g_imageSettings, g_engraveBuffer.m_width, g_engraveBuffer.m_height);
 
-  //logMessage('debug', `image scale: ${g_imageBuffer.m_imageScale}`);
-  //logMessage('debug', `image offset: ${g_imageBuffer.m_imageOffsetX}, ${g_imageBuffer.m_imageOffsetY}`);
-  //logMessage('debug', `image rotate: ${g_imageBuffer.m_rotateAngle}`);
-  //logMessage('debug', `image threshold: ${g_imageBuffer.m_threshold}`);
-  
-  // Update threshold slider to current value
-  const thresholdSlider = document.getElementById('thresholdSlider');
-  const thresholdValue = document.getElementById('thresholdValue');
-  thresholdSlider.value = g_imageBuffer.m_threshold;
-  thresholdValue.textContent = g_imageBuffer.m_threshold;
-  
   // Log success
   logMessage('info', `new image ${g_imageBuffer.m_width}x${g_imageBuffer.m_height}`);
   
