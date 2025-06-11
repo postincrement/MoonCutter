@@ -2,6 +2,8 @@
 
 STILL UNDER DEVELOPMENT!
 
+Binaries available https://postincrement.github.io/mooncutter/
+
 ## Features
 
 - Cross platform thanks to ElectronJS
