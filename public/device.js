@@ -24,10 +24,12 @@ g_serialPortSelect.addEventListener('change', () => {
   setConnectedState(false);
 });
 
-function updateProgress(progress) {
+function updateProgress(progress) 
+{
+  const value = Math.max(0, Math.min(100, progress)).toFixed(0);
   if (g_progressFill && g_progressText) {
-      g_progressFill.style.width = `${progress}%`;
-      g_progressText.textContent = `${progress}%`;
+      g_progressFill.style.width = `${value}%`;
+      g_progressText.textContent = `${value}%`;
   }
 }
 
@@ -173,7 +175,7 @@ g_startButton.addEventListener('click', async () => {
 
     logMessage('info', `Engraving started for ${engraveWidth}x${engraveHeight} at ${engraveStartX},${engraveStartY}`);
 
-    updateProgressBar(0);
+    updateProgress(0);
 
     // Process each line of the image buffer and send to serial port
     //var lineData = new Uint8ClampedArray(g_engraveBuffer.m_width);
@@ -191,8 +193,13 @@ g_startButton.addEventListener('click', async () => {
 
       for (let x = 0; x < engraveWidth; x++) {
         const index = (((y + engraveStartY) * g_engraveBuffer.m_width) + (engraveStartX + x)) * 4;
-        // data is already grayscale - return any color channel (in this case red)
-        lineData[x] = g_engraveBuffer.m_data[index]; 
+        // ignore transparent pixels
+        if (g_engraveBuffer.m_data[index+3] < 255) {
+          lineData[x] = 255;
+        }
+        else {
+          lineData[x] = g_engraveBuffer.m_data[index]; 
+        }
       }
       
       // Send line to the serial port and wait for response

@@ -292,7 +292,7 @@ class K3Laser extends Protocol {
       const elapsedTime = Date.now() - now;
       logMessage('info', `Move took ${elapsedTime}ms`);
 
-      const delay = timeout;
+      const delay = 100;
       logMessage('info', `Delaying for ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
 
