@@ -72,6 +72,7 @@
       "src/preload.js",
       "src/protocol.js",
       "src/test-laser.js",
+      "src/version-check.js",
       "package.json"
     ],
     "directories": {
