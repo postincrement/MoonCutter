@@ -55,15 +55,22 @@
                                 <button id="clearImageButton" title="Clear Current Image">Clear Image</button>
                             </div>
                             <div class="scale-control">
-                                <label>Effects:</label>
                                 <div class="scale-input-group">
-                                    <div class="style-buttons" style="display: flex; gap: 0.5em;">
+                                    <div class="text-effects-buttons">
                                         <button id="rotateImageLeftButton" class="style-button" title="Rotate Left">
                                             <img src="images/rotate-left.png" alt="Rotate Left" style="width: 16px; height: 16px;">
                                         </button>
                                         <button id="rotateImageRightButton" class="style-button" title="Rotate Right">
                                             <img src="images/rotate-right.png" alt="Rotate Right" style="width: 16px; height: 16px;">
                                         </button>
+                                        <button id="flipImageHorizontalButton" class="style-button" title="Flip Horizontal">
+                                            <img src="images/flip-horizontal.png" alt="Flip Horizontal" style="width: 16px; height: 16px;">
+                                        </button>
+                                        <button id="flipImageVerticalButton" class="style-button" title="Flip Vertical">
+                                            <img src="images/flip-vertical.png" alt="Flip Vertical" style="width: 16px; height: 16px;">
+                                        </button>
+                                        <span>&nbsp;</span>
+                                        <span>&nbsp;</span>
                                         <button id="ditherButton" class="style-button" title="Toggle Dithering">
                                             <img src="images/dither.png" alt="Dither" style="width: 16px; height: 16px;">
                                         </button>
@@ -102,15 +109,34 @@
                                     </select>
                                 </div>
                             </div>
+                            <div class="sample-text-container" style="padding: 10px; background-color: #f5f5f5; border-radius: 4px; margin-bottom: 1em;">
+                                <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Sample Text:</div>
+                                <div id="sampleText" style="font-family: Arial; font-size: 16px;">The quick brown fox jumps over the lazy dog</div>
+                            </div>
                             <div class="scale-control">
-                                <label>Effects:</label>
+                                <label for="fontSizeSelect">Size:</label>
                                 <div class="scale-input-group">
-                                    <div class="style-buttons" style="display: flex; gap: 0.5em;">
-                                        <button id="rotateTextLeftButton" class="style-button">
-                                            <img src="images/rotate-left.png" alt="Rotate Left" style="width: 16px; height: 16px;">
+                                    <input type="range" id="fontSizeSlider" min="12" max="144" value="16" class="slider">
+                                    <input type="number" id="fontSizeInput" min="12" max="144" value="16" class="scale-input">pt
+                                </div>
+                            </div>
+                            <div class="scale-control">
+                                <div class="scale-input-group">
+                                    <div class="text-effects-buttons">
+                                        <button id="boldButton" class="style-button" style="font-weight: bold;" title="Bold">B</button>
+                                        <button id="italicButton" class="style-button" style="font-style: italic;" title="Italic">I</button>
+                                        <button id="underlineButton" class="style-button" style="text-decoration: underline;" title="Underline">U</button>
+                                        <span>&nbsp;</span>
+                                        <span>&nbsp;</span>
+                                        <span>&nbsp;</span>
+                                        <button id="justifyLeftButton" class="style-button active" title="Left Justify">
+                                            <img src="images/left-justify.png" alt="Left Justify" style="width: 16px; height: 16px;">
                                         </button>
-                                        <button id="rotateTextRightButton" class="style-button">
-                                            <img src="images/rotate-right.png" alt="Rotate Right" style="width: 16px; height: 16px;">
+                                        <button id="justifyCenterButton" class="style-button" title="Center Justify">
+                                            <img src="images/center-justify.png" alt="Center Justify" style="width: 16px; height: 16px;">
+                                        </button>
+                                        <button id="justifyRightButton" class="style-button" title="Right Justify">
+                                            <img src="images/right-justify.png" alt="Right Justify" style="width: 16px; height: 16px;">
                                         </button>
                                         <button id="normalTextButton" class="style-button active" title="Normal text">
                                             <img src="images/text.png" alt="Invert" style="width: 16px; height: 16px;">
@@ -121,37 +147,19 @@
                                         <button id="keyholeTextButton" class="style-button" title="Keyhole text">
                                             <img src="images/keyhole.png" alt="Keyhole" style="width: 16px; height: 16px;">
                                         </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="sample-text-container" style="padding: 10px; background-color: #f5f5f5; border-radius: 4px; margin-bottom: 1em;">
-                                <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Sample Text:</div>
-                                <div id="sampleText" style="font-family: Arial; font-size: 16px;">The quick brown fox jumps over the lazy dog</div>
-                            </div>
-                            <div class="scale-control">
-                                <label>Style:</label>
-                                <div class="scale-input-group">
-                                    <div class="style-buttons" style="display: flex; gap: 0.5em;">
-                                        <button id="boldButton" class="style-button" style="font-weight: bold;">B</button>
-                                        <button id="italicButton" class="style-button" style="font-style: italic;">I</button>
-                                        <button id="underlineButton" class="style-button" style="text-decoration: underline;">U</button>
-                                        <button id="justifyLeftButton" class="style-button active">
-                                            <img src="images/left-justify.png" alt="Left Justify" style="width: 16px; height: 16px;">
+                                        <button id="rotateTextLeftButton" class="style-button" title="Rotate Left">
+                                            <img src="images/rotate-left.png" alt="Rotate Left" style="width: 16px; height: 16px;">
                                         </button>
-                                        <button id="justifyCenterButton" class="style-button">
-                                            <img src="images/center-justify.png" alt="Center Justify" style="width: 16px; height: 16px;">
+                                        <button id="rotateTextRightButton" class="style-button" title="Rotate Right">
+                                            <img src="images/rotate-right.png" alt="Rotate Right" style="width: 16px; height: 16px;">
                                         </button>
-                                        <button id="justifyRightButton" class="style-button">
-                                            <img src="images/right-justify.png" alt="Right Justify" style="width: 16px; height: 16px;">
+                                        <button id="flipTextHorizontalButton" class="style-button" title="Flip Horizontal">
+                                            <img src="images/flip-horizontal.png" alt="Flip Horizontal" style="width: 16px; height: 16px;">
+                                        </button>
+                                        <button id="flipTextVerticalButton" class="style-button" title="Flip Vertical">
+                                            <img src="images/flip-vertical.png" alt="Flip Vertical" style="width: 16px; height: 16px;">
                                         </button>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="scale-control">
-                                <label for="fontSizeSelect">Size:</label>
-                                <div class="scale-input-group">
-                                    <input type="range" id="fontSizeSlider" min="12" max="144" value="16" class="slider">
-                                    <input type="number" id="fontSizeInput" min="12" max="144" value="16" class="scale-input">pt
                                 </div>
                             </div>
                         </div>

@@ -17,6 +17,8 @@ let g_textSettings = {
     m_imageOffsetY: 0,
     m_imageScale: 1,
     m_mode: 'normal', // 'normal', 'invert', 'keyhole'
+    m_flipHorizontal: false,
+    m_flipVertical: false
 };
 
 // Function to update sample text display
@@ -167,6 +169,19 @@ g_keyholeTextButton.addEventListener('click', () => {
     renderTextToBuffer();
 });
 
+// Flip text horizontally
+g_flipTextHorizontalButton.addEventListener('click', () => {
+    g_textSettings.m_flipHorizontal = !g_textSettings.m_flipHorizontal;
+    g_flipTextHorizontalButton.classList.toggle('active');
+    renderTextToBuffer();
+});
+
+// Flip text vertically
+g_flipTextVerticalButton.addEventListener('click', () => {
+    g_textSettings.m_flipVertical = !g_textSettings.m_flipVertical;
+    g_flipTextVerticalButton.classList.toggle('active');
+    renderTextToBuffer();
+});
 
 // Initialize text controls
 document.addEventListener('DOMContentLoaded', () => {

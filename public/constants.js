@@ -19,6 +19,8 @@ const g_scaleSlider            = document.getElementById('scaleSlider');
 const g_scaleInput             = document.getElementById('scaleInput');
 const g_rotateImageLeftButton  = document.getElementById('rotateImageLeftButton');
 const g_rotateImageRightButton = document.getElementById('rotateImageRightButton');
+const g_flipImageHorizontalButton = document.getElementById('flipImageHorizontalButton');
+const g_flipImageVerticalButton = document.getElementById('flipImageVerticalButton');
 
 // Text tab
 const g_textInput             = document.getElementById('textInput');
@@ -36,6 +38,8 @@ const g_invertTextButton      = document.getElementById('invertTextButton');
 const g_keyholeTextButton     = document.getElementById('keyholeTextButton');
 const g_rotateTextLeftButton  = document.getElementById('rotateTextLeftButton');
 const g_rotateTextRightButton = document.getElementById('rotateTextRightButton');
+const g_flipTextHorizontalButton = document.getElementById('flipTextHorizontalButton');
+const g_flipTextVerticalButton = document.getElementById('flipTextVerticalButton');
 
 
 // Engrave tab

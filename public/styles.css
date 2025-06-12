@@ -878,16 +878,18 @@ p {
 }
 
 .style-button {
-    background: none;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    height: 32px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-bottom: 0.25em;
 }
 
 .style-button img {
@@ -911,8 +913,31 @@ p {
 
 .style-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.25em;
     justify-content: flex-start;
+    max-width: 100%;
+}
+
+.text-effects-buttons {
+    display: grid;
+    grid-template-columns: repeat(6, 32px);
+    gap: 0.25em;
+    justify-content: start;
+}
+
+.text-effects-buttons .style-button {
+    width: 32px;
+    height: 32px;
+    margin: 0;
+}
+
+.text-effects-buttons .style-button:nth-child(n+4):nth-child(-n+9) {
+    grid-column: span 1;
+}
+
+.text-effects-buttons .style-button:nth-child(n+10) {
+    grid-column: span 1;
 }
 
 .modal {

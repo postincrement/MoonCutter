@@ -1,5 +1,3 @@
-
-
 let g_imageSettings = {
   m_rotateAngle: 0,
   m_imageOffsetX: 0,
@@ -8,7 +6,9 @@ let g_imageSettings = {
   m_invert: false,
   m_dither: false,
   m_threshold: 128,
-  m_scale: 100
+  m_scale: 100,
+  m_flipHorizontal: false,
+  m_flipVertical: false
 };
 
 // scale
@@ -100,6 +100,19 @@ g_invertImageButton.addEventListener('click', () => {
   renderImageToScreen();
 });
 
+// Flip image horizontally
+g_flipImageHorizontalButton.addEventListener('click', () => {
+    g_imageSettings.m_flipHorizontal = !g_imageSettings.m_flipHorizontal;
+    g_flipImageHorizontalButton.classList.toggle('active');
+    renderImageToScreen();
+});
+
+// Flip image vertically
+g_flipImageVerticalButton.addEventListener('click', () => {
+    g_imageSettings.m_flipVertical = !g_imageSettings.m_flipVertical;
+    g_flipImageVerticalButton.classList.toggle('active');
+    renderImageToScreen();
+});
 
 // load image from file
 g_loadImageButton.addEventListener('click', async () => {
