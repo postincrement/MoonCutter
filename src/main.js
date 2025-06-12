@@ -25,7 +25,6 @@ const { createLogWindow, logMessage } = require('./log');
 
 let g_currentDeviceClass = null;
 let g_currentDevice = null;
-let g_currentPort   = null;
 let g_needsSerialPort = false;
 
 ////////////////////////////////////////////////////////////
@@ -39,11 +38,15 @@ const deviceTypeFactory = [
   { name: TestLaser.getDeviceName(),  class: TestLaser }
 ];
 
-function closePort(event, response)
+async function closeDevice(event, response)
 {
-  if (g_currentPort) {
-    g_currentPort.close();
-    g_currentPort = null;
+  if (g_currentDevice && g_needsSerialPort && g_currentDevice.m_port) {
+    console.log('about to call g_currentDevice.m_port.close()');
+    g_currentDevice.m_port.close();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('g_currentDevice.m_port.close() called');
+    g_currentDevice.m_port = null;
+    console.log('g_currentDevice.m_port set to null');
   }
 
   if (response) {
@@ -89,13 +92,9 @@ function createWindow() {
         console.error('Window became unresponsive');
     });
 
-    mainWindow.on('closed', () => {
+    mainWindow.on('closed', async () => {
         mainWindow = null;
-        if (g_currentPort) {
-            g_currentPort.close();
-            g_currentPort = null;
-            g_currentDevice = null;
-        }
+        //await closePort();
         app.quit();
     });
 }
@@ -151,57 +150,66 @@ app.whenReady().then(() => {
 
     // Device type handling
     ipcMain.handle('set-device-type', async (event, data) => {
-      // find the name in the factory array
-      const deviceType = deviceTypeFactory.find(type => type.name === data.deviceType); 
-      if (!deviceType) {
-        console.error(`Unknown device type: ${data.deviceType}`);
-        return { success: false, message: `Unknown device type: ${data.deviceType}` };
+      try {
+        // find the name in the factory array
+        const deviceType = deviceTypeFactory.find(type => type.name === data.deviceType); 
+        if (!deviceType) {
+          console.error(`Unknown device type: ${data.deviceType}`);
+          return { success: false, message: `Unknown device type: ${data.deviceType}` };
+        }
+
+        // create the device using the factory
+        g_currentDeviceClass = deviceType.class;
+        g_currentDevice      = new g_currentDeviceClass();
+        g_needsSerialPort    = g_currentDeviceClass.needsSerialPort();
+
+        // get the dimensions of the device
+        const dimensions = g_currentDevice.getDimensions();
+
+        logMessage('info', `setting device type to ${data.deviceType}, dimensions: ${dimensions.width}x${dimensions.height}`);
+
+        return { success            : true, 
+                 needsSerialPort    : g_needsSerialPort,
+                 engraverDimensions : g_currentDevice.getDimensions() };
+      } catch (error) {
+        console.error('Error in set-device-type:', error);
+        return { success: false, message: error.message };
       }
-
-      // create the device using the factory
-      g_currentDeviceClass = deviceType.class;
-      g_currentDevice      = new g_currentDeviceClass();
-      g_needsSerialPort    = g_currentDeviceClass.needsSerialPort();
-
-      // get the dimensions of the device
-      const dimensions = g_currentDevice.getDimensions();
-
-      logMessage('info', `setting device type to ${data.deviceType}, dimensions: ${dimensions.width}x${dimensions.height}`);
-
-      return { success            : true, 
-               needsSerialPort    : g_needsSerialPort,
-               engraverDimensions : g_currentDevice.getDimensions() };
     });
 
     // Handle engrave area button click
     ipcMain.on('engrave-area-clicked', async (event, boundingBox) => {
-      const connStatus = isConnected();
-      if (connStatus.status === 'error') {
-        event.reply('engrave-area-response', { status: 'error', message: connStatus.message });
-        return;
-      }
-
-      logMessage('info', 'Engrave area command received');
-
-      var errorString = '';
       try {
-        var response =    await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top })
-                       && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.top })
-                       && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.bottom })
-                       && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.bottom })
-                       && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top });
-        if (response) {
-          event.reply('engrave-area-response', { status: 'success', message: 'Engrave area command sent successfully' });
+        const connStatus = isConnected();
+        if (connStatus.status === 'error') {
+          event.reply('engrave-area-response', { status: 'error', message: connStatus.message });
           return;
         }
 
-        errorString = 'Failed to send engrave area command';
-      } catch (err) {
-        errorString = 'move command error: ' + err.message;
+        logMessage('info', 'Engrave area command received');
+
+        var errorString = '';
+        try {
+          var response =    await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top })
+                         && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.top })
+                         && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.right, y: boundingBox.bottom })
+                         && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.bottom })
+                         && await g_currentDevice.sendAbsoluteMove({ x: boundingBox.left, y: boundingBox.top });
+          if (response) {
+            event.reply('engrave-area-response', { status: 'success', message: 'Engrave area command sent successfully' });
+            return;
+          }
+
+          errorString = 'Failed to send engrave area command';
+        } catch (err) {
+          errorString = 'move command error: ' + err.message;
+        }
+
+        event.reply('engrave-area-response', { status: 'error', message: errorString });
+      } catch (error) {
+        console.error('Error in engrave-area-clicked:', error);
+        event.reply('engrave-area-response', { status: 'error', message: error.message });
       }
-      logMessage('error', 'move command error', errorString);
-      event.reply('engrave-area-response', { status: 'error', message: errorString
-      });
     });
 
     // Serial port handling
@@ -224,25 +232,27 @@ app.whenReady().then(() => {
     ipcMain.on('connect-button-clicked', async (event, data) => {
       console.log('Connect button clicked:', data);
 
-      closePort();
-        
       if (!g_needsSerialPort) {
         logMessage('info', 'No serial port needed');
       }
       else {
-        logMessage('info', 'Opening port:', data.port);
+        logMessage('info', 'Opening port:', data.portName);
+
+        var newPort = null;
 
         try {
-          g_currentPort = new SerialPort({
-            path: data.port,
+          newPort = new SerialPort({
+            path: data.portName,
             baudRate: 115200,
             autoOpen: false
           });
 
-          g_currentPort.open(async (err) => {
+          newPort.open(async (err) => {
             if (err) {
               logMessage('error', 'Error opening port:', err);
-              closePort(event, {
+              await newPort.close();
+              newPort = null;
+              event.reply('connect-response', {
                 status: 'error',
                 message: err.message,
               });
@@ -253,7 +263,7 @@ app.whenReady().then(() => {
 
             // Initialize protocol handler
             logMessage('info', 'Initializing device');
-            response = await g_currentDevice.init(g_currentPort);
+            response = await g_currentDevice.init(newPort);
             logMessage('info', 'device initialized');
 
             // send response to renderer
@@ -262,8 +272,12 @@ app.whenReady().then(() => {
         }
 
         catch (err) {
+          if (newPort) {
+            await newPort.close();
+            newPort = null;
+          }
           logMessage('error', 'exception during connection:', err);
-          closePort(event, {
+          event.reply('connect-response', {
             status: 'error',
             message: err.message,
           });
@@ -323,10 +337,10 @@ app.whenReady().then(() => {
     });
 });
 
-app.on('window-all-closed', () => {
-  if (g_currentPort) {
-    g_currentPort.close();
-  }
+app.on('window-all-closed', async () => {
+  
+  await closeDevice();
+
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -504,7 +518,7 @@ ipcMain.handle('open-file-dialog', async () => {
 
 function isConnected()
 {    
-  if (g_needsSerialPort && (!g_currentPort || !g_currentDevice)) {
+  if (g_needsSerialPort && (!g_currentDevice || !g_currentDevice.m_port)) {
     logMessage('error', 'Not connected to serial port');
     return { status: 'error', message: 'Not connected to serial port' };
   }
@@ -540,6 +554,20 @@ ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) 
   await g_currentDevice.engraveLine(lineData, lineNumber)
 
   return { status: 'success', message: "line sent successfully" };
+});
+
+// Handle disconnect request
+ipcMain.handle('disconnect-port', async () => {
+  try {
+    await closeDevice();
+
+    mainWindow.webContents.send('serial-ports-state', false);
+    logMessage('info', 'Serial port disconnected');
+  } catch (err) {
+    logMessage('error', `Error disconnecting serial port: ${err.message}`);
+    logMessage('error', `Error stack: ${err.stack}`);
+    throw err;
+  }
 });
 
 

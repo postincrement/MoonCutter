@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('api', {
   requestSerialPorts: () => ipcRenderer.send('request-serial-ports'),
   setDeviceType: (data) => ipcRenderer.invoke('set-device-type', data),
   connectPort: (data) => ipcRenderer.send('connect-button-clicked', data),
+  disconnectPort: () => ipcRenderer.invoke('disconnect-port'),
   
   // Device controls
   sendFanCommand: (data) => ipcRenderer.send('fan-button-clicked', data),

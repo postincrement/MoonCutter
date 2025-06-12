@@ -70,7 +70,7 @@ class K3Laser extends Protocol {
     }
 
     constructor() {
-      super(BED_WIDTH_PIXELS, BED_HEIGHT_PIXELS, BED_WIDTH_MM, BED_HEIGHT_MM);
+        super(BED_WIDTH_PIXELS, BED_HEIGHT_PIXELS, BED_WIDTH_MM, BED_HEIGHT_MM);
     }
 
     // Initialize the protocol handler
@@ -79,50 +79,50 @@ class K3Laser extends Protocol {
       this.buffer = Buffer.alloc(0);
       this.responseTimeout = null;
 
-      this.m_laserX = 0;
-      this.m_laserY = 0;
+        this.m_laserX = 0;
+        this.m_laserY = 0;
 
-      this.m_port.on('error', (error) => {
-          console.error('Protocol error:', error);
-      });
+        this.m_port.on('error', (error) => {
+            console.error('Protocol error:', error);
+        });
 
-      // send connect command and wait for ack
-      const ack = await this.sendMessageAndWaitForAck("connect", Buffer.from(COMMANDS.CONNECT), TIMEOUTS.CONNECT);
-      if (!ack) {
-        logMessage('error', 'Failed to send connect command');
-        return { 
-          status: 'error', 
-          message: 'Failed to send connect command' 
-        };
-      }
+        // send connect command and wait for ack
+        const ack = await this.sendMessageAndWaitForAck("connect", Buffer.from(COMMANDS.CONNECT), TIMEOUTS.CONNECT);
+        if (!ack) {
+            logMessage('error', 'Failed to send connect command');
+            return { 
+                status: 'error', 
+                message: 'Failed to send connect command' 
+            };
+        }
 
-      // Send fan off and wait for ack
-      const fanAck = await this.setFan(false);
-      if (!fanAck) {
-        logMessage('error', 'Failed to send fan off command');
+        // Send fan off and wait for ack
+        const fanAck = await this.setFan(false);
+        if (!fanAck) {
+            logMessage('error', 'Failed to send fan off command');
+            return {
+                status: 'error',
+                message: 'Failed to send fan off command'
+            };
+        }
+
+        // Send home command and wait for ack
+        const homeAck = await this.sendHome();
+        if (!homeAck) {
+            logMessage('error', 'Failed to send home command');
+            return {
+                status: 'error',
+                message: 'Failed to send home command'
+            };
+        }
+        this.m_laserX = 0;
+        this.m_laserY = 0;
+
         return {
-          status: 'error',
-          message: 'Failed to send fan off command'
+            status: 'connected',
+            xSize: BED_WIDTH_MM,
+            ySize: BED_HEIGHT_MM
         };
-      }
-
-      // Send home command and wait for ack
-      const homeAck = await this.sendHome();
-      if (!homeAck) {
-        logMessage('error', 'Failed to send home command');
-        return {
-          status: 'error',
-          message: 'Failed to send home command'
-        };
-      }
-      this.m_laserX = 0;
-      this.m_laserY = 0;
-
-      return {
-        status: 'connected',
-        xSize: BED_WIDTH_MM,
-        ySize: BED_HEIGHT_MM
-      };
     }
 
     // send a message and wait for an ack
@@ -140,24 +140,28 @@ class K3Laser extends Protocol {
         return new Promise((resolve) => {
             // Record start time
             const startTime = Date.now();
+            let dataHandler = null;
+            let timeoutId = null;
 
             // Set up response timeout if specified
             if (timeout !== null) {
-                this.responseTimeout = setTimeout(() => {
+                timeoutId = setTimeout(() => {
                     logMessage('error', `Response timeout after ${timeout}ms`);
+                    if (dataHandler) {
+                        this.m_port.removeListener('data', dataHandler);
+                    }
                     resolve(false);
                 }, timeout);
             }
 
             // Set up one-time data handler
-            const dataHandler = (data) => {
+            dataHandler = (data) => {
                 // Remove the handler after first use
                 this.m_port.removeListener('data', dataHandler);
                 
                 // Clear timeout
-                if (this.responseTimeout) {
-                    clearTimeout(this.responseTimeout);
-                    this.responseTimeout = null;
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
                 }
 
                 // Calculate elapsed time
@@ -180,10 +184,11 @@ class K3Laser extends Protocol {
             this.m_port.write(message, (err) => {
                 if (err) {
                     logMessage('error', 'Error writing to port:', err.message);
-                    this.m_port.removeListener('data', dataHandler);
-                    if (this.responseTimeout) {
-                        clearTimeout(this.responseTimeout);
-                        this.responseTimeout = null;
+                    if (dataHandler) {
+                        this.m_port.removeListener('data', dataHandler);
+                    }
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
                     }
                     resolve(false);
                 }
@@ -192,273 +197,242 @@ class K3Laser extends Protocol {
     }
 
     async setFan(fanOn) {
-      super.setFan(fanOn);
-      const command = this.m_fanOn ? COMMANDS.FAN_ON : COMMANDS.FAN_OFF;
-      const ack = await this.sendMessageAndWaitForAck("fan on", Buffer.from(command), TIMEOUTS.FAN);
-      if (!ack) {
-        logMessage('error', 'Failed to send fan on command');
-        return false;
-      }
+        super.setFan(fanOn);
+        const command = this.m_fanOn ? COMMANDS.FAN_ON : COMMANDS.FAN_OFF;
+        const ack = await this.sendMessageAndWaitForAck("fan on", Buffer.from(command), TIMEOUTS.FAN);
+        if (!ack) {
+            logMessage('error', 'Failed to send fan on command');
+            return false;
+        }
 
-      return true;  
+        return true;  
     }
 
     async sendCenter() {
-      this.m_laserX = BED_WIDTH_PIXELS / 2;
-      this.m_laserY = BED_HEIGHT_PIXELS / 2;
+        this.m_laserX = BED_WIDTH_PIXELS / 2;
+        this.m_laserY = BED_HEIGHT_PIXELS / 2;
 
-      const ack = await this.sendMessageAndWaitForAck("center", Buffer.from(COMMANDS.CENTER), TIMEOUTS.CENTER);
-      if (!ack) {
-        logMessage('error', 'Failed to send center command');
-        return false;
-      }
+        const ack = await this.sendMessageAndWaitForAck("center", Buffer.from(COMMANDS.CENTER), TIMEOUTS.CENTER);
+        if (!ack) {
+            logMessage('error', 'Failed to send center command');
+            return false;
+        }
 
-      return true;  
+        return true;  
     }
 
     // send home command and wait for ack
     async sendHome() {
-      this.m_laserX = 0;
-      this.m_laserY = 0;
+        this.m_laserX = 0;
+        this.m_laserY = 0;
 
-      const ack = await this.sendMessageAndWaitForAck("home", Buffer.from(COMMANDS.HOME), TIMEOUTS.HOME);
-      if (!ack) {
-        logMessage('error', 'Failed to send home command');
-        return false;
-      }
+        const ack = await this.sendMessageAndWaitForAck("home", Buffer.from(COMMANDS.HOME), TIMEOUTS.HOME);
+        if (!ack) {
+            logMessage('error', 'Failed to send home command');
+            return false;
+        }
 
-      return true;  
+        return true;  
     }
 
     // send move command and wait for ack
-    async sendRelativeMove(directionData) 
-    {
+    async sendRelativeMove(directionData) {
+        const now = Date.now();
+        logMessage('info', `Sending relative move: ${directionData.dx}, ${directionData.dy}`);
 
-      logMessage('info', `Sending relative move dx=${directionData.dx} dy=${directionData.dy}`);
+        // clamp the movement to the bed size if required
+        if (g_clampMovements) {
+            const newX = this.m_laserX + directionData.dx;
+            const newY = this.m_laserY + directionData.dy;
 
-      if (directionData.dx == 0 && directionData.dy == 0) {
-        logMessage('info', `Move is zero, skipping`);
+            if (newX < 0 || newX >= BED_WIDTH_PIXELS || newY < 0 || newY >= BED_HEIGHT_PIXELS) {
+                logMessage('error', `Movement would take laser outside bed bounds: ${newX}, ${newY}`);
+                return false;
+            }
+        }
+
+        var command = COMMANDS.MOVE;
+        command[3] = (directionData.dx >> 8) & 0xFF;
+        command[4] = directionData.dx & 0xFF;
+        command[5] = (directionData.dy >> 8) & 0xFF;
+        command[6] = directionData.dy & 0xFF;
+
+        const ack = await this.sendMessageAndWaitForAck("move", Buffer.from(command), TIMEOUTS.MOVE);
+        if (!ack) {
+            logMessage('error', 'Failed to send move command');
+            return false;
+        }
+
+        this.m_laserX += directionData.dx;
+        this.m_laserY += directionData.dy;
+
+        const elapsedTime = (Date.now() - now).toFixed(0);
+        logMessage('info', `Move took ${elapsedTime}ms`);
+
+        const delay = 100;
+        logMessage('info', `Delaying for ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+
         return true;
-      }
-
-      // update the x coordinate
-      this.m_laserX += directionData.dx;
-      this.m_laserY += directionData.dy;
-
-      // calculate the timeout based on the distance. 
-      const distance = Math.sqrt(Math.pow(directionData.dx, 2) + Math.pow(directionData.dy, 2));
-      const timeout = Math.max(100, (distance * (distance < 100 ? 1 : 2)));
-
-      logMessage('info', `Distance: ${distance} -> ${timeout}ms`);
-
-      // start timer
-      const now = Date.now();
-
-      logMessage('info', `Sending move dx=${directionData.dx} dy=${directionData.dy} with timeout: ${timeout}`);
-
-      if (g_clampMovements) {
-
-        if (this.m_laserX < 0) {
-          this.m_laserX = 0;
-        }
-        else if (this.m_laserX > BED_WIDTH) {
-          this.m_laserX = BED_WIDTH;
-        }
-        directionData.dx = this.m_laserX - currentX;
-
-        // update the y coordinate
-        if (this.m_laserY < 0) {
-          this.m_laserY = 0;
-        }
-        else if (this.m_laserY > BED_HEIGHT) {
-          this.m_laserY = BED_HEIGHT;
-        }
-        directionData.dy = this.m_laserY - currentY;
-      }
-      
-      // create the command
-      var command = COMMANDS.MOVE;
-      command[3] = (directionData.dx >> 8) & 0xFF;
-      command[4] = directionData.dx & 0xFF;
-      command[5] = (directionData.dy >> 8) & 0xFF;
-      command[6] = directionData.dy & 0xFF;
-
-      const moveAck = await this.sendMessageAndWaitForAck("move", Buffer.from(command), timeout);
-      if (!moveAck) {
-        logMessage('error', 'Failed to send move command');
-        return false;
-      }
-
-      const elapsedTime = (Date.now() - now).toFixed(0);
-      logMessage('info', `Move took ${elapsedTime}ms`);
-
-      const delay = 100;
-      logMessage('info', `Delaying for ${delay}ms`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-
-      return true;
     }
 
     async sendAbsoluteMove(command) {
-      logMessage('info', `Sending absolute move to ${command.x}, ${command.y}`);
-      const relativeCommand = {
-        dx: command.x - this.m_laserX,
-        dy: command.y - this.m_laserY
-      };
-      return this.sendRelativeMove(relativeCommand);
+        logMessage('info', `Sending absolute move to ${command.x}, ${command.y}`);
+        const relativeCommand = {
+            dx: command.x - this.m_laserX,
+            dy: command.y - this.m_laserY
+        };
+        return this.sendRelativeMove(relativeCommand);
     }
 
     async startEngraving(info) {
+        // set discrete mode
+        const discreteCommand = COMMANDS.DISCRETE_OFF;
+        const discreteAck = await this.sendMessageAndWaitForAck("discrete", Buffer.from(discreteCommand), TIMEOUTS.DISCRETE);
+        if (!discreteAck) {
+            logMessage('error', 'Failed to send discrete command');
+            return false;
+        }
 
-      // set discrete mode
-      const discreteCommand = COMMANDS.DISCRETE_OFF;
-      const discreteAck = await this.sendMessageAndWaitForAck("discrete", Buffer.from(discreteCommand), TIMEOUTS.DISCRETE);
-      if (!discreteAck) {
-        logMessage('error', 'Failed to send discrete command');
-        return false;
-      }
+        // set reset command
+        const resetCommand = COMMANDS.RESET;
+        const resetAck = await this.sendMessageAndWaitForAck("reset", Buffer.from(resetCommand), TIMEOUTS.RESET);
+        if (!resetAck) {
+            logMessage('error', 'Failed to send reset command');
+            return false;
+        }
 
-      // set reset command
-      const resetCommand = COMMANDS.RESET;
-      const resetAck = await this.sendMessageAndWaitForAck("reset", Buffer.from(resetCommand), TIMEOUTS.RESET);
-      if (!resetAck) {
-        logMessage('error', 'Failed to send reset command');
-        return false;
-      }
+        this.m_speed = info.speed;
+        this.m_power = info.power;
 
-      this.m_speed = info.speed;
-      this.m_power = info.power;
+        // turn on the fan
+        await this.setFan(true);
 
-      // turn on the fan
-      await this.setFan(true);
+        // get the size of the image
+        const x = info.boundingBox.left;
+        const y = info.boundingBox.top;
 
+        var command = COMMANDS.START;
+        command[3] = (x >> 8) & 0xFF;
+        command[4] = x & 0xFF;
+        command[5] = (y >> 8) & 0xFF;
+        command[6] = y & 0xFF;
 
-      // get the size of the image
-      const x = info.boundingBox.left;
-      const y = info.boundingBox.top;
+        this.m_startX = x;
+        this.m_startY = y;
 
-      var command = COMMANDS.START;
-      command[3] = (x >> 8) & 0xFF;
-      command[4] = x & 0xFF;
-      command[5] = (y >> 8) & 0xFF;
-      command[6] = y & 0xFF;
+        const ack = await this.sendMessageAndWaitForAck("start", Buffer.from(command), TIMEOUTS.START);
+        if (!ack) {
+            logMessage('error', 'Failed to send start command');
+            return false;
+        }
 
-      this.m_startX = x;
-      this.m_startY = y;
+        // sleep for 500ms
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-      const ack = await this.sendMessageAndWaitForAck("start", Buffer.from(command), TIMEOUTS.START);
-      if (!ack) {
-        logMessage('error', 'Failed to send start command');
-        return false;
-      }
-
-      // sleep for 500ms
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      return true;
+        return true;
     }
 
     // Add function to send line data to the engraver
     async engraveLine(lineData, lineNumber) {
-      
-      // set the laser position to the start position + the line number
-      this.m_laserY = this.m_startY + lineNumber;
-      this.m_laserX = this.m_startX;
+        // set the laser position to the start position + the line number
+        this.m_laserY = this.m_startY + lineNumber;
+        this.m_laserX = this.m_startX;
 
-      // allocate buffer for command
-      const commandLength = COMMANDS.ENGRAVE.length + (lineData.length + 7) / 8;
-      var commandBuffer   = Buffer.alloc(commandLength);
+        // allocate buffer for command
+        const commandLength = COMMANDS.ENGRAVE.length + (lineData.length + 7) / 8;
+        var commandBuffer   = Buffer.alloc(commandLength);
 
-      commandBuffer[0] = COMMANDS.ENGRAVE[0];
+        commandBuffer[0] = COMMANDS.ENGRAVE[0];
 
-      // command length
-      commandBuffer[1] = commandLength >> 8;
-      commandBuffer[2] = commandLength & 0xFF;
+        // command length
+        commandBuffer[1] = commandLength >> 8;
+        commandBuffer[2] = commandLength & 0xFF;
 
-      // speed of laser
-      var speed = 1;
-      if (this.m_speed >= 25) {
-        speed = Math.round(51 - this.m_speed);  
-      }
-      else {
-        speed = Math.round(29 + ((24 - this.m_speed) * 3))  
-      }
-      logMessage('info', `Speed: ${this.m_speed} -> ${speed}`);
-      commandBuffer[3] = speed >> 8;
-      commandBuffer[4] = speed & 0xFF;
-
-      // laser power
-      var power = Math.min(this.m_power*10, MAX_POWER);
-      logMessage('info', `Power: ${this.m_power} -> ${power}`);
-      commandBuffer[5] = power >> 8;
-      commandBuffer[6] = power & 0xFF;
-
-      // current height progress
-      commandBuffer[7] = lineNumber >> 8;
-      commandBuffer[8] = lineNumber & 0xFF;
-
-      // each engrave line is packed into bytes
-      // each bit is a pixel
-      // the least significant bit is the pixel at the bottom left
-      // the most significant bit is the pixel at the top right
-      // the data is packed into bytes from left to right, bottom to top
-      var pixelPtr = COMMANDS.ENGRAVE.length;
-
-      var byte = 0;
-      for (let i = 0; i < lineData.length; i++) {
-        byte = byte << 1;
-        if (lineData[i] < 0x80) {
-          byte |= 1;
+        // speed of laser
+        var speed = 1;
+        if (this.m_speed >= 25) {
+            speed = Math.round(51 - this.m_speed);  
         }
-        if (i % 8 == 7) {
-          commandBuffer[pixelPtr] = byte;
-          pixelPtr++;
-          byte = 0;
+        else {
+            speed = Math.round(29 + ((24 - this.m_speed) * 3))  
         }
-      }
-      commandBuffer[pixelPtr] = byte;
+        logMessage('info', `Speed: ${this.m_speed} -> ${speed}`);
+        commandBuffer[3] = speed >> 8;
+        commandBuffer[4] = speed & 0xFF;
 
-      const startTime = Date.now();
+        // laser power
+        var power = Math.min(this.m_power*10, MAX_POWER);
+        logMessage('info', `Power: ${this.m_power} -> ${power}`);
+        commandBuffer[5] = power >> 8;
+        commandBuffer[6] = power & 0xFF;
 
-      // send the line data to the engraver
-      const ack = await this.sendMessageAndWaitForAck("engrave line", commandBuffer, TIMEOUTS.ENGRAVE);
-      if (!ack) {
-        logMessage('error', 'Failed to send engrave line command');
-        return false;
-      }
+        // current height progress
+        commandBuffer[7] = lineNumber >> 8;
+        commandBuffer[8] = lineNumber & 0xFF;
 
-      // find rightmost non-zero pixel
-      var rightmostNonZeroPixel = lineData.length;
-      while (rightmostNonZeroPixel > 1 && lineData[rightmostNonZeroPixel-1] >= 0x80) {
-        rightmostNonZeroPixel--;
-      }
+        // each engrave line is packed into bytes
+        // each bit is a pixel
+        // the least significant bit is the pixel at the bottom left
+        // the most significant bit is the pixel at the top right
+        // the data is packed into bytes from left to right, bottom to top
+        var pixelPtr = COMMANDS.ENGRAVE.length;
 
-      const elapsedTime = Date.now() - startTime;
-      const pixelsPerSecond = (rightmostNonZeroPixel / elapsedTime) * 1000;
-      logMessage('info', `Engrave line ${lineNumber} took ${elapsedTime}ms = ${pixelsPerSecond} pixels/sec for ${rightmostNonZeroPixel} pixels`);
+        var byte = 0;
+        for (let i = 0; i < lineData.length; i++) {
+            byte = byte << 1;
+            if (lineData[i] < 0x80) {
+                byte |= 1;
+            }
+            if (i % 8 == 7) {
+                commandBuffer[pixelPtr] = byte;
+                pixelPtr++;
+                byte = 0;
+            }
+        }
+        commandBuffer[pixelPtr] = byte;
 
-      return true;
+        const startTime = Date.now();
+
+        // send the line data to the engraver
+        const ack = await this.sendMessageAndWaitForAck("engrave line", commandBuffer, TIMEOUTS.ENGRAVE);
+        if (!ack) {
+            logMessage('error', 'Failed to send engrave line command');
+            return false;
+        }
+
+        // find rightmost non-zero pixel
+        var rightmostNonZeroPixel = lineData.length;
+        while (rightmostNonZeroPixel > 1 && lineData[rightmostNonZeroPixel-1] >= 0x80) {
+            rightmostNonZeroPixel--;
+        }
+
+        const elapsedTime = Date.now() - startTime;
+        const pixelsPerSecond = (rightmostNonZeroPixel / elapsedTime) * 1000;
+        logMessage('info', `Engrave line ${lineNumber} took ${elapsedTime}ms = ${pixelsPerSecond} pixels/sec for ${rightmostNonZeroPixel} pixels`);
+
+        return true;
     }
 
     async stopEngraving() 
     {
-      // set the laser position to the start position + the line number
-      this.m_laserY = this.m_startY;
-      this.m_laserX = this.m_startX;
+        // set the laser position to the start position + the line number
+        this.m_laserY = this.m_startY;
+        this.m_laserX = this.m_startX;
 
-      // send stop command
-      const stopCommand = COMMANDS.STOP;
-      const stopAck = await this.sendMessageAndWaitForAck("stop", Buffer.from(stopCommand), TIMEOUTS.STOP);
-      if (!stopAck) {
-        logMessage('error', 'Failed to send stop command');
-        return false;
-      }
+        // send stop command
+        const stopCommand = COMMANDS.STOP;
+        const stopAck = await this.sendMessageAndWaitForAck("stop", Buffer.from(stopCommand), TIMEOUTS.STOP);
+        if (!stopAck) {
+            logMessage('error', 'Failed to send stop command');
+            return false;
+        }
 
-      // turn off the fan
-      await this.setFan(false);
+        // turn off the fan
+        await this.setFan(false);
 
-      return true;
+        return true;
     }
 }
 
-module.exports = K3Laser; 
+module.exports = K3Laser;

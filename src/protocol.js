@@ -19,16 +19,35 @@ class Protocol {
       this.m_port = null;
       this.m_laserX = 0;
       this.m_laserY = 0;
+      this.buffer = Buffer.alloc(0);
+      this.responseTimeout = null;
     }
 
     // Initialize the protocol handler
-    init(port) 
-    {
-      this.m_port = port;
-      this.m_fanOn = false;
-      return {
-        status: 'connected'
-      };
+    async init(port) {
+        this.m_port = port;
+        this.m_fanOn = false;
+        this.buffer = Buffer.alloc(0);
+        this.responseTimeout = null;
+
+        // Set up port error handler
+        this.m_port.on('error', (error) => {
+            console.error('Port error:', error);
+        });
+
+        // Set up port close handler
+        this.m_port.on('close', () => {
+            this.m_port = null;
+            this.buffer = Buffer.alloc(0);
+            if (this.responseTimeout) {
+                clearTimeout(this.responseTimeout);
+                this.responseTimeout = null;
+            }
+        });
+
+        return {
+            status: 'connected'
+        };
     }
 
     getDimensions() {
