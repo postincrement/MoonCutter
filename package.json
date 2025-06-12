@@ -17,8 +17,8 @@
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win --x64"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Craig Southeren <craig@postincrement.com>",
+  "license": "MPL-2.0",
   "devDependencies": {
     "electron": "^28.3.3",
     "electron-builder": "^26.0.12"
