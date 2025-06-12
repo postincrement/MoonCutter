@@ -40,17 +40,52 @@ const deviceTypeFactory = [
 
 async function closeDevice(event, response)
 {
-  if (g_currentDevice && g_needsSerialPort && g_currentDevice.m_port) {
-    console.log('about to call g_currentDevice.m_port.close()');
-    g_currentDevice.m_port.close();
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('g_currentDevice.m_port.close() called');
-    g_currentDevice.m_port = null;
-    console.log('g_currentDevice.m_port set to null');
-  }
+  try {
+    if (g_currentDevice) {
+      // First call cleanup on the device to remove event listeners
+      await g_currentDevice.cleanup();
+      
+      // Then handle the port if needed
+      if (g_needsSerialPort && g_currentDevice.m_port) {
+        try {
+          // Check if port is actually open before trying to close it
+          if (g_currentDevice.m_port.isOpen) {
+            console.log('Closing port...');
+            await new Promise((resolve, reject) => {
+              g_currentDevice.m_port.close((err) => {
+                if (err) {
+                  console.error('Error closing port:', err);
+                  reject(err);
+                } else {
+                  console.log('Port closed successfully');
+                  resolve();
+                }
+              });
+            });
+          } else {
+            console.log('Port was already closed');
+          }
+        } catch (error) {
+          console.error('Error during port close:', error);
+          // Don't throw here, just log the error and continue with cleanup
+        }
+        
+        // Clear the port reference regardless of close success
+        g_currentDevice.m_port = null;
+      }
+      
+      // Clear the device reference
+      g_currentDevice = null;
+    }
 
-  if (response) {
-    event.reply('connect-response', response);
+    if (response) {
+      event.reply('connect-response', response);
+    }
+  } catch (error) {
+    console.error('Error in closeDevice:', error);
+    if (response) {
+      event.reply('connect-response', { ...response, error: error.message });
+    }
   }
 }
 
@@ -93,9 +128,18 @@ function createWindow() {
     });
 
     mainWindow.on('closed', async () => {
-        mainWindow = null;
-        //await closePort();
-        app.quit();
+        try {
+            // Clean up the current device before quitting
+            if (g_currentDevice) {
+                await closeDevice(null, null);
+            }
+        } catch (error) {
+            console.error('Error during window close:', error);
+        } finally {
+            mainWindow = null;
+            // Use process.exit(0) instead of app.quit() to ensure clean exit
+            process.exit(0);
+        }
     });
 }
 
@@ -150,31 +194,42 @@ app.whenReady().then(() => {
 
     // Device type handling
     ipcMain.handle('set-device-type', async (event, data) => {
-      try {
-        // find the name in the factory array
-        const deviceType = deviceTypeFactory.find(type => type.name === data.deviceType); 
-        if (!deviceType) {
-          console.error(`Unknown device type: ${data.deviceType}`);
-          return { success: false, message: `Unknown device type: ${data.deviceType}` };
+        try {
+            // Close any existing device first
+            if (g_currentDevice) {
+                await closeDevice(event, null);
+            }
+
+            // find the name in the factory array
+            const deviceType = deviceTypeFactory.find(type => type.name === data.deviceType); 
+            if (!deviceType) {
+                console.error(`Unknown device type: ${data.deviceType}`);
+                return { success: false, message: `Unknown device type: ${data.deviceType}` };
+            }
+
+            // create the device using the factory
+            g_currentDeviceClass = deviceType.class;
+            g_currentDevice = new g_currentDeviceClass();
+            g_needsSerialPort = g_currentDeviceClass.needsSerialPort();
+
+            // get the dimensions of the device
+            const dimensions = g_currentDevice.getDimensions();
+
+            logMessage('info', `setting device type to ${data.deviceType}, dimensions: ${dimensions.width}x${dimensions.height}`);
+
+            return { 
+                success: true, 
+                needsSerialPort: g_needsSerialPort,
+                engraverDimensions: g_currentDevice.getDimensions() 
+            };
+        } catch (error) {
+            console.error('Error in set-device-type:', error);
+            // Ensure device is cleaned up on error
+            if (g_currentDevice) {
+                await closeDevice(event, null);
+            }
+            return { success: false, message: error.message };
         }
-
-        // create the device using the factory
-        g_currentDeviceClass = deviceType.class;
-        g_currentDevice      = new g_currentDeviceClass();
-        g_needsSerialPort    = g_currentDeviceClass.needsSerialPort();
-
-        // get the dimensions of the device
-        const dimensions = g_currentDevice.getDimensions();
-
-        logMessage('info', `setting device type to ${data.deviceType}, dimensions: ${dimensions.width}x${dimensions.height}`);
-
-        return { success            : true, 
-                 needsSerialPort    : g_needsSerialPort,
-                 engraverDimensions : g_currentDevice.getDimensions() };
-      } catch (error) {
-        console.error('Error in set-device-type:', error);
-        return { success: false, message: error.message };
-      }
     });
 
     // Handle engrave area button click
@@ -347,8 +402,31 @@ app.on('window-all-closed', async () => {
 });
 
 // Handle any uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', async (error) => {
     console.error('Uncaught exception:', error);
+    try {
+        if (g_currentDevice) {
+            await closeDevice(null, null);
+        }
+    } catch (cleanupError) {
+        console.error('Error during cleanup after uncaught exception:', cleanupError);
+    } finally {
+        process.exit(1);
+    }
+});
+
+// Add a handler for unhandled promise rejections
+process.on('unhandledRejection', async (reason, promise) => {
+    console.error('Unhandled promise rejection:', reason);
+    try {
+        if (g_currentDevice) {
+            await closeDevice(null, null);
+        }
+    } catch (cleanupError) {
+        console.error('Error during cleanup after unhandled rejection:', cleanupError);
+    } finally {
+        process.exit(1);
+    }
 });
 
 // Preferences handling
@@ -568,6 +646,17 @@ ipcMain.handle('disconnect-port', async () => {
     logMessage('error', `Error stack: ${err.stack}`);
     throw err;
   }
+});
+
+// Add a handler for app quit
+app.on('before-quit', async () => {
+    try {
+        if (g_currentDevice) {
+            await closeDevice(null, null);
+        }
+    } catch (error) {
+        console.error('Error during app quit:', error);
+    }
 });
 
 

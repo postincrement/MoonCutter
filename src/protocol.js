@@ -21,33 +21,75 @@ class Protocol {
       this.m_laserY = 0;
       this.buffer = Buffer.alloc(0);
       this.responseTimeout = null;
+      this._errorHandler = null;
+      this._closeHandler = null;
+      this._dataHandler = null;
+      this._isCleaningUp = false;
     }
 
     // Initialize the protocol handler
     async init(port) {
-        this.m_port = port;
-        this.m_fanOn = false;
-        this.buffer = Buffer.alloc(0);
-        this.responseTimeout = null;
-
-        // Set up port error handler
-        this.m_port.on('error', (error) => {
-            console.error('Port error:', error);
-        });
-
-        // Set up port close handler
-        this.m_port.on('close', () => {
-            this.m_port = null;
-            this.buffer = Buffer.alloc(0);
-            if (this.responseTimeout) {
-                clearTimeout(this.responseTimeout);
-                this.responseTimeout = null;
+        try {
+            if (this._isCleaningUp) {
+                throw new Error('Device is being cleaned up');
             }
-        });
 
-        return {
-            status: 'connected'
-        };
+            this.m_port = port;
+            this.m_fanOn = false;
+            this.buffer = Buffer.alloc(0);
+            this.responseTimeout = null;
+
+            // Remove any existing handlers
+            this._cleanupEventListeners();
+
+            // Set up port error handler
+            this._errorHandler = (error) => {
+                if (!this._isCleaningUp) {
+                    console.error('Port error:', error);
+                    logMessage('error', 'Port error: ' + error.message);
+                }
+            };
+            this.m_port.on('error', this._errorHandler);
+
+            // Set up port close handler
+            this._closeHandler = () => {
+                if (!this._isCleaningUp) {
+                    this._cleanupEventListeners();
+                    this.m_port = null;
+                    this.buffer = Buffer.alloc(0);
+                    if (this.responseTimeout) {
+                        clearTimeout(this.responseTimeout);
+                        this.responseTimeout = null;
+                    }
+                }
+            };
+            this.m_port.on('close', this._closeHandler);
+
+            return {
+                status: 'connected'
+            };
+        } catch (error) {
+            logMessage('error', 'Error in protocol init: ' + error.message);
+            this._cleanupEventListeners();
+            throw error;
+        }
+    }
+
+    _cleanupEventListeners() {
+        if (this.m_port) {
+            if (this._errorHandler) {
+                this.m_port.removeListener('error', this._errorHandler);
+                this._errorHandler = null;
+            }
+            if (this._closeHandler) {
+                this.m_port.removeListener('close', this._closeHandler);
+                this._closeHandler = null;
+            }
+            if (this._dataHandler) {
+                this.m_port.removeListener('data', this._dataHandler);
+                this._dataHandler = null;
+            }
+        }
     }
 
     getDimensions() {
@@ -59,8 +101,11 @@ class Protocol {
       };
     }
     
-    setFan(fanOn) 
+    async setFan(fanOn) 
     {
+      if (this._isCleaningUp) {
+        throw new Error('Device is being cleaned up');
+      }
       this.m_fanOn = fanOn;
       return {
         status: 'success'
@@ -72,8 +117,11 @@ class Protocol {
       return this.m_fanOn;
     }
 
-    sendCenter() 
+    async sendCenter() 
     {
+      if (this._isCleaningUp) {
+        throw new Error('Device is being cleaned up');
+      }
       this.m_laserX = this.m_bedWidthPixels / 2;
       this.m_laserY = this.m_bedHeightPixels / 2;
       return {
@@ -82,8 +130,11 @@ class Protocol {
       };
     }
 
-    sendHome() 
+    async sendHome() 
     {
+      if (this._isCleaningUp) {
+        throw new Error('Device is being cleaned up');
+      }
       this.m_laserX = 0;
       this.m_laserY = 0;
       return {
@@ -92,44 +143,75 @@ class Protocol {
       };
     }
 
-    sendAbsoluteMove(command) 
+    async sendAbsoluteMove(command) 
     {
+      if (this._isCleaningUp) {
+        throw new Error('Device is being cleaned up');
+      }
       return {
         status: 'error',
         message: 'not implemented'
       };
     }
 
-    sendRelativeMove(command) 
+    async sendRelativeMove(command) 
     {
+      if (this._isCleaningUp) {
+        throw new Error('Device is being cleaned up');
+      }
       return {
         status: 'error',
         message: 'not implemented'
       };
     }
 
-    startEngraving() 
+    async startEngraving() 
     {
+      if (this._isCleaningUp) {
+        throw new Error('Device is being cleaned up');
+      }
       return {
         status: 'error',
         message: 'not implemented'
       };
     }
 
-    stopEngraving() 
+    async stopEngraving() 
     {
+      if (this._isCleaningUp) {
+        throw new Error('Device is being cleaned up');
+      }
       return {
         status: 'error',
         message: 'not implemented'
       };
     }
 
-    engraveLine(lineData, lineNumber) 
+    async engraveLine(lineData, lineNumber) 
     {
+      if (this._isCleaningUp) {
+        throw new Error('Device is being cleaned up');
+      }
       return {
         status: 'error',
         message: 'not implemented'
       };
+    }
+
+    // Cleanup method to be called when the device is being destroyed
+    async cleanup() {
+        this._isCleaningUp = true;
+        try {
+            this._cleanupEventListeners();
+            if (this.responseTimeout) {
+                clearTimeout(this.responseTimeout);
+                this.responseTimeout = null;
+            }
+            this.m_port = null;
+            this.buffer = Buffer.alloc(0);
+        } finally {
+            this._isCleaningUp = false;
+        }
     }
 }
 
