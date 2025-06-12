@@ -8,6 +8,7 @@ const os = require('os');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
+const { checkForUpdates } = require('./version-check');
 
 const K3Laser     = require('./k3-laser');
 const GCodeLaser  = require('./gcode-laser');
@@ -143,8 +144,16 @@ function createWindow() {
     });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     createWindow();
+    
+    // Check for updates after a short delay to ensure the app is fully loaded
+    setTimeout(async () => {
+        const preferences = loadPreferences();
+        if (preferences.checkUpdates !== false) {
+            await checkForUpdates();
+        }
+    }, 5000);
 
     // System fonts handling
     ipcMain.handle('get-system-fonts', async () => {
@@ -477,6 +486,30 @@ ipcMain.on('preferences-changed', (event, preferences) => {
     });
 });
 
+// Add this function to create the About window
+function createAboutWindow() {
+    const aboutWindow = new BrowserWindow({
+        width: 400,
+        height: 300,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js')
+        }
+    });
+
+    aboutWindow.loadFile('public/about.html');
+    aboutWindow.setMenu(null);
+
+    // Send the app version to the About window
+    aboutWindow.webContents.on('did-finish-load', () => {
+        aboutWindow.webContents.send('set-app-version', app.getVersion());
+    });
+}
+
 // Update menu template
 const template = [
     {
@@ -555,20 +588,7 @@ const template = [
             {
                 label: 'About MoonCutter',
                 click: () => {
-                    const aboutWindow = new BrowserWindow({
-                        width: 400,
-                        height: 300,
-                        resizable: false,
-                        minimizable: false,
-                        maximizable: false,
-                        webPreferences: {
-                            nodeIntegration: false,
-                            contextIsolation: true
-                        }
-                    });
-
-                    aboutWindow.loadFile('public/about.html');
-                    aboutWindow.setMenu(null);
+                    createAboutWindow();
                 }
             }
         ]
@@ -657,6 +677,11 @@ app.on('before-quit', async () => {
     } catch (error) {
         console.error('Error during app quit:', error);
     }
+});
+
+// Add version check IPC handler
+ipcMain.handle('check-for-updates', async () => {
+    await checkForUpdates();
 });
 
 

@@ -2,6 +2,7 @@ class PreferencesManager {
     constructor() {
         this.defaultPreferences = {
             units: 'mm',  // 'mm' or 'in'
+            checkUpdates: true  // Whether to check for updates automatically
         };
         this.preferences = { ...this.defaultPreferences };
         this.initialized = false;

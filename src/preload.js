@@ -42,5 +42,11 @@ contextBridge.exposeInMainWorld('api', {
   loadPreferences: () => ipcRenderer.invoke('load-preferences'),
   savePreferences: (preferences) => ipcRenderer.invoke('save-preferences', preferences),
   preferencesChanged: (preferences) => ipcRenderer.send('preferences-changed', preferences),
-  onPreferencesChanged: (callback) => ipcRenderer.on('preferences-changed', callback)
+  onPreferencesChanged: (callback) => ipcRenderer.on('preferences-changed', callback),
+
+  // Version Check API
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  
+  // Version API
+  onSetAppVersion: (callback) => ipcRenderer.on('set-app-version', (event, version) => callback(version))
 }); 

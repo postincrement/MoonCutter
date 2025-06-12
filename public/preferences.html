@@ -55,6 +55,17 @@
             margin: 0;
         }
 
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            margin: 0;
+        }
+
         .button-group {
             display: flex;
             justify-content: flex-end;
@@ -88,6 +99,22 @@
         .cancel-button:hover {
             background-color: #e0e0e0;
         }
+
+        .version-check-button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            margin-top: 20px;
+        }
+
+        .version-check-button:hover {
+            background-color: #1976D2;
+        }
     </style>
 </head>
 <body>
@@ -105,6 +132,14 @@
                 </label>
             </div>
         </div>
+        <div class="preference-group">
+            <div class="preference-label">Updates</div>
+            <div class="checkbox-option">
+                <input type="checkbox" id="checkUpdates" checked>
+                <label for="checkUpdates">Check for updates automatically</label>
+            </div>
+        </div>
+        <button class="version-check-button" onclick="checkForUpdates()">Check for Updates</button>
         <div class="button-group">
             <button class="button cancel-button" onclick="window.close()">Cancel</button>
             <button class="button save-button" onclick="savePreferences()">Save</button>
@@ -117,18 +152,27 @@
             
             // Set radio buttons based on saved preferences
             document.querySelector(`input[name="units"][value="${preferences.units}"]`).checked = true;
+            
+            // Set checkbox based on saved preferences
+            document.getElementById('checkUpdates').checked = preferences.checkUpdates !== false;
         });
 
         // Save preferences when Save button is clicked
         async function savePreferences() {
             const preferences = {
                 units: document.querySelector('input[name="units"]:checked').value,
+                checkUpdates: document.getElementById('checkUpdates').checked
             };
 
             await window.api.savePreferences(preferences);
             // Notify the main window that preferences have changed
             window.api.preferencesChanged(preferences);
             window.close();
+        }
+
+        // Check for updates
+        async function checkForUpdates() {
+            await window.api.checkForUpdates();
         }
     </script>
 </body>
