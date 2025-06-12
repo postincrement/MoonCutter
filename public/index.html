@@ -126,7 +126,7 @@
                                         <button id="boldButton" class="style-button" style="font-weight: bold;" title="Bold">B</button>
                                         <button id="italicButton" class="style-button" style="font-style: italic;" title="Italic">I</button>
                                         <button id="underlineButton" class="style-button" style="text-decoration: underline;" title="Underline">U</button>
-                                        <span>&nbsp;</span>
+                                        <button id="outlineButton" class="style-button" title="Outline" style="font-weight: bold;-webkit-text-stroke: 1px currentColor;">O</button>
                                         <span>&nbsp;</span>
                                         <span>&nbsp;</span>
                                         <button id="justifyLeftButton" class="style-button active" title="Left Justify">
@@ -166,34 +166,38 @@
                     </div>
                     <div class="tab-pane" id="engrave-tab">
                         <div class="run-content">
-                          <div class="control-buttons" style="margin-bottom: 1em;">
-                            <button id="homeButton">
-                                <img src="images/home.png" alt="Home">
-                            </button>
-                            <button id="engraveAreaButton">
-                                <img src="images/border.png" alt="Engrave Area">
-                            </button>
-                          </div>
-                          <div class="start-stop-buttons">
-                            <button id="startButton">Start</button>
-                            <button id="stopButton" disabled>Stop</button>
-                          </div>
-                          <div class="engrave-controls">
-                            <div class="control-slider">
-                                <label for="speedSlider">Speed:</label>
+                            <div class="scale-control">
                                 <div class="scale-input-group">
-                                    <input type="range" id="speedSlider" min="1" max="50" value="15" class="slider">
-                                    <input type="number" id="speedInput" min="1" max="50" value="15" class="scale-input">
+                                    <div class="text-effects-buttons">
+                                        <button id="homeButton" class="style-button" title="Home">
+                                            <img src="images/home.png" alt="Home" style="width: 16px; height: 16px;">
+                                        </button>
+                                        <button id="engraveAreaButton" class="style-button" title="Engrave Area">
+                                            <img src="images/border.png" alt="Engrave Area" style="width: 16px; height: 16px;">
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="control-slider">
-                                <label for="powerSlider">Power:</label>
-                                <div class="scale-input-group">
-                                    <input type="range" id="powerSlider" min="1" max="100" value="100" class="slider">
-                                    <input type="number" id="powerInput" min="1" max="100" value="100" class="scale-input">%
+                            <div class="start-stop-buttons">
+                                <button id="startButton">Start</button>
+                                <button id="stopButton" disabled>Stop</button>
+                            </div>
+                            <div class="engrave-controls">
+                                <div class="control-slider">
+                                    <label for="speedSlider">Speed:</label>
+                                    <div class="scale-input-group">
+                                        <input type="range" id="speedSlider" min="1" max="50" value="15" class="slider">
+                                        <input type="number" id="speedInput" min="1" max="50" value="15" class="scale-input">
+                                    </div>
+                                </div>
+                                <div class="control-slider">
+                                    <label for="powerSlider">Power:</label>
+                                    <div class="scale-input-group">
+                                        <input type="range" id="powerSlider" min="1" max="100" value="100" class="slider">
+                                        <input type="number" id="powerInput" min="1" max="100" value="100" class="scale-input">%
+                                    </div>
                                 </div>
                             </div>
-                          </div>
                             <div class="progress-container">
                                 <div class="progress-bar">
                                     <div class="progress-fill"></div>

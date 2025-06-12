@@ -30,6 +30,7 @@ const g_fontSizeInput         = document.getElementById('fontSizeInput');
 const g_boldButton            = document.getElementById('boldButton');
 const g_italicButton          = document.getElementById('italicButton');
 const g_underlineButton       = document.getElementById('underlineButton');
+const g_outlineButton         = document.getElementById('outlineButton');
 const g_justifyLeftButton     = document.getElementById('justifyLeftButton');
 const g_justifyCenterButton   = document.getElementById('justifyCenterButton');
 const g_justifyRightButton    = document.getElementById('justifyRightButton');

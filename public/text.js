@@ -11,6 +11,7 @@ let g_textSettings = {
     m_bold: false,
     m_italic: false,
     m_underline: false,
+    m_outline: false,
     m_justify: 'left',  // 'left', 'center', or 'right'
     m_rotateAngle: 0,
     m_imageOffsetX: 0,
@@ -112,6 +113,13 @@ g_underlineButton.addEventListener('click', () => {
     g_underlineButton.classList.toggle('active');
     g_textSettings.m_underline = g_underlineButton.classList.contains('active');
     updateSampleText();
+    renderTextToBuffer();
+});
+
+// Outline button
+g_outlineButton.addEventListener('click', () => {
+    g_outlineButton.classList.toggle('active');
+    g_textSettings.m_outline = g_outlineButton.classList.contains('active');
     renderTextToBuffer();
 });
 
