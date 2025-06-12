@@ -4,7 +4,7 @@ const semver = require('semver');
 
 const VERSION_CHECK_URL = 'https://postincrement.github.io/mooncutter/latest-version.json';
 
-async function checkForUpdates() {
+async function checkForUpdates(displayIfNotLatest) {
     try {
         const latestVersion = await fetchLatestVersion();
         
@@ -25,9 +25,28 @@ async function checkForUpdates() {
                 // Open the download URL in the default browser
                 require('electron').shell.openExternal(latestVersion.url);
             }
+        } else {
+            if (displayIfNotLatest) {
+                await dialog.showMessageBox({
+                type: 'info',
+                title: 'No Updates Available',
+                message: 'You are using the latest version of MoonCutter',
+                detail: `Current version: ${app.getVersion()}`,
+                    buttons: ['OK'],
+                    defaultId: 0
+                });
+            }
         }
     } catch (error) {
         console.error('Error checking for updates:', error);
+        await dialog.showMessageBox({
+            type: 'error',
+            title: 'Update Check Failed',
+            message: 'Failed to check for updates',
+            detail: error.message,
+            buttons: ['OK'],
+            defaultId: 0
+        });
     }
 }
 

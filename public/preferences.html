@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Preferences</title>
+    <title>Settings</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -99,22 +99,6 @@
         .cancel-button:hover {
             background-color: #e0e0e0;
         }
-
-        .version-check-button {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s;
-            margin-top: 20px;
-        }
-
-        .version-check-button:hover {
-            background-color: #1976D2;
-        }
     </style>
 </head>
 <body>
@@ -139,7 +123,6 @@
                 <label for="checkUpdates">Check for updates automatically</label>
             </div>
         </div>
-        <button class="version-check-button" onclick="checkForUpdates()">Check for Updates</button>
         <div class="button-group">
             <button class="button cancel-button" onclick="window.close()">Cancel</button>
             <button class="button save-button" onclick="savePreferences()">Save</button>
@@ -168,11 +151,6 @@
             // Notify the main window that preferences have changed
             window.api.preferencesChanged(preferences);
             window.close();
-        }
-
-        // Check for updates
-        async function checkForUpdates() {
-            await window.api.checkForUpdates();
         }
     </script>
 </body>

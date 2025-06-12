@@ -151,7 +151,7 @@ app.whenReady().then(async () => {
     setTimeout(async () => {
         const preferences = loadPreferences();
         if (preferences.checkUpdates !== false) {
-            await checkForUpdates();
+            await checkForUpdates(false);
         }
     }, 5000);
 
@@ -513,53 +513,22 @@ function createAboutWindow() {
 // Update menu template
 const template = [
     {
-        label: 'File',
+        label: 'MoonCutter',
+        id: 'mooncutter-menu',
         submenu: [
             {
-                label: 'Open...',
-                accelerator: 'CmdOrCtrl+O',
+                label: 'About MoonCutter',
                 click: () => {
-                    // TODO: Implement file open functionality
+                    createAboutWindow();
+                }
+            },
+            {
+                label: 'Check for Updates',
+                click: async () => {
+                    await checkForUpdates(true);
                 }
             },
             { type: 'separator' },
-            {
-                label: 'Exit',
-                accelerator: 'CmdOrCtrl+Q',
-                click: () => {
-                    app.quit();
-                }
-            }
-        ]
-    },
-    {
-        label: 'Edit',
-        submenu: [
-            { role: 'undo' },
-            { role: 'redo' },
-            { type: 'separator' },
-            { role: 'cut' },
-            { role: 'copy' },
-            { role: 'paste' },
-            { role: 'delete' },
-            { type: 'separator' },
-            { role: 'selectAll' }
-        ]
-    },
-    {
-        label: 'View',
-        submenu: [
-            {
-                label: 'Show Logs',
-                click: () => {
-                    createLogWindow();
-                }
-            }
-        ]
-    },
-    {
-        label: 'Settings',
-        submenu: [
             {
                 label: 'Preferences',
                 click: () => {
@@ -579,24 +548,61 @@ const template = [
                     prefsWindow.loadFile('public/preferences.html');
                     prefsWindow.setMenu(null);
                 }
+            },
+            {
+                label: 'Show Logs',
+                click: () => {
+                    createLogWindow();
+                }
+            },
+            { type: 'separator' },
+            {
+                label: 'Quit',
+                accelerator: 'CmdOrCtrl+Q',
+                click: () => {
+                    app.quit();
+                }
             }
         ]
     },
     {
-        label: 'Help',
+        label: 'File',
         submenu: [
             {
-                label: 'About MoonCutter',
+                label: 'Open...',
+                accelerator: 'CmdOrCtrl+O',
                 click: () => {
-                    createAboutWindow();
+                    // TODO: Implement file open functionality
                 }
             }
+        ]
+    },
+    {
+        label: 'Edit',
+        submenu: [
+            //{ role: 'undo' },
+            //{ role: 'redo' },
+            //{ type: 'separator' },
+            { role: 'cut' },
+            { role: 'copy' },
+            { role: 'paste' },
+            { role: 'delete' },
+            //{ type: 'separator' },
+            //{ role: 'selectAll' }
         ]
     }
 ];
 
+// Create the menu
 const menu = Menu.buildFromTemplate(template);
-Menu.setApplicationMenu(menu); 
+Menu.setApplicationMenu(menu);
+
+// Make the MoonCutter menu bold
+const moonCutterMenu = menu.getMenuItemById('mooncutter-menu');
+if (moonCutterMenu) {
+    moonCutterMenu.label = 'MoonCutter';
+    moonCutterMenu.font = { weight: 'bold' };
+}
 
 // Add new IPC handlers for the image buffer functionality
 ipcMain.handle('open-file-dialog', async () => {
@@ -679,9 +685,5 @@ app.on('before-quit', async () => {
     }
 });
 
-// Add version check IPC handler
-ipcMain.handle('check-for-updates', async () => {
-    await checkForUpdates();
-});
 
 
