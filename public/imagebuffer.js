@@ -66,7 +66,9 @@ class ImageBuffer
     // scale image to the scaled canvas
     scaledCtx.save();
     scaledCtx.translate(scaledCanvas.width / 2, scaledCanvas.height / 2);
-    scaledCtx.scale(scale, scale);
+    var scaleX = settings.m_flipHorizontal ? -scale : scale;
+    var scaleY = settings.m_flipVertical ? -scale : scale;
+    scaledCtx.scale(scaleX, scaleY);
     scaledCtx.translate(-sourceCanvas.width / 2, -sourceCanvas.height / 2);
     scaledCtx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height);
     scaledCtx.restore();
