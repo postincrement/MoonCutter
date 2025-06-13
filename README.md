@@ -3,9 +3,7 @@
 
 # MoonCutter - a GUI for the K3 Laser Engraver
 
-STILL UNDER DEVELOPMENT!
-
-Binaries available https://postincrement.github.io/mooncutter/
+Binaries available https://github.com/postincrement/MoonCutter/releases
 
 ## Features
 
