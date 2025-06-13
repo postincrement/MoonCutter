@@ -58,7 +58,6 @@ const TIMEOUTS = {
   FAN: 100,
   HOME: 6000,
   CENTER: 6000,
-  MOVE: 500
 };
 
 const ACK = 0x09;
@@ -77,7 +76,6 @@ class K3Laser extends Protocol {
     async init(port) {
       super.init(port);
       this.buffer = Buffer.alloc(0);
-      this.responseTimeout = null;
 
         this.m_laserX = 0;
         this.m_laserY = 0;
@@ -237,27 +235,22 @@ class K3Laser extends Protocol {
 
     // send move command and wait for ack
     async sendRelativeMove(directionData) {
-        const now = Date.now();
-        logMessage('info', `Sending relative move: ${directionData.dx}, ${directionData.dy}`);
 
-        // clamp the movement to the bed size if required
-        if (g_clampMovements) {
-            const newX = this.m_laserX + directionData.dx;
-            const newY = this.m_laserY + directionData.dy;
+      const now = Date.now();
+      logMessage('info', `Sending relative move: ${directionData.dx}, ${directionData.dy}`);
 
-            if (newX < 0 || newX >= BED_WIDTH_PIXELS || newY < 0 || newY >= BED_HEIGHT_PIXELS) {
-                logMessage('error', `Movement would take laser outside bed bounds: ${newX}, ${newY}`);
-                return false;
-            }
-        }
+      // calculate the timeout based on the distance. 
+      const distance = Math.sqrt(Math.pow(directionData.dx, 2) + Math.pow(directionData.dy, 2));
+      const timeout = Math.max(100, (distance * (distance < 100 ? 1 : 2)));
 
+      logMessage('info', `Distance: ${distance} -> ${timeout}ms`);
         var command = COMMANDS.MOVE;
         command[3] = (directionData.dx >> 8) & 0xFF;
         command[4] = directionData.dx & 0xFF;
         command[5] = (directionData.dy >> 8) & 0xFF;
         command[6] = directionData.dy & 0xFF;
 
-        const ack = await this.sendMessageAndWaitForAck("move", Buffer.from(command), TIMEOUTS.MOVE);
+        const ack = await this.sendMessageAndWaitForAck("move", Buffer.from(command), timeout);
         if (!ack) {
             logMessage('error', 'Failed to send move command');
             return false;

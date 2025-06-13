@@ -20,7 +20,6 @@ class Protocol {
       this.m_laserX = 0;
       this.m_laserY = 0;
       this.buffer = Buffer.alloc(0);
-      this.responseTimeout = null;
       this._errorHandler = null;
       this._closeHandler = null;
       this._dataHandler = null;
@@ -37,7 +36,6 @@ class Protocol {
             this.m_port = port;
             this.m_fanOn = false;
             this.buffer = Buffer.alloc(0);
-            this.responseTimeout = null;
 
             // Remove any existing handlers
             this._cleanupEventListeners();
@@ -57,10 +55,6 @@ class Protocol {
                     this._cleanupEventListeners();
                     this.m_port = null;
                     this.buffer = Buffer.alloc(0);
-                    if (this.responseTimeout) {
-                        clearTimeout(this.responseTimeout);
-                        this.responseTimeout = null;
-                    }
                 }
             };
             this.m_port.on('close', this._closeHandler);
@@ -203,10 +197,6 @@ class Protocol {
         this._isCleaningUp = true;
         try {
             this._cleanupEventListeners();
-            if (this.responseTimeout) {
-                clearTimeout(this.responseTimeout);
-                this.responseTimeout = null;
-            }
             this.m_port = null;
             this.buffer = Buffer.alloc(0);
         } finally {

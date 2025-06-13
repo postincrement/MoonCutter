@@ -1,13 +1,6 @@
 // Request available serial ports when the page loads
 window.api.requestSerialPorts();
 
-// Add cleanup handler for window unload
-window.addEventListener('beforeunload', async () => {
-  if (g_isRunning) {
-    await stopEngraving();
-  }
-  await window.api.disconnectPort();
-});
 
 // Handle refresh button click
 g_refreshButton.addEventListener('click', () => {

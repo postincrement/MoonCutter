@@ -49,37 +49,27 @@ async function closeDevice(event, response)
 {
   try {
     if (g_currentDevice) {
+
+      if (g_currentDevice.m_port && g_currentDevice.m_port.isOpen) {
+        console.log('Closing port...');
+        await new Promise((resolve, reject) => {
+          g_currentDevice.m_port.close((err) => {
+            if (err) {
+              console.error('Error closing port:', err);
+              reject(err);
+            } else {
+              console.log('Port closed successfully');
+              resolve();
+            }
+            g_currentDevice.m_port = null;            
+          });
+        });
+      } else {
+        console.log('Port was already closed');
+      }
+
       // First call cleanup on the device to remove event listeners
       await g_currentDevice.cleanup();
-      
-      // Then handle the port if needed
-      if (g_needsSerialPort && g_currentDevice.m_port) {
-        try {
-          // Check if port is actually open before trying to close it
-          if (g_currentDevice.m_port.isOpen) {
-            console.log('Closing port...');
-            await new Promise((resolve, reject) => {
-              g_currentDevice.m_port.close((err) => {
-                if (err) {
-                  console.error('Error closing port:', err);
-                  reject(err);
-                } else {
-                  console.log('Port closed successfully');
-                  resolve();
-                }
-              });
-            });
-          } else {
-            console.log('Port was already closed');
-          }
-        } catch (error) {
-          console.error('Error during port close:', error);
-          // Don't throw here, just log the error and continue with cleanup
-        }
-        
-        // Clear the port reference regardless of close success
-        g_currentDevice.m_port = null;
-      }
       
       // Clear the device reference
       g_currentDevice = null;
@@ -224,25 +214,21 @@ app.whenReady().then(async () => {
 
             // create the device using the factory
             g_currentDeviceClass = deviceType.class;
-            g_currentDevice = new g_currentDeviceClass();
             g_needsSerialPort = g_currentDeviceClass.needsSerialPort();
 
-            // get the dimensions of the device
-            const dimensions = g_currentDevice.getDimensions();
+            // instantiate the device and get the dimensions, even though we have the port yet
+            const dev = new g_currentDeviceClass();
+            const dimensions = dev.getDimensions();
 
             logMessage('info', `setting device type to ${data.deviceType}, dimensions: ${dimensions.width}x${dimensions.height}`);
 
             return { 
                 success: true, 
                 needsSerialPort: g_needsSerialPort,
-                engraverDimensions: g_currentDevice.getDimensions() 
+                engraverDimensions: dimensions 
             };
         } catch (error) {
             console.error('Error in set-device-type:', error);
-            // Ensure device is cleaned up on error
-            if (g_currentDevice) {
-                await closeDevice(event, null);
-            }
             return { success: false, message: error.message };
         }
     });
@@ -301,6 +287,12 @@ app.whenReady().then(async () => {
 
     ipcMain.on('connect-button-clicked', async (event, data) => {
       console.log('Connect button clicked:', data);
+
+      if (g_currentDevice) {
+        await closeDevice(event, null);
+      }
+
+      g_currentDevice = new g_currentDeviceClass();
 
       if (!g_needsSerialPort) {
         logMessage('info', 'No serial port needed');
@@ -407,41 +399,10 @@ app.whenReady().then(async () => {
     });
 });
 
-app.on('window-all-closed', async () => {
-  
-  await closeDevice();
-
+app.on('window-all-closed', async () => {  
   if (process.platform !== 'darwin') {
     app.quit();
   }
-});
-
-// Handle any uncaught exceptions
-process.on('uncaughtException', async (error) => {
-    console.error('Uncaught exception:', error);
-    try {
-        if (g_currentDevice) {
-            await closeDevice(null, null);
-        }
-    } catch (cleanupError) {
-        console.error('Error during cleanup after uncaught exception:', cleanupError);
-    } finally {
-        process.exit(1);
-    }
-});
-
-// Add a handler for unhandled promise rejections
-process.on('unhandledRejection', async (reason, promise) => {
-    console.error('Unhandled promise rejection:', reason);
-    try {
-        if (g_currentDevice) {
-            await closeDevice(null, null);
-        }
-    } catch (cleanupError) {
-        console.error('Error during cleanup after unhandled rejection:', cleanupError);
-    } finally {
-        process.exit(1);
-    }
 });
 
 // Preferences handling
@@ -664,20 +625,6 @@ ipcMain.handle('send-line-to-engraver', async (event, { lineData, lineNumber }) 
   await g_currentDevice.engraveLine(lineData, lineNumber)
 
   return { status: 'success', message: "line sent successfully" };
-});
-
-// Handle disconnect request
-ipcMain.handle('disconnect-port', async () => {
-  try {
-    await closeDevice();
-
-    mainWindow.webContents.send('serial-ports-state', false);
-    logMessage('info', 'Serial port disconnected');
-  } catch (err) {
-    logMessage('error', `Error disconnecting serial port: ${err.message}`);
-    logMessage('error', `Error stack: ${err.stack}`);
-    throw err;
-  }
 });
 
 // Add a handler for app quit
