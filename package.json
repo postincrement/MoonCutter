@@ -14,7 +14,7 @@
     "electron": "electron .",
     "electron-dev": "concurrently \"npm run dev\" \"npm run electron\"",
     "package": "electron-builder",
-    "package:mac": "electron-builder --mac",
+    "package:mac": "electron-builder --mac --x64 --arm64",
     "package:win": "electron-builder --win --x64"
   },
   "author": "Craig Southeren <craig@postincrement.com>",

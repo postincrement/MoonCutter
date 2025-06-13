@@ -39,7 +39,7 @@ window.api.onSetDeviceTypes(async (event, data) => {
 
   await setDeviceType(deviceNames[0])
   .then(() => {
-    setDefaultImage();
+    //setDefaultImage();
     renderImageToScreen();
   });
 });
@@ -48,7 +48,7 @@ g_deviceTypeSelect.addEventListener('change', async (event) => {
   await setDeviceType(event.target.value)
   .then(() => {
     if (g_imageBuffer.m_default) {
-      setDefaultImage();
+      //setDefaultImage();
     }
     else {
       loadImage(g_imageBuffer.m_image);

@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Clear the current image and show the drop zone
         g_imageBuffer = null;
-        setDefaultImage();
+        //setDefaultImage();
         dropZone.style.display = 'flex';
     }
 
