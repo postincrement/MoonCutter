@@ -12,6 +12,12 @@ Binaries available https://postincrement.github.io/mooncutter/
 - Cross platform thanks to ElectronJS
 - Engrave bitmaps and text
 
+# To-Do
+
+- Add a fan button to the engrave tab 
+- Make rotation use centre of object
+- Save and load projects and settings
+
 ## Thanks!
 
 This program would not have been possible without the work of Marcel Ochsendorf who reverse engineered the protocol.
