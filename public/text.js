@@ -237,7 +237,7 @@ function renderTextToBuffer()
   const lines = g_textSettings.m_text.split('\n');
   let maxWidth = 0;
   let totalHeight = 0;
-  const lineHeight = g_textSettings.m_fontSize;
+  const lineHeight = g_textSettings.m_fontSize * (g_textSettings.m_underline ? 1.2 : 1);
 
   // Calculate dimensions needed for the text
   for (const line of lines) {
@@ -287,7 +287,14 @@ function renderTextToBuffer()
           default: // 'left'
               x = padding;
       }
-      ctx.fillText(line, x, y);
+
+      if (g_textSettings.m_outline) {
+        ctx.lineWidth = 2;
+        ctx.strokeText(line, x, y);
+      }
+      else {
+          ctx.fillText(line, x, y);
+      }
       
       // Draw underline if enabled
       if (g_textSettings.m_underline) {
