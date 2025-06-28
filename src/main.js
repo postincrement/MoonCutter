@@ -362,19 +362,35 @@ app.whenReady().then(async () => {
       event.reply('fan-response', response); 
     });
 
-    ipcMain.on('center-button-clicked', async (event, data) => {
-      console.log('Center button clicked:', data);
+    ipcMain.on('centre-button-clicked', async (event, data) => {
+      console.log('Centre button clicked:', data);
 
       const connStatus = isConnected();
       if (connStatus.status === 'error') {
-          event.reply('center-response', connStatus);
+          event.reply('centre-response', connStatus);
           return;
       }
 
-      response = await g_currentDevice.sendCenter();
+      // calculate the centre of the image bounding box
+      const boundingBox = data.boundingBox;
+      const centreX = (boundingBox.left + boundingBox.right) / 2;
+      const centreY = (boundingBox.top + boundingBox.bottom) / 2;
 
-      // send reply to renderer with all responses
-      event.reply('center-response', { status: 'success', message: "center command sent successfully" }); 
+      logMessage('info', `Centre of image: ${centreX}, ${centreY}`);
+
+      try {
+        var response =    await g_currentDevice.sendAbsoluteMove({ x: centreX, y: centreY });
+        if (response) {
+          event.reply('centre-response', { status: 'success', message: 'Centre command sent successfully' });
+          return;
+      }
+
+        errorString = 'Failed to send centre command';
+        event.reply('centre-response', { status: 'error', message: errorString });
+      } catch (err) {
+        errorString = 'move command error: ' + err.message;
+        event.reply('centre-response', { status: 'error', message: errorString });
+      }
     });
 
     ipcMain.on('home-button-clicked', async (event, data) => {

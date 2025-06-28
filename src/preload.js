@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('api', {
   // Device controls
   sendFanCommand: (data) => ipcRenderer.send('fan-button-clicked', data),
   sendHomeCommand: (data) => ipcRenderer.send('home-button-clicked', data),
-  sendCenterCommand: (data) => ipcRenderer.send('center-button-clicked', data),
+  sendCentreCommand: (data) => ipcRenderer.send('centre-button-clicked', data),
   sendRelativeMove: (data) => ipcRenderer.send('relative-move-command', data),
   engraveArea: (boundingBox) => ipcRenderer.send('engrave-area-clicked', boundingBox),
   
@@ -39,7 +39,7 @@ contextBridge.exposeInMainWorld('api', {
   onConnectResponse: (callback) => ipcRenderer.on('connect-response', callback),
   onFanResponse: (callback) => ipcRenderer.on('fan-response', callback),
   onHomeResponse: (callback) => ipcRenderer.on('home-response', callback),
-  onCenterResponse: (callback) => ipcRenderer.on('center-response', callback),
+  onCentreResponse: (callback) => ipcRenderer.on('centre-response', callback),
   onSetDeviceTypes: (callback) => ipcRenderer.on('set-device-types', callback),
   onEngraveAreaResponse: (callback) => ipcRenderer.on('engrave-area-response', callback),
 

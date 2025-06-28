@@ -280,6 +280,17 @@ class K3Laser extends Protocol {
     }
 
     async startEngraving(info) {
+        // get the position of the image
+        const x = info.boundingBox.left;
+        const y = info.boundingBox.top;
+
+        // move to the start position
+        const startAck = await this.sendAbsoluteMove({ x: x, y: y });
+        if (!startAck) {
+            logMessage('error', 'Failed to move to start position');
+            return false;
+        }
+
         // set discrete mode
         const discreteCommand = COMMANDS.DISCRETE_OFF;
         const discreteAck = await this.sendMessageAndWaitForAck("discrete", Buffer.from(discreteCommand), TIMEOUTS.DISCRETE);
@@ -301,10 +312,6 @@ class K3Laser extends Protocol {
 
         // turn on the fan
         await this.setFan(true);
-
-        // get the size of the image
-        const x = info.boundingBox.left;
-        const y = info.boundingBox.top;
 
         var command = COMMANDS.START;
         command[3] = (x >> 8) & 0xFF;

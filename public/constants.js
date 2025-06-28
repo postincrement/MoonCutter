@@ -53,6 +53,7 @@ const g_flipTextVerticalButton = document.getElementById('flipTextVerticalButton
 const g_startButton         = document.getElementById('startButton');
 const g_stopButton          = document.getElementById('stopButton');
 const g_homeButton          = document.getElementById('homeButton');
+const g_centreButton        = document.getElementById('centreButton');
 const g_engraveAreaButton   = document.getElementById('engraveAreaButton');
 const g_speedSlider         = document.getElementById('speedSlider');
 const g_speedInput          = document.getElementById('speedInput');

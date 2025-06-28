@@ -1,5 +1,3 @@
-
-
 // global state
 let g_fanState = false;         // false = off, true = on
 let g_isConnected = false;      // Track connection state
@@ -128,6 +126,7 @@ function setConnectedState(connected) {
   g_startButton.disabled     = !connected;
   g_stopButton.disabled      = true;
   g_homeButton.disabled      = !connected;
+  g_centreButton.disabled    = !connected;
   g_engraveAreaButton.disabled = !connected;
 }
 

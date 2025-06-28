@@ -121,6 +121,33 @@ window.api.onEngraveAreaResponse((event, data) => {
   }
 });
 
+////////////////////////////////////////////////////////////
+//
+//  centre button handling
+//
+
+document.getElementById('centreButton').addEventListener('click', () => {
+  if (!checkConnection()) {
+    return;
+  }
+  
+  logMessage('info', 'Centre button clicked');
+  window.api.sendCentreCommand({
+    boundingBox: g_boundingBox,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add handler for centre response
+window.api.onCentreResponse((event, data) => {
+  if (data.status === 'error') {
+    logMessage('error', 'Centre command error:', data.message);
+    alert('Centre command error: ' + data.message);
+  } else {
+    logMessage('info', 'Centre command sent successfully');
+  }
+});
+
 // Add home button click handler
 document.getElementById('homeButton').addEventListener('click', () => {
   if (!checkConnection()) {
