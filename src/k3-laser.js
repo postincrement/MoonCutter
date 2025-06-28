@@ -241,7 +241,8 @@ class K3Laser extends Protocol {
 
       // calculate the timeout based on the distance. 
       const distance = Math.sqrt(Math.pow(directionData.dx, 2) + Math.pow(directionData.dy, 2));
-      const timeout = Math.max(100, (distance * (distance < 100 ? 1 : 2)));
+      let timeout = distance * 10000.0 / 1600.0; //Math.max(400, (distance * (distance < 100 ? 1 : 2)));
+      timeout = Math.max(timeout, 100);
 
       logMessage('info', `Distance: ${distance} -> ${timeout}ms`);
         var command = COMMANDS.MOVE;
@@ -263,7 +264,7 @@ class K3Laser extends Protocol {
         logMessage('info', `Move took ${elapsedTime}ms`);
 
         const delay = 100;
-        logMessage('info', `Delaying for ${delay}ms`);
+        logMessage('info', `Delaying for ${timeout}ms`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
         return true;
